@@ -27,7 +27,7 @@ defmodule Terp do
       ...> |> Terp.eval()
       25
 
-      iex> "(if #f (* 5 5) (+ 4 1))"
+      iex> "(if #f (* 5 5) 5)"
       ...> |> Terp.eval()
       5
   """
