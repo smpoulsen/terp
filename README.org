@@ -1,0 +1,19 @@
+* Terp
+
+  =terp= is a toy, lisp-like language.
+
+** Usage
+   #+BEGIN_SRC elixir
+     iex> "(+ 5 3)"
+     ...> |> Terp.eval()
+     8
+
+     iex> "(* 2 4 5)"
+     ...> |> Terp.eval()
+     40
+
+     iex> "(* 2 4 (+ 4 1))"
+     ...> |> Terp.eval()
+     40
+   #+END_SRC
+
