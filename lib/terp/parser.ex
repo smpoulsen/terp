@@ -49,6 +49,7 @@ defmodule Terp.Parser do
   defp fn_parser() do
     choice([
       char("+"),
+      char("-"),
       char("*"),
     ])
   end

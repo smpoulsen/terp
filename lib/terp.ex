@@ -3,6 +3,7 @@ defmodule Terp do
   A toy interpreter.
   """
   alias Terp.Parser
+  alias Terp.Arithmetic
 
   @doc """
   Evaluate a terp expression.
@@ -48,6 +49,13 @@ defmodule Terp do
   def eval_tree(%RoseTree{node: x}) when is_number(x), do: x
   def eval_tree(%RoseTree{node: "+", children: children}) do
     Enum.sum(Enum.map(children, &eval_tree/1))
+  end
+  def eval_tree(%RoseTree{node: "-", children: children}) do
+    children = Enum.map(children, &eval_tree/1)
+    case children do
+      [x | []] -> -x
+      _ -> Arithmetic.subtract(children)
+    end
   end
   def eval_tree(%RoseTree{node: "*", children: children}) do
     children
