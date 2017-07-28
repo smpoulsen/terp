@@ -46,20 +46,14 @@ defmodule Terp do
       iex> Terp.eval_tree(RoseTree.new("*", [2, 4, RoseTree.new("+", [4, 1])]))
       40
   """
-  def eval_tree(%RoseTree{node: x}) when is_number(x), do: x
-  def eval_tree(%RoseTree{node: "+", children: children}) do
-    Enum.sum(Enum.map(children, &eval_tree/1))
-  end
-  def eval_tree(%RoseTree{node: "-", children: children}) do
+  def eval_tree(%RoseTree{node: node, children: children}) do
     children = Enum.map(children, &eval_tree/1)
-    case children do
-      [x | []] -> -x
-      _ -> Arithmetic.subtract(children)
+    case node do
+      x when is_number(x) -> x
+      "+" -> Arithmetic.add(children)
+      "*" -> Arithmetic.multiply(children)
+      "-" -> Arithmetic.subtract(children)
+      "/" -> Arithmetic.divide(children)
     end
-  end
-  def eval_tree(%RoseTree{node: "*", children: children}) do
-    children
-    |> Enum.map(&eval_tree/1)
-    |> Enum.reduce(1, fn x, acc -> x * acc end)
   end
 end
