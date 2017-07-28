@@ -1,6 +1,12 @@
 * Terp
 
-  =terp= is a toy, lisp-like language.
+   =terp= is a toy, lisp-like language.
+
+   Currently implemented:
+     + integers
+     + basic arithmetic (=+=, =-=, =*=, =/=)
+     + booleans (=#t=, =#f=)
+     + =if then else= conditionals
 
 ** Usage
    #+BEGIN_SRC elixir
@@ -15,5 +21,13 @@
      iex> "(* 2 4 (+ 4 1))"
      ...> |> Terp.eval()
      40
+
+     iex> "(if #t (* 5 5) (+ 4 1))"
+     ...> |> Terp.eval()
+     25
+
+     iex> "(if #f (* 5 5) (+ 4 1))"
+     ...> |> Terp.eval()
+     5
    #+END_SRC
 
