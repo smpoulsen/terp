@@ -11,15 +11,14 @@ defmodule Terp.Parser do
   ## Examples
 
       iex> Terp.Parser.parse("(+ 1 2 3)")
-      ["+", 1, 2, 3]
+      [["+", 1, 2, 3]]
 
       iex> Terp.Parser.parse("(+ 1 2 (* 2 3))")
-      ["+", 1, 2, ["*", 2, 3]]
+      [["+", 1, 2, ["*", 2, 3]]]
   """
   def parse(str) do
     str
     |> Combine.parse(expr_parser())
-    |> List.first
   end
 
   @doc """
@@ -30,23 +29,51 @@ defmodule Terp.Parser do
   in parentheses and use prefix notation.
   """
   def expr_parser() do
+    choice([
+      application_parser(),
+      literal_parser(),
+    ])
+  end
+
+  @doc """
+  `application_parser/0` parses function application.
+  """
+  def application_parser() do
     between(
       char("("),
       many(
         choice([
-          fn_parser(),
-          integer(),
-          word(),
+          literal_parser(),
           ignore(space()),
-          lazy(fn -> expr_parser() end)
+          lazy(fn -> application_parser() end)
         ])
       ),
       char(")")
     )
   end
 
-  # Parses valid functions in terp.
-  defp fn_parser() do
+  @doc """
+  Parses literals
+  """
+  def literal_parser() do
+    choice([
+      built_ins_parser(),
+      bool_parser(),
+      integer(),
+      word(),
+    ])
+  end
+
+
+  defp bool_parser() do
+    either(
+      string("#t"), # boolean true
+      string("#f") # boolean false
+    )
+  end
+
+  # Parses valid built-in functions/terms in terp.
+  defp built_ins_parser() do
     choice([
       char("+"),
       char("-"),
@@ -80,6 +107,7 @@ defmodule Terp.Parser do
       ]}
   """
   def to_tree([]), do: {:error, :no_parse}
+  def to_tree([nested_parse]) when is_list(nested_parse), do: to_tree(nested_parse)
   def to_tree([operator | operands]) do
     children = for child <- operands do
       if is_list(child), do: to_tree(child), else: child
