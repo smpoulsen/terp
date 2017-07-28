@@ -45,9 +45,7 @@ defmodule Terp.Parser do
     )
   end
 
-  @doc """
-  Parses valid functions in terp.
-  """
+  # Parses valid functions in terp.
   defp fn_parser() do
     choice([
       char("+"),
