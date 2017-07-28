@@ -49,17 +49,11 @@ defmodule Terp do
   def eval_tree(%RoseTree{node: node, children: children}) do
     children = Enum.map(children, &eval_tree/1)
     case node do
-      x when is_number(x) ->
-        x
-      "+" ->
-        Enum.sum(children)
-      "*" ->
-        Enum.reduce(children, 1, fn (x, acc) -> x * acc end)
-      "-" ->
-        case children do
-          [x | []] -> -x
-          _ -> Arithmetic.subtract(children)
-        end
+      x when is_number(x) -> x
+      "+" -> Arithmetic.add(children)
+      "*" -> Arithmetic.multiply(children)
+      "-" -> Arithmetic.subtract(children)
+      "/" -> Arithmetic.divide(children)
     end
   end
 end

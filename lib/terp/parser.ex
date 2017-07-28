@@ -51,6 +51,7 @@ defmodule Terp.Parser do
       char("+"),
       char("-"),
       char("*"),
+      char("/"),
     ])
   end
 
