@@ -112,6 +112,7 @@ defmodule Terp.Parser do
   def to_tree([]), do: {:error, :no_parse}
   def to_tree([nested_parse]) when is_list(nested_parse), do: to_tree(nested_parse)
   def to_tree([operator | operands]) do
+    operator = if is_list(operator), do: to_tree(operator), else: operator
     children = for child <- operands do
       if is_list(child), do: to_tree(child), else: child
     end

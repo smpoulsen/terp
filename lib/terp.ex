@@ -5,6 +5,7 @@ defmodule Terp do
   alias Terp.Parser
   alias Terp.Arithmetic
   alias Terp.Boolean
+  alias Terp.Function
 
   @doc """
   Evaluate a terp expression.
@@ -55,17 +56,21 @@ defmodule Terp do
       iex> Terp.eval_tree(RoseTree.new("*", [2, 4, RoseTree.new("+", [4, 1])]))
       40
   """
-  def eval_tree(%RoseTree{node: node, children: children}) do
-    children = Enum.map(children, &eval_tree/1)
+  def eval_tree(%RoseTree{node: node, children: children}, env \\ fn (_y) -> {:error, :unbound} end) do
     case node do
       x when is_number(x) -> x
+      x when is_atom(x) -> env.(x)
       "#t" -> Boolean.t()
       "#f" -> Boolean.f()
-      "+" -> Arithmetic.add(children)
-      "*" -> Arithmetic.multiply(children)
-      "-" -> Arithmetic.subtract(children)
-      "/" -> Arithmetic.divide(children)
-      "if" -> Boolean.conditional(children)
+      "+" -> Arithmetic.add(Enum.map(children, &(eval_tree(&1, env))))
+      "*" -> Arithmetic.multiply(Enum.map(children, &(eval_tree(&1, env))))
+      "-" -> Arithmetic.subtract(Enum.map(children, &(eval_tree(&1, env))))
+      "/" -> Arithmetic.divide(Enum.map(children, &(eval_tree(&1, env))))
+      "if" -> Boolean.conditional(Enum.map(children, &(eval_tree(&1, env))))
+      "lambda" -> Function.lambda(children, env)
+      x = %RoseTree{} -> # This is the case for lambda application; should be able to neaten up
+          eval_tree(%RoseTree{node: eval_tree(x, env), children: children}, env)
+      x when is_function(x) -> apply(x, Enum.map(children, &(eval_tree(&1, env))))
     end
   end
 end
