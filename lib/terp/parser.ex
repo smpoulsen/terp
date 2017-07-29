@@ -63,6 +63,7 @@ defmodule Terp.Parser do
       built_ins_parser(),
       bool_parser(),
       integer(),
+      map(ignore(char(":")) |> word(), fn atom -> String.to_atom(atom) end),
       word(),
     ])
   end
