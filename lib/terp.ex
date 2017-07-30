@@ -45,32 +45,53 @@ defmodule Terp do
   ## Example
 
       # (+ 5 3)
-      iex> Terp.eval_tree(RoseTree.new("+", [5, 3]))
+      iex> "(+ 5 3)"
+      ...> |> Terp.Parser.parse()
+      ...> |> Terp.Parser.to_tree()
+      ...> |> Terp.eval_tree()
       8
 
       # (* 2 4 5)
-      iex> Terp.eval_tree(RoseTree.new("*", [2, 4, 5]))
+      iex> "(* 2 4 5)"
+      ...> |> Terp.Parser.parse()
+      ...> |> Terp.Parser.to_tree()
+      ...> |> Terp.eval_tree()
       40
 
       # (* 2 4 (+ 4 1))
-      iex> Terp.eval_tree(RoseTree.new("*", [2, 4, RoseTree.new("+", [4, 1])]))
+      iex> "(* 2 4 (+ 4 1))"
+      ...> |> Terp.Parser.parse()
+      ...> |> Terp.Parser.to_tree()
+      ...> |> Terp.eval_tree()
       40
   """
-  def eval_tree(%RoseTree{node: node, children: children}, env \\ fn (_y) -> {:error, :unbound} end) do
+  def eval_tree(%RoseTree{node: node, children: children} = tree, env \\ fn (_y) -> {:error, :unbound} end) do
     case node do
       x when is_number(x) -> x
-      x when is_atom(x) -> env.(x)
+      x when is_atom(x) and x !== :__apply ->
+        env.(x)
+      :__apply ->
+        %{node: f, children: cs} = func = List.first(children)
+        IO.inspect({"*****", tree})
+        IO.inspect({"!!!!!", f})
+        IO.inspect({"?????", cs})
+        if f == "lambda" do
+          eval_tree(func, env)
+        else
+          Function.apply_fn(eval_tree(func, env), Enum.map(cs, &eval_tree(&1, env)))
+        end
       "#t" -> Boolean.t()
       "#f" -> Boolean.f()
-      "+" -> Arithmetic.add(Enum.map(children, &(eval_tree(&1, env))))
-      "*" -> Arithmetic.multiply(Enum.map(children, &(eval_tree(&1, env))))
-      "-" -> Arithmetic.subtract(Enum.map(children, &(eval_tree(&1, env))))
-      "/" -> Arithmetic.divide(Enum.map(children, &(eval_tree(&1, env))))
-      "if" -> Boolean.conditional(Enum.map(children, &(eval_tree(&1, env))))
-      "lambda" -> Function.lambda(children, env)
-      x = %RoseTree{} -> # This is the case for lambda application; should be able to neaten up
-          eval_tree(%RoseTree{node: eval_tree(x, env), children: children}, env)
+      "+" -> fn y -> Arithmetic.add(y) end
+      "*" -> fn y -> Arithmetic.multiply(y) end
+      "-" -> fn y -> Arithmetic.subtract(y) end
+      "/" -> fn y -> Arithmetic.divide(y) end
+      "if" -> fn y -> Boolean.conditional(y) end
+      "lambda" ->
+          fn _ -> Function.lambda(children, env) end
       x when is_function(x) -> apply(x, Enum.map(children, &(eval_tree(&1, env))))
+      x = %RoseTree{} -> # This is the case for lambda application; should be able to neaten up
+        eval_tree(%RoseTree{node: eval_tree(x, env), children: children}, env)
     end
   end
 end

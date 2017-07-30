@@ -11,10 +11,10 @@ defmodule Terp.Parser do
   ## Examples
 
       iex> Terp.Parser.parse("(+ 1 2 3)")
-      [["+", 1, 2, 3]]
+      [__apply: ["+", 1, 2, 3]]
 
       iex> Terp.Parser.parse("(+ 1 2 (* 2 3))")
-      [["+", 1, 2, ["*", 2, 3]]]
+      [__apply: ["+", 1, 2, {:__apply, ["*", 2, 3]}]]
   """
   def parse(str) do
     str
@@ -33,8 +33,9 @@ defmodule Terp.Parser do
   """
   def expr_parser() do
     choice([
-      application_parser(),
       literal_parser(),
+      list_parser(),
+      application_parser(),
     ])
   end
 
@@ -42,13 +43,32 @@ defmodule Terp.Parser do
   `application_parser/0` parses function application.
   """
   def application_parser() do
-    between(
+    app_parser = between(
       char("("),
       many(
         choice([
           literal_parser(),
           ignore(space()),
+          list_parser(),
           lazy(fn -> application_parser() end)
+        ])
+      ),
+      char(")")
+    )
+    map(app_parser, fn x -> {:__apply, x} end)
+  end
+
+  @doc """
+  Parses a quoted list, e.g. '(4 23 6).
+
+  """
+  def list_parser() do
+    between(
+      string("'("),
+      many(
+        choice([
+          literal_parser(),
+          ignore(space()),
         ])
       ),
       char(")")
@@ -65,6 +85,7 @@ defmodule Terp.Parser do
       integer(),
       map(ignore(char(":")) |> word(), fn atom -> String.to_atom(atom) end),
       word(),
+      lazy(fn -> list_parser() end),
     ])
   end
 
@@ -92,31 +113,45 @@ defmodule Terp.Parser do
 
       iex> ["+", 1, 2, 3]
       ...> |> Terp.Parser.to_tree()
-      %RoseTree{node: "+", children: [
-        %RoseTree{node: 1, children: []},
-        %RoseTree{node: 2, children: []},
-        %RoseTree{node: 3, children: []},
+      %RoseTree{
+        node: %RoseTree{node: "+", children: []},
+        children: [
+          %RoseTree{node: 1, children: []},
+          %RoseTree{node: 2, children: []},
+          %RoseTree{node: 3, children: []},
       ]}
 
       iex> ["+", 1, 2, ["*", 2, 3]]
       ...> |> Terp.Parser.to_tree()
-      %RoseTree{node: "+", children: [
-        %RoseTree{node: 1, children: []},
-        %RoseTree{node: 2, children: []},
-        %RoseTree{node: "*", children: [
+      %RoseTree{
+        node: %RoseTree{node: "+", children: []},
+        children: [
+          %RoseTree{node: 1, children: []},
           %RoseTree{node: 2, children: []},
-          %RoseTree{node: 3, children: []},
-        ]},
-      ]}
+          %RoseTree{
+            node: %RoseTree{node: "*", children: []},
+            children: [
+              %RoseTree{node: 2, children: []},
+              %RoseTree{node: 3, children: []},
+            ]
+          },
+        ]
+      }
   """
   def to_tree([]), do: {:error, :no_parse}
-  def to_tree([nested_parse]) when is_list(nested_parse), do: to_tree(nested_parse)
-  def to_tree([operator | operands]) do
-    operator = if is_list(operator), do: to_tree(operator), else: operator
-    children = for child <- operands do
-      if is_list(child), do: to_tree(child), else: child
+  def to_tree({:__apply, parsed}), do: RoseTree.new(:__apply, to_tree(parsed))
+  def to_tree([{:__apply, parsed}]), do: RoseTree.new(:__apply, to_tree(parsed))
+  def to_tree(expr) when is_list(expr) do
+    [operator | operands] = for v <- expr do
+      case v do
+        val when is_list(val) ->
+          to_tree(val)
+        {:__apply, x} ->
+          RoseTree.new(:__apply, to_tree(x))
+        _ -> v
+      end
     end
-    RoseTree.new(operator, children)
+    RoseTree.new(operator, operands)
   end
 
   # lazy parser implementation from
