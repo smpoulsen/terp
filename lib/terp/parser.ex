@@ -11,10 +11,10 @@ defmodule Terp.Parser do
   ## Examples
 
       iex> Terp.Parser.parse("(+ 1 2 3)")
-      [__apply: ["+", 1, 2, 3]]
+      [__apply: [:+, 1, 2, 3]]
 
       iex> Terp.Parser.parse("(+ 1 2 (* 2 3))")
-      [__apply: ["+", 1, 2, {:__apply, ["*", 2, 3]}]]
+      [__apply: [:+, 1, 2, {:__apply, [:*, 2, 3]}]]
   """
   def parse(str) do
     str
@@ -31,10 +31,11 @@ defmodule Terp.Parser do
   TODO: currently, parsing application of literals works even
   if it doesn't make sense to, e.g. `(#t)` is considered valid
   """
-  def expr_parser() do
+  defp expr_parser() do
     choice([
       literal_parser(),
       list_parser(),
+      lambda_parser(),
       application_parser(),
     ])
   end
@@ -42,7 +43,7 @@ defmodule Terp.Parser do
   @doc """
   `application_parser/0` parses function application.
   """
-  def application_parser() do
+  defp application_parser() do
     app_parser = between(
       char("("),
       many(
@@ -50,6 +51,7 @@ defmodule Terp.Parser do
           literal_parser(),
           ignore(space()),
           list_parser(),
+          lambda_parser(),
           lazy(fn -> application_parser() end)
         ])
       ),
@@ -59,11 +61,30 @@ defmodule Terp.Parser do
   end
 
   @doc """
-  Parses a quoted list, e.g. '(4 23 6).
-
+  Parser for a lambda expression.
   """
-  def list_parser() do
-    between(
+  defp lambda_parser() do
+    l_parser = between(
+      string("(lambda"),
+      many(
+        choice([
+          literal_parser(),
+          ignore(space()),
+          list_parser(),
+          lazy(fn -> lambda_parser() end),
+          lazy(fn -> application_parser() end)
+        ])
+      ),
+      char(")")
+    )
+    map(l_parser, fn x -> {:__lambda, x} end)
+  end
+
+  @doc """
+  Parses a quoted list, e.g. '(4 23 6).
+  """
+  defp list_parser() do
+    lst_parser = between(
       string("'("),
       many(
         choice([
@@ -73,22 +94,29 @@ defmodule Terp.Parser do
       ),
       char(")")
     )
+    map(lst_parser, fn x -> {:__quote, x} end)
   end
 
   @doc """
   Parses literals
   """
-  def literal_parser() do
+  defp literal_parser() do
     choice([
       built_ins_parser(),
       bool_parser(),
       integer(),
-      map(ignore(char(":")) |> word(), fn atom -> String.to_atom(atom) end),
+      string_to_atom(ignore(char(":")) |> word()),
       word(),
       lazy(fn -> list_parser() end),
     ])
   end
 
+  # Converts the result of a parser to an atom
+  defp string_to_atom(parser) do
+    map(parser, fn atom -> String.to_atom(atom) end)
+  end
+
+  # Parses true/false booleans
   defp bool_parser() do
     either(
       string("#t"), # boolean true
@@ -99,10 +127,10 @@ defmodule Terp.Parser do
   # Parses valid built-in functions/terms in terp.
   defp built_ins_parser() do
     choice([
-      char("+"),
-      char("-"),
-      char("*"),
-      char("/"),
+      string_to_atom(char("+")),
+      string_to_atom(char("-")),
+      string_to_atom(char("*")),
+      string_to_atom(char("/")),
     ])
   end
 
@@ -111,47 +139,42 @@ defmodule Terp.Parser do
 
   ## Examples
 
-      iex> ["+", 1, 2, 3]
+      iex> [:__apply, [:+, 1, 2, 3]]
       ...> |> Terp.Parser.to_tree()
-      %RoseTree{
-        node: %RoseTree{node: "+", children: []},
-        children: [
+      [
+      %RoseTree{node: :__apply, children: []},
+        [
+          %RoseTree{node: :+, children: []},
           %RoseTree{node: 1, children: []},
           %RoseTree{node: 2, children: []},
           %RoseTree{node: 3, children: []},
-      ]}
-
-      iex> ["+", 1, 2, ["*", 2, 3]]
-      ...> |> Terp.Parser.to_tree()
-      %RoseTree{
-        node: %RoseTree{node: "+", children: []},
-        children: [
-          %RoseTree{node: 1, children: []},
-          %RoseTree{node: 2, children: []},
-          %RoseTree{
-            node: %RoseTree{node: "*", children: []},
-            children: [
-              %RoseTree{node: 2, children: []},
-              %RoseTree{node: 3, children: []},
-            ]
-          },
         ]
-      }
+      ]
+
+      iex> [:+, 1, 2, [:*, 2, 3]]
+      ...> |> Terp.Parser.to_tree()
+      [
+        %RoseTree{node: :+, children: []},
+        %RoseTree{node: 1, children: []},
+        %RoseTree{node: 2, children: []},
+        [
+          %RoseTree{node: :*, children: []},
+          %RoseTree{node: 2, children: []},
+          %RoseTree{node: 3, children: []},
+        ]
+      ]
   """
   def to_tree([]), do: {:error, :no_parse}
-  def to_tree({:__apply, parsed}), do: RoseTree.new(:__apply, to_tree(parsed))
-  def to_tree([{:__apply, parsed}]), do: RoseTree.new(:__apply, to_tree(parsed))
   def to_tree(expr) when is_list(expr) do
-    [operator | operands] = for v <- expr do
+    for v <- expr do
       case v do
+        {s, x} when is_atom(s) ->
+          RoseTree.new(s, to_tree(x))
         val when is_list(val) ->
           to_tree(val)
-        {:__apply, x} ->
-          RoseTree.new(:__apply, to_tree(x))
-        _ -> v
+        _ -> RoseTree.new(v)
       end
     end
-    RoseTree.new(operator, operands)
   end
 
   # lazy parser implementation from

@@ -34,5 +34,9 @@
      iex> "((lambda (:x) :x) 5)"
      ...> |> Terp.eval
      5
+
+     iex> "(((lambda '(:x) (lambda '(:y) (+ :x :y))) 5 ) 3)"
+     ...> |> Terp.eval
+     8
    #+END_SRC
 

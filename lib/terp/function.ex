@@ -3,26 +3,29 @@ defmodule Terp.Function do
   Function/anonymous function definition
   """
 
-  def define([name | [args | [body | []]]], env) do
-    Map.put(env, name, define_helper(args, body))
-  end
-  def define_helper([], body, bound_args) do
-    apply(body, Enum.reverse(bound_args))
-  end
-  def define_helper([_arg | args], body, bound_args \\ []) do
-    fn x -> define_helper(args, body, [x | bound_args] ) end
-  end
-
   @doc """
   Defines an anonymous function.
   """
-  def lambda([%RoseTree{node: x} | [body | []]], env) do
+  def lambda([%RoseTree{node: :__quote, children: arguments} | [body | []]], env) do
+    xs = Enum.map(arguments, fn x -> x.node end)
+    lambda_helper(xs, body, env)
+  end
+  defp lambda_helper([argument | []], body, env) do
     fn arg ->
-      Terp.eval_tree(body, fn y -> if x == y, do: arg, else: env.(y) end)
+      Terp.eval_tree(body, fn y -> if argument == y, do: arg, else: env.(y) end)
+    end
+  end
+  defp lambda_helper([argument | arguments], body, env) do
+    fn arg ->
+      lambda_helper(arguments, body, fn y -> if argument == y, do: arg, else: env.(y) end)
     end
   end
 
-  def apply_fn(func, args) do
-    apply(func, args)
+  @doc """
+  Apply a lambda function:
+  """
+  def apply_lambda(func, [arg | []], env), do: func.(arg)
+  def apply_lambda(func, [arg | args], env) do
+    apply_lambda(func.(arg), args, env)
   end
 end

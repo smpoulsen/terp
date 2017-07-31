@@ -6,6 +6,9 @@ defmodule Terp do
   alias Terp.Arithmetic
   alias Terp.Boolean
   alias Terp.Function
+  alias RoseTree.Zipper
+
+  @debug false
 
   @doc """
   Evaluate a terp expression.
@@ -36,7 +39,8 @@ defmodule Terp do
     str
     |> Parser.parse()
     |> Parser.to_tree()
-    |> eval_tree()
+    |> Enum.map(&eval_tree/1)
+    |> List.first() # TODO
   end
 
   @doc """
@@ -48,50 +52,70 @@ defmodule Terp do
       iex> "(+ 5 3)"
       ...> |> Terp.Parser.parse()
       ...> |> Terp.Parser.to_tree()
-      ...> |> Terp.eval_tree()
+      ...> |> Enum.map(&Terp.eval_tree/1)
+      ...> |> List.first() # TODO
       8
 
       # (* 2 4 5)
       iex> "(* 2 4 5)"
       ...> |> Terp.Parser.parse()
       ...> |> Terp.Parser.to_tree()
-      ...> |> Terp.eval_tree()
+      ...> |> Enum.map(&Terp.eval_tree/1)
+      ...> |> List.first() # TODO
       40
 
       # (* 2 4 (+ 4 1))
       iex> "(* 2 4 (+ 4 1))"
       ...> |> Terp.Parser.parse()
       ...> |> Terp.Parser.to_tree()
-      ...> |> Terp.eval_tree()
+      ...> |> Enum.map(&Terp.eval_tree/1)
+      ...> |> List.first() # TODO
       40
   """
-  def eval_tree(%RoseTree{node: node, children: children} = tree, env \\ fn (_y) -> {:error, :unbound} end) do
+  def eval_tree(%RoseTree{node: node, children: children} = tree, env \\ fn (y) -> {:error, {:unbound, y}} end) do
+    if @debug do
+      IO.inspect({"TREE", tree})
+    end
     case node do
-      x when is_number(x) -> x
-      x when is_atom(x) and x !== :__apply ->
-        env.(x)
+      :__lambda ->
+        Function.lambda(children, env)
+      :__quote ->
+        children
       :__apply ->
-        %{node: f, children: cs} = func = List.first(children)
-        IO.inspect({"*****", tree})
-        IO.inspect({"!!!!!", f})
-        IO.inspect({"?????", cs})
-        if f == "lambda" do
-          eval_tree(func, env)
-        else
-          Function.apply_fn(eval_tree(func, env), Enum.map(cs, &eval_tree(&1, env)))
+        [operator | operands] = Enum.map(children, &eval_tree(&1, env))
+        if @debug do
+          IO.inspect({"OPERATOR", operator})
+          IO.inspect({"OPERANDS", operands})
         end
+
+        case operator do
+          :+ -> Arithmetic.add(operands)
+          :* -> Arithmetic.multiply(operands)
+          :- -> Arithmetic.subtract(operands)
+          :/ -> Arithmetic.divide(operands)
+          :__if -> Boolean.conditional(operands)
+          true -> true
+          false -> false
+          x when is_function(x) -> Function.apply_lambda(operator, operands, env)
+          x when is_number(x) -> x
+          _  -> eval(operator, operands, env)
+        end
+      x when is_number(x) -> x
+      #TODO Remove all of this duplication between here and apply
       "#t" -> Boolean.t()
       "#f" -> Boolean.f()
-      "+" -> fn y -> Arithmetic.add(y) end
-      "*" -> fn y -> Arithmetic.multiply(y) end
-      "-" -> fn y -> Arithmetic.subtract(y) end
-      "/" -> fn y -> Arithmetic.divide(y) end
-      "if" -> fn y -> Boolean.conditional(y) end
-      "lambda" ->
-          fn _ -> Function.lambda(children, env) end
-      x when is_function(x) -> apply(x, Enum.map(children, &(eval_tree(&1, env))))
-      x = %RoseTree{} -> # This is the case for lambda application; should be able to neaten up
-        eval_tree(%RoseTree{node: eval_tree(x, env), children: children}, env)
+      :+ -> :+
+      :* -> :*
+      :- -> :-
+      :/ -> :/
+      "if" -> :__if
+      x when is_atom(x) -> env.(x)
     end
   end
+
+  @doc """
+  Apply a list of arguments to a curried function.
+  """
+  def eval(operator, [h | []], env), do: operator.(env.(h))
+  def eval(operator, [h | t], env), do: eval(operator.(env.(h)), t, env)
 end
