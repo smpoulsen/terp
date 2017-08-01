@@ -34,4 +34,15 @@ defmodule TerpTest do
     assert "(if #t (- 10 3) 9)"
     |> Terp.eval() == 7
   end
+
+  test "multiple arguments in function definition" do
+    assert "((lambda '(:x :y) (+ :x :y)) 5 3)"
+    |> Terp.eval() == 8
+  end
+
+  test "variable binding" do
+    assert "(let :identity (lambda '(:x) :x))\n(:identity 5)"
+    |> Terp.eval() == 5
+  end
+
 end

@@ -7,7 +7,8 @@
      + basic arithmetic (=+=, =-=, =*=, =/=)
      + booleans (=#t=, =#f=)
      + =if then else= conditionals
-     + Lambda functions
+     + Lambda functions (=lambda=)
+     + variable binding (=let=)
 
 ** Usage
    #+BEGIN_SRC elixir
@@ -36,6 +37,10 @@
      5
 
      iex> "(((lambda '(:x) (lambda '(:y) (+ :x :y))) 5 ) 3)"
+     ...> |> Terp.eval
+     8
+
+     iex> "((lambda '(:x :y) (+ :x :y)) 5 3)"
      ...> |> Terp.eval
      8
    #+END_SRC
