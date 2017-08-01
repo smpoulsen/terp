@@ -7,18 +7,24 @@ defmodule Terp.Mixfile do
       version: "0.1.0",
       elixir: ">= 1.4.0",
       start_permanent: Mix.env == :prod,
-      deps: deps()
+      description: description(),
+      package: package(),
+      deps: deps(),
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
       extra_applications: [:logger]
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
+  def description() do
+    """
+    An interpreter for a toy lisp implementation.
+    """
+  end
+
   defp deps do
     [
       {:combine, "~> 0.9.6"},
@@ -27,6 +33,17 @@ defmodule Terp.Mixfile do
       {:dialyxir, "~> 0.5.0", only: [:dev, :test]},
       {:excheck, "~> 0.5.3", only: :test},
       {:triq, github: "triqng/triq", only: :test},
+    ]
+  end
+
+  defp package do
+    [
+      name: :terp,
+      licenses: ["BSD2"],
+      maintainers: ["Travis Poulsen"],
+      links: %{
+        "GitHub" => "https://github.com/tpoulsen/terp",
+      }
     ]
   end
 end
