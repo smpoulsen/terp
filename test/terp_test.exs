@@ -36,13 +36,24 @@ defmodule TerpTest do
   end
 
   test "multiple arguments in function definition" do
-    assert "((lambda '(:x :y) (+ :x :y)) 5 3)"
-    |> Terp.eval() == 8
+    expr = "((lambda '(:x :y) (+ :x :y)) 5 3)"
+    assert Terp.eval(expr) == 8
   end
 
-  test "variable binding" do
-    assert "(let :identity (lambda '(:x) :x))\n(:identity 5)"
-    |> Terp.eval() == 5
+  test "variable binding with let" do
+    expr = """
+    (let :identity (lambda '(:x) :x))
+    (:identity 5)
+    """
+    assert Terp.eval(expr) == 5
   end
 
+  test "comments are ignored" do
+    expr = """
+    ;; a comment
+    (let :identity (lambda '(:x) :x))
+    (:identity 5)
+    """
+    assert Terp.eval(expr) == 5
+  end
 end
