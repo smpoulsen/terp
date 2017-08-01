@@ -6,7 +6,6 @@ defmodule Terp do
   alias Terp.Arithmetic
   alias Terp.Boolean
   alias Terp.Function
-  alias RoseTree.Zipper
 
   @debug false
 
@@ -17,30 +16,29 @@ defmodule Terp do
 
       iex> "(+ 5 3)"
       ...> |> Terp.eval()
-      8
+      [8]
 
       iex> "(* 2 4 5)"
       ...> |> Terp.eval()
-      40
+      [40]
 
       iex> "(* 2 4 (+ 4 1))"
       ...> |> Terp.eval()
-      40
+      [40]
 
       iex> "(if #t (* 5 5) (+ 4 1))"
       ...> |> Terp.eval()
-      25
+      [25]
 
       iex> "(if #f (* 5 5) 5)"
       ...> |> Terp.eval()
-      5
+      [5]
   """
   def eval(str) do
     str
     |> Parser.parse()
-    |> Parser.to_tree()
-    |> Enum.map(&eval_tree/1)
-    |> List.first() # TODO
+    |> Enum.flat_map(&Parser.to_tree/1)
+    |> Enum.map(fn tree -> eval_tree(tree, fn (z) -> {:error, {:unbound, z}} end) end)
   end
 
   @doc """
@@ -51,26 +49,23 @@ defmodule Terp do
       # (+ 5 3)
       iex> "(+ 5 3)"
       ...> |> Terp.Parser.parse()
-      ...> |> Terp.Parser.to_tree()
-      ...> |> Enum.map(&Terp.eval_tree/1)
-      ...> |> List.first() # TODO
-      8
+      ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
+      ...> |> Enum.map(fn tree -> Terp.eval_tree(tree, fn (z) -> {:error, {:unbound, z}} end) end)
+      [8]
 
       # (* 2 4 5)
       iex> "(* 2 4 5)"
       ...> |> Terp.Parser.parse()
-      ...> |> Terp.Parser.to_tree()
-      ...> |> Enum.map(&Terp.eval_tree/1)
-      ...> |> List.first() # TODO
-      40
+      ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
+      ...> |> Enum.map(fn tree -> Terp.eval_tree(tree, fn (z) -> {:error, {:unbound, z}} end) end)
+      [40]
 
       # (* 2 4 (+ 4 1))
       iex> "(* 2 4 (+ 4 1))"
       ...> |> Terp.Parser.parse()
-      ...> |> Terp.Parser.to_tree()
-      ...> |> Enum.map(&Terp.eval_tree/1)
-      ...> |> List.first() # TODO
-      40
+      ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
+      ...> |> Enum.map(fn tree -> Terp.eval_tree(tree, fn (z) -> {:error, {:unbound, z}} end) end)
+      [40]
   """
   def eval_tree(%RoseTree{node: node, children: children} = tree, env \\ fn (y) -> {:error, {:unbound, y}} end) do
     if @debug do

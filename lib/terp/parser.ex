@@ -11,14 +11,14 @@ defmodule Terp.Parser do
   ## Examples
 
       iex> Terp.Parser.parse("(+ 1 2 3)")
-      [__apply: [:+, 1, 2, 3]]
+      [[__apply: [:+, 1, 2, 3]]]
 
       iex> Terp.Parser.parse("(+ 1 2 (* 2 3))")
-      [__apply: [:+, 1, 2, {:__apply, [:*, 2, 3]}]]
+      [[__apply: [:+, 1, 2, {:__apply, [:*, 2, 3]}]]]
   """
   def parse(str) do
     str
-    |> Combine.parse(expr_parser())
+    |> Combine.parse(many1(expr_parser()))
   end
 
   @doc """
@@ -37,6 +37,7 @@ defmodule Terp.Parser do
       list_parser(),
       lambda_parser(),
       application_parser(),
+      ignore(newline()),
     ])
   end
 
