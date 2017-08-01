@@ -7,7 +7,8 @@
      + basic arithmetic (=+=, =-=, =*=, =/=)
      + booleans (=#t=, =#f=)
      + =if then else= conditionals
-     + Lambda functions
+     + Lambda functions (=lambda=)
+     + variable binding (=let=)
 
 ** Usage
    #+BEGIN_SRC elixir
@@ -38,19 +39,35 @@
      iex> "(((lambda '(:x) (lambda '(:y) (+ :x :y))) 5 ) 3)"
      ...> |> Terp.eval
      8
+
+     iex> "((lambda '(:x :y) (+ :x :y)) 5 3)"
+     ...> |> Terp.eval
+     8
    #+END_SRC
+
+** Variable binding
+   Variables are bound using =let=:
+    #+BEGIN_SRC scheme
+      (let :x 5)
+
+      (let :identity (lambda '(:x) :x))
+
+      (:identity :x)
+      ;; 5
+    #+END_SRC
 
 ** Evaluating a file:
 
    Filename =test.tp=:
    #+BEGIN_SRC scheme
-     ((lambda '(:x) :x) 5)
+     (let :identity (lambda '(:x) :x))
+     (let :double_identity ((:identity :identity) 5))
 
-     ((lambda '(:y) (* :y :y)) 10)
+     (+ 2 :double_identity)
    #+END_SRC
 
    #+BEGIN_SRC sh
      $ mix terp.run test.tp
-     [5, 100]
+     7
    #+END_SRC
    * With =@debug= set to =true=, the results of the file evaluation are printed to stdout.

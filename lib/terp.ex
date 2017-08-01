@@ -12,33 +12,50 @@ defmodule Terp do
   @doc """
   Evaluate a terp expression.
 
+  ### Notes:
+  + When defining functions, e.g. `(lambda '(:x) :x)`, the arguments have to be quoted.
+
   ## Example
 
       iex> "(+ 5 3)"
       ...> |> Terp.eval()
-      [8]
+      8
 
       iex> "(* 2 4 5)"
       ...> |> Terp.eval()
-      [40]
+      40
 
       iex> "(* 2 4 (+ 4 1))"
       ...> |> Terp.eval()
-      [40]
+      40
 
       iex> "(if #t (* 5 5) (+ 4 1))"
       ...> |> Terp.eval()
-      [25]
+      25
 
       iex> "(if #f (* 5 5) 5)"
       ...> |> Terp.eval()
-      [5]
+      5
   """
   def eval(str) do
-    str
+    trees = str
     |> Parser.parse()
     |> Enum.flat_map(&Parser.to_tree/1)
-    |> Enum.map(fn tree -> eval_tree(tree, fn (z) -> {:error, {:unbound, z}} end) end)
+
+    eval_trees(trees)
+  end
+
+  # Given a list of trees and an environment, evaluates the trees in
+  # the context of the environment.
+  defp eval_trees(_, env \\ fn (z) -> {:error, {:unbound, z}} end)
+  defp eval_trees([tree | []], env), do: eval_expr(tree, env)
+  defp eval_trees([tree | trees], env) do
+    res = eval_expr(tree, env)
+    if is_function(res) do
+      eval_trees(trees, res)
+    else
+      eval_trees(trees, env)
+    end
   end
 
   @doc """
@@ -50,24 +67,24 @@ defmodule Terp do
       iex> "(+ 5 3)"
       ...> |> Terp.Parser.parse()
       ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
-      ...> |> Enum.map(fn tree -> Terp.eval_tree(tree, fn (z) -> {:error, {:unbound, z}} end) end)
+      ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [8]
 
       # (* 2 4 5)
       iex> "(* 2 4 5)"
       ...> |> Terp.Parser.parse()
       ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
-      ...> |> Enum.map(fn tree -> Terp.eval_tree(tree, fn (z) -> {:error, {:unbound, z}} end) end)
+      ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [40]
 
       # (* 2 4 (+ 4 1))
       iex> "(* 2 4 (+ 4 1))"
       ...> |> Terp.Parser.parse()
       ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
-      ...> |> Enum.map(fn tree -> Terp.eval_tree(tree, fn (z) -> {:error, {:unbound, z}} end) end)
+      ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [40]
   """
-  def eval_tree(%RoseTree{node: node, children: children} = tree, env \\ fn (y) -> {:error, {:unbound, y}} end) do
+  def eval_expr(%RoseTree{node: node, children: children} = tree, env \\ fn (y) -> {:error, {:unbound, y}} end) do
     if @debug do
       IO.inspect({"TREE", tree})
     end
@@ -76,8 +93,15 @@ defmodule Terp do
         Function.lambda(children, env)
       :__quote ->
         children
+      :__let ->
+        [name | [bound | []]] = children
+        eval_expr(name,
+          fn y ->
+            fn name -> if y == name, do: eval_expr(bound, env), else: env.(name)
+            end
+        end)
       :__apply ->
-        [operator | operands] = Enum.map(children, &eval_tree(&1, env))
+        [operator | operands] = Enum.map(children, &eval_expr(&1, env))
         if @debug do
           IO.inspect({"OPERATOR", operator})
           IO.inspect({"OPERANDS", operands})
