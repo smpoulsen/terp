@@ -1,0 +1,5 @@
+(let :x 5)
+
+(let :identity (lambda '(:x) :x))
+
+(:identity :x)

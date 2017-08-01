@@ -36,6 +36,7 @@ defmodule Terp.Parser do
       literal_parser(),
       list_parser(),
       lambda_parser(),
+      let_parser(),
       application_parser(),
       ignore(newline()),
     ])
@@ -47,15 +48,7 @@ defmodule Terp.Parser do
   defp application_parser() do
     app_parser = between(
       char("("),
-      many(
-        choice([
-          literal_parser(),
-          ignore(space()),
-          list_parser(),
-          lambda_parser(),
-          lazy(fn -> application_parser() end)
-        ])
-      ),
+      valid_expr_parser(),
       char(")")
     )
     map(app_parser, fn x -> {:__apply, x} end)
@@ -67,18 +60,35 @@ defmodule Terp.Parser do
   defp lambda_parser() do
     l_parser = between(
       string("(lambda"),
-      many(
-        choice([
-          literal_parser(),
-          ignore(space()),
-          list_parser(),
-          lazy(fn -> lambda_parser() end),
-          lazy(fn -> application_parser() end)
-        ])
-      ),
+      valid_expr_parser(),
       char(")")
     )
     map(l_parser, fn x -> {:__lambda, x} end)
+  end
+
+  @doc """
+  Parser for a lambda expression.
+  """
+  defp let_parser() do
+    l_parser = between(
+      string("(let"),
+      valid_expr_parser(),
+      char(")")
+    )
+    map(l_parser, fn x -> {:__let, x} end)
+  end
+
+  defp valid_expr_parser() do
+    many(
+      choice([
+        literal_parser(),
+        ignore(space()),
+        list_parser(),
+        lazy(fn -> lambda_parser() end),
+        lazy(fn -> let_parser() end),
+        lazy(fn -> application_parser() end)
+      ])
+    )
   end
 
   @doc """
