@@ -40,3 +40,17 @@
      8
    #+END_SRC
 
+** Evaluating a file:
+
+   Filename =test.tp=:
+   #+BEGIN_SRC scheme
+     ((lambda '(:x) :x) 5)
+
+     ((lambda '(:y) (* :y :y)) 10)
+   #+END_SRC
+
+   #+BEGIN_SRC sh
+     $ mix terp.run test.tp
+     [5, 100]
+   #+END_SRC
+   * With =@debug= set to =true=, the results of the file evaluation are printed to stdout.
