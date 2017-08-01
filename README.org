@@ -1,6 +1,6 @@
 * Terp
 
-   =terp= is a toy, lisp-like language.
+   =terp= is an interpreter for a toy, lisp-like language.
 
    Currently implemented:
      + integers
@@ -57,8 +57,9 @@
     #+END_SRC
 
 ** Evaluating a file:
+   There's a mix task (=mix terp.run $FILENAME=) to evaluate a file:
 
-   Filename =test.tp=:
+   Filename =test.tp= (=terp= files must end in =.tp=):
    #+BEGIN_SRC scheme
      (let :identity (lambda '(:x) :x))
      (let :double_identity ((:identity :identity) 5))
