@@ -45,6 +45,13 @@
      8
    #+END_SRC
 
+** Comments
+   Comments are single-line and begin with `;;`:
+   #+BEGIN_SRC scheme
+     ;; A comment
+     (+ 5 1)
+   #+END_SRC
+
 ** Variable binding
    Variables are bound using =let=:
     #+BEGIN_SRC scheme

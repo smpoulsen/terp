@@ -42,7 +42,9 @@ defmodule Terp do
     |> Parser.parse()
     |> Enum.flat_map(&Parser.to_tree/1)
 
-    eval_trees(trees)
+    trees
+    |> filter_comments()
+    |> eval_trees()
   end
 
   # Given a list of trees and an environment, evaluates the trees in
@@ -56,6 +58,11 @@ defmodule Terp do
     else
       eval_trees(trees, env)
     end
+  end
+
+  # Filters comments out of the AST.
+  defp filter_comments(trees) do
+    Enum.reject(trees, fn %RoseTree{node: node} -> node == :__comment end)
   end
 
   @doc """

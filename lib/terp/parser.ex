@@ -33,6 +33,7 @@ defmodule Terp.Parser do
   """
   defp expr_parser() do
     choice([
+      comment_parser(),
       literal_parser(),
       list_parser(),
       lambda_parser(),
@@ -42,9 +43,7 @@ defmodule Terp.Parser do
     ])
   end
 
-  @doc """
-  `application_parser/0` parses function application.
-  """
+  # `application_parser/0` parses function application.
   defp application_parser() do
     app_parser = between(
       char("("),
@@ -54,9 +53,7 @@ defmodule Terp.Parser do
     map(app_parser, fn x -> {:__apply, x} end)
   end
 
-  @doc """
-  Parser for a lambda expression.
-  """
+  # Parser for a lambda expression.
   defp lambda_parser() do
     l_parser = between(
       string("(lambda"),
@@ -66,9 +63,7 @@ defmodule Terp.Parser do
     map(l_parser, fn x -> {:__lambda, x} end)
   end
 
-  @doc """
-  Parser for a lambda expression.
-  """
+  # Parser for a lambda expression.
   defp let_parser() do
     l_parser = between(
       string("(let"),
@@ -91,9 +86,7 @@ defmodule Terp.Parser do
     )
   end
 
-  @doc """
-  Parses a quoted list, e.g. '(4 23 6).
-  """
+  # Parses a quoted list, e.g. '(4 23 6).
   defp list_parser() do
     lst_parser = between(
       string("'("),
@@ -108,9 +101,7 @@ defmodule Terp.Parser do
     map(lst_parser, fn x -> {:__quote, x} end)
   end
 
-  @doc """
-  Parses literals
-  """
+  # Parses literals
   defp literal_parser() do
     choice([
       built_ins_parser(),
@@ -143,6 +134,14 @@ defmodule Terp.Parser do
       string_to_atom(char("*")),
       string_to_atom(char("/")),
     ])
+  end
+
+  defp comment_parser() do
+    map(
+      string(";;")
+      |> take_while(fn ?\n -> false; _ -> true end),
+      fn x -> {:__comment, x} end
+    )
   end
 
   @doc """
