@@ -44,4 +44,38 @@ defmodule Terp.Function do
   def apply_lambda(func, [arg | args], env) do
     apply_lambda(func.(arg), args, env)
   end
+
+  @doc"""
+  Y = λf.(λx.f (x x))(λx.f (x x))
+  (define Y
+  (lambda (f)
+  ((lambda (x) (f (lambda (y) ((x x) y))))
+  (lambda (x) (f (lambda (y) ((x x) y)))))))
+
+  Combinators.y(fn f -> fn 0 -> 1; x -> x * f.(x - 1) end end).(5)
+  """
+  def y(f) do
+    #fix = fn (x) ->
+      #f.(fn (g) -> x.(x).(g) end)
+    #end
+    #fix.(fix)
+    f.(fn x ->
+      y(f).(x)
+    end)
+  end
+
+  def letrec(%RoseTree{node: node, children: children} = tree, env) do
+    [name | [bound | []]] = children
+    # Make a new function wrapping bound, replacing the recursive call with a bound variable, :z
+    recursive_fn = :__lambda
+    |> RoseTree.new([RoseTree.new(:__quote, [:z]), RoseTree.update_node(bound, name.node, :z)])
+    |> Terp.eval_expr(env)
+    |> y()
+
+    Terp.eval_expr(name, fn y ->
+      fn name ->
+        if name == y, do: recursive_fn, else: env.(y)
+      end
+    end)
+  end
 end

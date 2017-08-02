@@ -37,6 +37,7 @@ defmodule Terp.Parser do
       literal_parser(),
       list_parser(),
       lambda_parser(),
+      letrec_parser(),
       let_parser(),
       application_parser(),
       ignore(newline()),
@@ -73,6 +74,16 @@ defmodule Terp.Parser do
     map(l_parser, fn x -> {:__let, x} end)
   end
 
+  # Parser for recursive functions.
+  defp letrec_parser() do
+    l_parser = between(
+      string("(letrec"),
+      valid_expr_parser(),
+      char(")")
+    )
+    map(l_parser, fn x -> {:__letrec, x} end)
+  end
+
   defp valid_expr_parser() do
     many(
       choice([
@@ -80,6 +91,7 @@ defmodule Terp.Parser do
         ignore(space()),
         list_parser(),
         lazy(fn -> lambda_parser() end),
+        lazy(fn -> letrec_parser() end),
         lazy(fn -> let_parser() end),
         lazy(fn -> application_parser() end)
       ])
@@ -133,6 +145,7 @@ defmodule Terp.Parser do
       string_to_atom(char("-")),
       string_to_atom(char("*")),
       string_to_atom(char("/")),
+      map(string("if"), fn x -> :__if end),
     ])
   end
 

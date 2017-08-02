@@ -100,13 +100,20 @@ defmodule Terp do
         Function.lambda(children, env)
       :__quote ->
         children
+      :__letrec ->
+        Function.letrec(tree, env)
       :__let ->
         [name | [bound | []]] = children
         eval_expr(name,
           fn y ->
-            fn name -> if y == name, do: eval_expr(bound, env), else: env.(name)
+            fn name ->
+              if y == name do
+                eval_expr(bound, env)
+              else
+                env.(name)
+              end
             end
-        end)
+          end)
       :__apply ->
         [operator | operands] = children
         operator = eval_expr(operator, env)
