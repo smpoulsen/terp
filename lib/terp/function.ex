@@ -22,7 +22,7 @@ defmodule Terp.Function do
   @doc """
   Defines an anonymous function.
   """
-  def lambda([%RoseTree{node: :__quote, children: arguments} | [body | []]], env) do
+  def lambda([%RoseTree{children: arguments} | [body | []]], env) do
     xs = Enum.map(arguments, fn x -> x.node end)
     lambda_helper(xs, body, env)
   end

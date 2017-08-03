@@ -3,7 +3,7 @@
 (let :x 5)
 
 (let :identity
-    (lambda '(:x) :x))
+    (lambda (:x) :x))
 
 (:identity :x)
 

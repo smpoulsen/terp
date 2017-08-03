@@ -1,7 +1,7 @@
 ;; Recursive function definition
 
 (letrec :factorial
-  (lambda '(:n)
+  (lambda (:n)
     (if (:eq :n 0)
         1
         (* :n (:factorial (- :n 1))))))
