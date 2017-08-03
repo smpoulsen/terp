@@ -100,42 +100,58 @@ defmodule Terp do
         Function.lambda(children, env)
       :__quote ->
         children
+      :__letrec ->
+        Function.letrec(tree, env)
       :__let ->
         [name | [bound | []]] = children
         eval_expr(name,
           fn y ->
-            fn name -> if y == name, do: eval_expr(bound, env), else: env.(name)
+            fn name ->
+              if y == name do
+                eval_expr(bound, env)
+              else
+                env.(name)
+              end
             end
-        end)
+          end)
       :__apply ->
-        [operator | operands] = Enum.map(children, &eval_expr(&1, env))
-        if @debug do
-          IO.inspect({"OPERATOR", operator})
-          IO.inspect({"OPERANDS", operands})
-        end
+        [operator | operands] = children
+        operator = eval_expr(operator, env)
+        if operator == :__if do
+          Boolean.conditional(operands, env)
+        else
+          operands = Enum.map(operands, &eval_expr(&1, env))
 
-        case operator do
-          :+ -> Arithmetic.add(operands)
-          :* -> Arithmetic.multiply(operands)
-          :- -> Arithmetic.subtract(operands)
-          :/ -> Arithmetic.divide(operands)
-          :__if -> Boolean.conditional(operands)
-          true -> true
-          false -> false
-          x when is_function(x) -> Function.apply_lambda(operator, operands, env)
-          x when is_number(x) -> x
-          _  -> eval(operator, operands, env)
+          if @debug do
+            IO.inspect({"OPERATOR", operator})
+            IO.inspect({"OPERANDS", operands})
+          end
+
+          case operator do
+            :+ -> Arithmetic.add(operands)
+            :* -> Arithmetic.multiply(operands)
+            :- -> Arithmetic.subtract(operands)
+            :/ -> Arithmetic.divide(operands)
+            :eq -> (fn [x | [y | []]] -> x == y end).(operands)
+            true -> true
+            false -> false
+            x when is_function(x) ->
+              Function.apply_lambda(operator, operands, env)
+            x when is_number(x) -> x
+            _  -> eval(operator, operands, env)
+          end
         end
       x when is_number(x) -> x
       #TODO Remove all of this duplication between here and apply
       "#t" -> Boolean.t()
       "#f" -> Boolean.f()
+      :eq -> :eq
       :+ -> :+
       :* -> :*
       :- -> :-
       :/ -> :/
-      "if" -> :__if
-      x when is_atom(x) -> env.(x)
+      :__if -> :__if
+      x -> env.(x)
     end
   end
 

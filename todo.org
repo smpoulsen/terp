@@ -1,0 +1,15 @@
+* TODOs
+** DONE recursive functions
+
+   CLOSED: [2017-08-02 Wed 18:26]
+   =letrec= to define a recursive function
+   This was a huge headache to actually get working, but so exciting when it did finally work.
+
+   My naive attempt was to set up a dummy environment record for the function name so that the name wouldn't be unbound in the function body.
+   This didn't end up working very well.
+
+   Opted instead to pull out the free variable (e.g. function's name) from the function body, wrap the definition in an anonymous function, and use the Y-combinator to get the function's fixpoint.
+   Then set the fixpoint function to the name in the environment.
+** TODO pattern matching
+   =pmatch= or equivalent, a list of possible cases and evaluate the first that's true
+** TODO add strings

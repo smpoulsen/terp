@@ -21,22 +21,20 @@ defmodule Terp.Parser do
     |> Combine.parse(many1(expr_parser()))
   end
 
-  @doc """
-  `expr_parser/0` parses a terp expression.
+  # `expr_parser/0` parses a terp expression.
+  # Valid expressions are s-expression like (they are not however
+  # stored internally as binary trees); expressions are enclosed
+  # in parentheses and use prefix notation.
 
-  Valid expressions are s-expression like (they are not however
-  stored internally as binary trees); expressions are enclosed
-  in parentheses and use prefix notation.
-
-  TODO: currently, parsing application of literals works even
-  if it doesn't make sense to, e.g. `(#t)` is considered valid
-  """
+  # TODO: currently, parsing application of literals works even
+  # if it doesn't make sense to, e.g. `(#t)` is considered valid
   defp expr_parser() do
     choice([
       comment_parser(),
       literal_parser(),
       list_parser(),
       lambda_parser(),
+      letrec_parser(),
       let_parser(),
       application_parser(),
       ignore(newline()),
@@ -73,13 +71,25 @@ defmodule Terp.Parser do
     map(l_parser, fn x -> {:__let, x} end)
   end
 
+  # Parser for recursive functions.
+  defp letrec_parser() do
+    l_parser = between(
+      string("(letrec"),
+      valid_expr_parser(),
+      char(")")
+    )
+    map(l_parser, fn x -> {:__letrec, x} end)
+  end
+
   defp valid_expr_parser() do
     many(
       choice([
         literal_parser(),
         ignore(space()),
+        ignore(newline()),
         list_parser(),
         lazy(fn -> lambda_parser() end),
+        lazy(fn -> letrec_parser() end),
         lazy(fn -> let_parser() end),
         lazy(fn -> application_parser() end)
       ])
@@ -133,13 +143,16 @@ defmodule Terp.Parser do
       string_to_atom(char("-")),
       string_to_atom(char("*")),
       string_to_atom(char("/")),
+      map(string("if"), fn _x -> :__if end),
     ])
   end
 
   defp comment_parser() do
     map(
       string(";;")
-      |> take_while(fn ?\n -> false; _ -> true end),
+      |> take_while(
+           fn ?\n -> false
+                _ -> true end),
       fn x -> {:__comment, x} end
     )
   end
