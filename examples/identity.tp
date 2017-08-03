@@ -1,5 +1,9 @@
-(let :identity (lambda '(:x) :x))
+;; Example showing variable binding
 
-(let :double_identity ((:identity :identity) 5))
+(let :identity
+    (lambda '(:x) :x))
+
+(let :double_identity
+    ((:identity :identity) 5))
 
 (+ 2 :double_identity)

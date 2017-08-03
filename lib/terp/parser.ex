@@ -89,6 +89,7 @@ defmodule Terp.Parser do
       choice([
         literal_parser(),
         ignore(space()),
+        ignore(newline()),
         list_parser(),
         lazy(fn -> lambda_parser() end),
         lazy(fn -> letrec_parser() end),
