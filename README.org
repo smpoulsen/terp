@@ -36,11 +36,11 @@
      ...> |> Terp.eval
      5
 
-     iex> "(((lambda '(:x) (lambda '(:y) (+ :x :y))) 5 ) 3)"
+     iex> "(((lambda (:x) (lambda '(:y) (+ :x :y))) 5 ) 3)"
      ...> |> Terp.eval
      8
 
-     iex> "((lambda '(:x :y) (+ :x :y)) 5 3)"
+     iex> "((lambda (:x :y) (+ :x :y)) 5 3)"
      ...> |> Terp.eval
      8
    #+END_SRC
@@ -57,10 +57,22 @@
     #+BEGIN_SRC scheme
       (let :x 5)
 
-      (let :identity (lambda '(:x) :x))
+      (let :identity (lambda (:x) :x))
 
       (:identity :x)
       ;; 5
+    #+END_SRC
+** Recursive functions
+   Recursive functions are defined with =letrec=:
+    #+BEGIN_SRC scheme
+      (letrec :factorial
+        (lambda (:n)
+          (if (:eq :n 0)
+              1
+              (* :n (:factorial (- :n 1))))))
+
+      (:factorial 5)
+      ;; 120
     #+END_SRC
 
 ** Evaluating a file:
@@ -68,8 +80,11 @@
 
    Filename =test.tp= (=terp= files must end in =.tp=):
    #+BEGIN_SRC scheme
-     (let :identity (lambda '(:x) :x))
-     (let :double_identity ((:identity :identity) 5))
+     (let :identity
+         (lambda '(:x) :x))
+
+     (let :double_identity
+         ((:identity :identity) 5))
 
      (+ 2 :double_identity)
    #+END_SRC

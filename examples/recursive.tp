@@ -6,4 +6,10 @@
         1
         (* :n (:factorial (- :n 1))))))
 
-(:factorial 5)
+;; 120
+(let :n1 (:factorial 5))
+;; 720
+(let :n2 (:factorial 6))
+
+;; 840
+(+ :n1 :n2)

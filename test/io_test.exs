@@ -12,6 +12,6 @@ defmodule Terp.IOTest do
   end
 
   test "recursive.tp" do
-    assert IO.run_terp("examples/recursive.tp") == 120
+    assert IO.run_terp("examples/recursive.tp") == 840
   end
 end
