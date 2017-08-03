@@ -118,6 +118,8 @@ defmodule Terp.Parser do
       bool_parser(),
       integer(),
       string_to_atom(ignore(char(":")) |> word()),
+      both(word(), char("?"), &(&1 <> &2)),
+      both(word(), char("!"), &(&1 <> &2)),
       word(),
       lazy(fn -> list_parser() end),
     ])

@@ -145,7 +145,7 @@ defmodule Terp do
       #TODO Remove all of this duplication between here and apply
       "#t" -> Boolean.t()
       "#f" -> Boolean.f()
-      :eq -> :eq
+      "equal?" -> :eq
       :+ -> :+
       :* -> :*
       :- -> :-
