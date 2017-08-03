@@ -4,11 +4,15 @@
 
    Currently implemented:
      + integers
+     + strings
      + basic arithmetic (=+=, =-=, =*=, =/=)
      + booleans (=#t=, =#f=)
      + =if then else= conditionals
      + Lambda functions (=lambda=)
      + variable binding (=let=)
+     + recursive functions (=letrec=)
+
+   Additional examples can be found in the [[https://github.com/tpoulsen/terp/tree/master/examples][examples]] directory.
 
 ** Usage
    #+BEGIN_SRC elixir
