@@ -47,12 +47,11 @@ defmodule Terp.Function do
 
   @doc"""
   Y = λf.(λx.f (x x))(λx.f (x x))
-  (define Y
-  (lambda (f)
-  ((lambda (x) (f (lambda (y) ((x x) y))))
-  (lambda (x) (f (lambda (y) ((x x) y)))))))
 
-  Combinators.y(fn f -> fn 0 -> 1; x -> x * f.(x - 1) end end).(5)
+  ## Examples
+
+      iex> Terp.Function.y(fn f -> fn 0 -> 1; x -> x * f.(x - 1) end end).(5)
+      120
   """
   def y(f) do
     #fix = fn (x) ->
@@ -64,7 +63,7 @@ defmodule Terp.Function do
     end)
   end
 
-  def letrec(%RoseTree{node: node, children: children} = tree, env) do
+  def letrec(%RoseTree{node: :__letrec, children: children}, env) do
     [name | [bound | []]] = children
     # Make a new function wrapping bound, replacing the recursive call with a bound variable, :z
     recursive_fn = :__lambda

@@ -21,16 +21,13 @@ defmodule Terp.Parser do
     |> Combine.parse(many1(expr_parser()))
   end
 
-  @doc """
-  `expr_parser/0` parses a terp expression.
+  # `expr_parser/0` parses a terp expression.
+  # Valid expressions are s-expression like (they are not however
+  # stored internally as binary trees); expressions are enclosed
+  # in parentheses and use prefix notation.
 
-  Valid expressions are s-expression like (they are not however
-  stored internally as binary trees); expressions are enclosed
-  in parentheses and use prefix notation.
-
-  TODO: currently, parsing application of literals works even
-  if it doesn't make sense to, e.g. `(#t)` is considered valid
-  """
+  # TODO: currently, parsing application of literals works even
+  # if it doesn't make sense to, e.g. `(#t)` is considered valid
   defp expr_parser() do
     choice([
       comment_parser(),
@@ -146,14 +143,16 @@ defmodule Terp.Parser do
       string_to_atom(char("-")),
       string_to_atom(char("*")),
       string_to_atom(char("/")),
-      map(string("if"), fn x -> :__if end),
+      map(string("if"), fn _x -> :__if end),
     ])
   end
 
   defp comment_parser() do
     map(
       string(";;")
-      |> take_while(fn ?\n -> false; _ -> true end),
+      |> take_while(
+           fn ?\n -> false
+                _ -> true end),
       fn x -> {:__comment, x} end
     )
   end
