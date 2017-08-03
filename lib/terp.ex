@@ -151,7 +151,7 @@ defmodule Terp do
       :- -> :-
       :/ -> :/
       :__if -> :__if
-      x when is_atom(x) -> env.(x)
+      x -> env.(x)
     end
   end
 

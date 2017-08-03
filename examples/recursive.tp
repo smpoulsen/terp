@@ -1,15 +1,15 @@
 ;; Recursive function definition
 
-(letrec :factorial
-  (lambda (:n)
-    (if (:eq :n 0)
+(letrec factorial
+  (lambda (n)
+    (if (:eq n 0)
         1
-        (* :n (:factorial (- :n 1))))))
+        (* n (factorial (- n 1))))))
 
 ;; 120
-(let :n1 (:factorial 5))
+(let n1 (factorial 5))
 ;; 720
-(let :n2 (:factorial 6))
+(let n2 (factorial 6))
 
 ;; 840
-(+ :n1 :n2)
+(+ n1 n2)
