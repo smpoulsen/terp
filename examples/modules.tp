@@ -1,0 +1,4 @@
+(require "examples/recursive.tp"
+         "examples/identity.tp")
+
+(factorial (:identity 10))

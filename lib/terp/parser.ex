@@ -103,12 +103,31 @@ defmodule Terp.Parser do
       built_ins_parser(),
       bool_parser(),
       integer(),
+      punctuation_parser(),
       string_to_atom(ignore(char(":")) |> word()),
       both(word(), char("?"), &(&1 <> &2)),
       both(word(), char("!"), &(&1 <> &2)),
-      map(between(char("\""), word(), char("\"")), &({:__string, &1})),
+      string_parser(),
       word(),
       lazy(fn -> list_parser() end),
+    ])
+  end
+
+  defp string_parser() do
+    map(
+      between(
+        char("\""),
+        lazy(fn -> many(literal_parser()) end),
+        char("\"")
+      ),
+      &({:__string, Enum.join(&1)})
+    )
+  end
+
+  defp punctuation_parser() do
+    choice([
+      string("/"),
+      string("."),
     ])
   end
 
@@ -139,6 +158,8 @@ defmodule Terp.Parser do
       map(string("lambda"), fn _x -> :__lambda end),
       map(string("letrec"), fn _x -> :__letrec end),
       map(string("let"), fn _x -> :__let end),
+      map(string("require"), fn _x -> :__require end),
+      map(string("provide"), fn _x -> :__provide end),
     ])
   end
 

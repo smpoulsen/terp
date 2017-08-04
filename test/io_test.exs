@@ -22,4 +22,8 @@ defmodule Terp.IOTest do
   test "partial_application.tp" do
     assert IO.run_terp("examples/partial_application.tp") == 8
   end
+
+  test "modules.tp" do
+    assert IO.run_terp("examples/modules.tp") == 3628800
+  end
 end
