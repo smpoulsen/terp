@@ -17,7 +17,7 @@
    Additional examples can be found in the [[https://github.com/tpoulsen/terp/tree/master/examples][examples]] directory.
 * Usage
 ** Comments
-   Comments are single-line and begin with `;;`:
+   Comments are single-line and begin with =;;=:
    #+BEGIN_SRC scheme
      ;; A comment
      (+ 5 1)

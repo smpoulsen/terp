@@ -54,20 +54,19 @@ defmodule Terp.Function do
       120
   """
   def y(f) do
-    #fix = fn (x) ->
-      #f.(fn (g) -> x.(x).(g) end)
-    #end
-    #fix.(fix)
     f.(fn x ->
       y(f).(x)
     end)
   end
 
-  def letrec(%RoseTree{node: :__letrec, children: children}, env) do
-    [name | [bound | []]] = children
+  def letrec([name | [bound | []]], env) do
     # Make a new function wrapping bound, replacing the recursive call with a bound variable, :z
-    recursive_fn = :__lambda
-    |> RoseTree.new([RoseTree.new(:__quote, [:z]), RoseTree.update_node(bound, name.node, :z)])
+    recursive_fn = :__apply
+    |> RoseTree.new([
+      RoseTree.new(:__lambda),
+      RoseTree.new(:__quote, [:z]),
+      RoseTree.update_node(bound, name.node, :z)
+    ])
     |> Terp.eval_expr(env)
     |> y()
 

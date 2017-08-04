@@ -1,20 +1,41 @@
+#+TODO: TODO(t) INPROGRESS(i!) | DONE(d@/!) ICEBOX(x@)
+
 * TODOs
-** TODO pattern matching
-   =pmatch= or equivalent, a list of possible cases and evaluate the first that's true
-    <2017-08-03 Thu> - Added =cond= for multi-possibility conditionals. Pattern matching still to come.
-** TODO clean up parser and terp implementations
-   There's duplication and stuff that can likely be removed now that more functionality is built out.
-   Would like to redo some of the early parsers in the style of more recent ones, e.g. tagging the value.
-** TODO repl
-   An elixir shell that just waits for input and runs terp eval on it?
-** TODO module system
-** TODO variable/defined function hoisting
-** TODO prelude
+** INPROGRESS [#A] module system
+   - State "INPROGRESS" from "TODO"       [2017-08-04 Fri 10:22]
+*** Example syntax:
+    =module= followed by the module's name and a list of the functions it exports:
+    #+BEGIN_SRC scheme
+      (module Prelude.List
+              '(length
+               reverse
+               ...])
+    #+END_SRC
+
+    To import:
+    #+BEGIN_SRC scheme
+      (import Prelude.List) ;; import all functions from the module
+
+      (import Prelude.List
+              '(length))    ;; import just a given function
+    #+END_SRC
+    <2017-08-04 Fri 16:45> Scrapping the above idea and going with something more akin to Racket's module system.
+** INPROGRESS [#A] prelude
+   - State "INPROGRESS" from "TODO"       [2017-08-04 Fri 10:22]
    Standard library
    - [ ] Add new functions
      - [ ] map, filter, fold, etc...
      - [ ] length, etc...
    - [ ] Rewrite some of the built-in functions that are currently in elixir in terp.
+** TODO [#A] clean up parser and terp implementations
+   There's duplication and stuff that can likely be removed now that more functionality is built out.
+   Would like to redo some of the early parsers in the style of more recent ones, e.g. tagging the value.
+** TODO [#B] variable/defined function hoisting
+** TODO [#B] pattern matching
+   =pmatch= or equivalent, a list of possible cases and evaluate the first that's true
+    <2017-08-03 Thu> - Added =cond= for multi-possibility conditionals. Pattern matching still to come.
+** TODO [#C] repl
+   An elixir shell that just waits for input and runs terp eval on it?
 ** DONE recursive functions
    CLOSED: [2017-08-02 Wed 18:26]
    =letrec= to define a recursive function

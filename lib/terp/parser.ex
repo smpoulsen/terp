@@ -33,9 +33,6 @@ defmodule Terp.Parser do
       comment_parser(),
       literal_parser(),
       list_parser(),
-      lambda_parser(),
-      letrec_parser(),
-      let_parser(),
       cond_parser(),
       application_parser(),
       ignore(newline()),
@@ -50,36 +47,6 @@ defmodule Terp.Parser do
       char(")")
     )
     map(app_parser, fn x -> {:__apply, x} end)
-  end
-
-  # Parser for a lambda expression.
-  defp lambda_parser() do
-    l_parser = between(
-      string("(lambda"),
-      valid_expr_parser(),
-      char(")")
-    )
-    map(l_parser, fn x -> {:__lambda, x} end)
-  end
-
-  # Parser for a lambda expression.
-  defp let_parser() do
-    l_parser = between(
-      string("(let"),
-      valid_expr_parser(),
-      char(")")
-    )
-    map(l_parser, fn x -> {:__let, x} end)
-  end
-
-  # Parser for recursive functions.
-  defp letrec_parser() do
-    l_parser = between(
-      string("(letrec"),
-      valid_expr_parser(),
-      char(")")
-    )
-    map(l_parser, fn x -> {:__letrec, x} end)
   end
 
   # Parse a cond expression: (cond [c r] [c r])
@@ -108,9 +75,6 @@ defmodule Terp.Parser do
         literal_parser(),
         list_parser(),
         lazy(fn -> cond_parser() end),
-        lazy(fn -> lambda_parser() end),
-        lazy(fn -> letrec_parser() end),
-        lazy(fn -> let_parser() end),
         lazy(fn -> application_parser() end),
         ignore(space()),
         ignore(newline()),
@@ -172,6 +136,9 @@ defmodule Terp.Parser do
       map(string("car"), fn _x -> :__car end),
       map(string("cdr"), fn _x -> :__cdr end),
       map(string("empty?"), fn _x -> :__empty end),
+      map(string("lambda"), fn _x -> :__lambda end),
+      map(string("letrec"), fn _x -> :__letrec end),
+      map(string("let"), fn _x -> :__let end),
     ])
   end
 

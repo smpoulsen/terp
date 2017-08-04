@@ -99,26 +99,11 @@ defmodule Terp do
       :__string ->
         str = List.first(children)
         str.node
-      :__lambda ->
-        Function.lambda(children, env)
+      :__lambda -> :__lambda
       :__quote ->
         Enum.map(children, &(&1.node))
-      :__letrec ->
-        Function.letrec(tree, env)
       :__cond ->
         Boolean.cond(children, env)
-      :__let ->
-        [name | [bound | []]] = children
-        eval_expr(name,
-          fn y ->
-            fn name ->
-              if y == name do
-                eval_expr(bound, env)
-              else
-                env.(name)
-              end
-            end
-          end)
       :__apply ->
         [operator | operands] = children
         operator = eval_expr(operator, env)
@@ -129,6 +114,22 @@ defmodule Terp do
         case operator do
           :__if ->
             Boolean.conditional(operands, env)
+          :__letrec ->
+            Function.letrec(operands, env)
+          :__let ->
+            [name | [bound | []]] = operands
+            eval_expr(name,
+              fn y ->
+                fn name ->
+                  if y == name do
+                    eval_expr(bound, env)
+                  else
+                    env.(name)
+                  end
+                end
+              end)
+          :__lambda ->
+            Function.lambda(operands, env)
           :+ ->
             Arithmetic.add(Enum.map(operands, &eval_expr(&1, env)))
           :* ->
@@ -186,6 +187,8 @@ defmodule Terp do
       :__car -> :__car
       :__cdr -> :__cdr
       :__empty -> :__empty
+      :__let -> :__let
+      :__letrec -> :__letrec
       x -> env.(x)
     end
   end
