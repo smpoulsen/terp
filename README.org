@@ -8,49 +8,14 @@
      + basic arithmetic (=+=, =-=, =*=, =/=)
      + booleans (=#t=, =#f=)
      + conditionals
-       + =if then els=
+       + =if then else=
        + =cond=
      + Lambda functions (=lambda=)
      + variable binding (=let=)
      + recursive functions (=letrec=)
 
    Additional examples can be found in the [[https://github.com/tpoulsen/terp/tree/master/examples][examples]] directory.
-
-** Usage
-   #+BEGIN_SRC elixir
-     iex> "(+ 5 3)"
-     ...> |> Terp.eval()
-     8
-
-     iex> "(* 2 4 5)"
-     ...> |> Terp.eval()
-     40
-
-     iex> "(* 2 4 (+ 4 1))"
-     ...> |> Terp.eval()
-     40
-
-     iex> "(if #t (* 5 5) (+ 4 1))"
-     ...> |> Terp.eval()
-     25
-
-     iex> "(if #f (* 5 5) (+ 4 1))"
-     ...> |> Terp.eval()
-     5
-
-     iex> "((lambda (:x) :x) 5)"
-     ...> |> Terp.eval
-     5
-
-     iex> "(((lambda (:x) (lambda '(:y) (+ :x :y))) 5 ) 3)"
-     ...> |> Terp.eval
-     8
-
-     iex> "((lambda (:x :y) (+ :x :y)) 5 3)"
-     ...> |> Terp.eval
-     8
-   #+END_SRC
-
+* Usage
 ** Comments
    Comments are single-line and begin with `;;`:
    #+BEGIN_SRC scheme
@@ -80,7 +45,7 @@
    #+END_SRC
 
    =cond= can be used to test multiple possible conditions without chaining if/elses:
-   =cond= takes conditions and their outcomes should their case be true; the last condition should be a default.:w
+   =cond= takes conditions and their outcomes should their case be true; the last condition should be a default.
    #+BEGIN_SRC scheme
      (let sound
          (lambda (animal)
@@ -110,8 +75,40 @@
      (double 5)
      ;; 10
    #+END_SRC
+
+   Multi-argument functions:
+   #+BEGIN_SRC scheme
+     (((lambda (:x)
+         (lambda (:y)
+           (+ :x :y))) 5 ) 3)
+     ;; 8
+
+     ((lambda (:x :y)
+        (+ :x :y)) 5 3)
+     ;; 8
+   #+END_SRC
+
+   Functions are automatically [[https://en.wikipedia.org/wiki/Currying][curried]] when defined. This allows for easy partial application of multi-argument functions:
+   #+BEGIN_SRC scheme
+     ;; add is a function that takes two arguments.
+     ;;   Currying turns it into a series of functions
+     ;;   that each takes a single argument.
+     (let add
+         (lambda (x y) (+ x y)))
+
+     ;; We can define a new function, add_five, that partially
+     ;; applies add to the value 5:
+     (let add_five
+         (add 5))
+
+     ;; evaluating add_five with 3 binds the last argument in
+     ;; add, and the function is fully evaluated:
+     (add_five 3)
+     ;; 8
+   #+END_SRC
 ** Recursive functions
-   Recursive functions are defined with =letrec=:
+   Recursive functions are defined with =letrec=.
+   The base case(s) and recursive case(s) must be provided or the function will not terminate.
     #+BEGIN_SRC scheme
       (letrec :factorial
         (lambda (:n)

@@ -1,0 +1,8 @@
+(let add
+    (lambda (x y) (+ x y)))
+
+(let add_five
+    (add 5))
+
+(add_five 3)
+;; 8

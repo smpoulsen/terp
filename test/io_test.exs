@@ -18,4 +18,8 @@ defmodule Terp.IOTest do
   test "conditional.tp" do
     assert IO.run_terp("examples/conditional.tp") == "bark"
   end
+
+  test "partial_application.tp" do
+    assert IO.run_terp("examples/partial_application.tp") == 8
+  end
 end
