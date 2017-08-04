@@ -1,0 +1,12 @@
+;; A conditional
+
+(let sound
+    (lambda (animal)
+      (cond
+       [(equal? animal "cow") "moo"]
+       [(equal? animal "cat") "meow"]
+       [(equal? animal "dog") "bark"]
+       [#t "zzz"]
+       )))
+
+(sound "dog")

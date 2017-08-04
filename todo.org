@@ -1,6 +1,21 @@
 * TODOs
+** TODO pattern matching
+   =pmatch= or equivalent, a list of possible cases and evaluate the first that's true
+    <2017-08-03 Thu> - Added =cond= for multi-possibility conditionals. Pattern matching still to come.
+** TODO clean up parser and terp implementations
+   There's duplication and stuff that can likely be removed now that more functionality is built out.
+   Would like to redo some of the early parsers in the style of more recent ones, e.g. tagging the value.
+** TODO repl
+   An elixir shell that just waits for input and runs terp eval on it?
+** TODO module system
+** TODO variable/defined function hoisting
+** TODO prelude
+   Standard library
+   - [ ] Add new functions
+     - [ ] map, filter, fold, etc...
+     - [ ] length, etc...
+   - [ ] Rewrite some of the built-in functions that are currently in elixir in terp.
 ** DONE recursive functions
-
    CLOSED: [2017-08-02 Wed 18:26]
    =letrec= to define a recursive function
    This was a huge headache to actually get working, but so exciting when it did finally work.
@@ -10,6 +25,6 @@
 
    Opted instead to pull out the free variable (e.g. function's name) from the function body, wrap the definition in an anonymous function, and use the Y-combinator to get the function's fixpoint.
    Then set the fixpoint function to the name in the environment.
-** TODO pattern matching
-   =pmatch= or equivalent, a list of possible cases and evaluate the first that's true
-** TODO add strings
+** DONE add strings
+   CLOSED: [2017-08-03 Thu 21:10]
+   Strings are now valid.

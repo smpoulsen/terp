@@ -96,12 +96,17 @@ defmodule Terp do
       IO.inspect({"TREE", tree})
     end
     case node do
+      :__string ->
+        str = List.first(children)
+        str.node
       :__lambda ->
         Function.lambda(children, env)
       :__quote ->
         children
       :__letrec ->
         Function.letrec(tree, env)
+      :__cond ->
+        Boolean.cond(children, env)
       :__let ->
         [name | [bound | []]] = children
         eval_expr(name,
@@ -117,40 +122,43 @@ defmodule Terp do
       :__apply ->
         [operator | operands] = children
         operator = eval_expr(operator, env)
-        if operator == :__if do
-          Boolean.conditional(operands, env)
-        else
-          operands = Enum.map(operands, &eval_expr(&1, env))
-
-          if @debug do
-            IO.inspect({"OPERATOR", operator})
-            IO.inspect({"OPERANDS", operands})
-          end
-
-          case operator do
-            :+ -> Arithmetic.add(operands)
-            :* -> Arithmetic.multiply(operands)
-            :- -> Arithmetic.subtract(operands)
-            :/ -> Arithmetic.divide(operands)
-            :eq -> (fn [x | [y | []]] -> x == y end).(operands)
-            true -> true
-            false -> false
-            x when is_function(x) ->
-              Function.apply_lambda(operator, operands, env)
-            x when is_number(x) -> x
-            _  -> eval(operator, operands, env)
-          end
+        if @debug do
+          IO.inspect({"OPERATOR", operator})
+          IO.inspect({"OPERANDS", operands})
+        end
+        case operator do
+          :__if ->
+            Boolean.conditional(operands, env)
+          :+ ->
+            Arithmetic.add(Enum.map(operands, &eval_expr(&1, env)))
+          :* ->
+            Arithmetic.multiply(Enum.map(operands, &eval_expr(&1, env)))
+          :- ->
+            Arithmetic.subtract(Enum.map(operands, &eval_expr(&1, env)))
+          :/ ->
+            Arithmetic.divide(Enum.map(operands, &eval_expr(&1, env)))
+          :eq ->
+            (fn [x | [y | []]] -> x == y end).(Enum.map(operands, &eval_expr(&1, env)))
+          true ->
+            true
+          false ->
+            false
+          x when is_function(x) ->
+            Function.apply_lambda(operator, Enum.map(operands, &eval_expr(&1, env)), env)
+          x when is_number(x) -> x
+          _  -> eval(operator, Enum.map(operands, &eval_expr(&1, env)), env)
         end
       x when is_number(x) -> x
       #TODO Remove all of this duplication between here and apply
       "#t" -> Boolean.t()
       "#f" -> Boolean.f()
-      :eq -> :eq
+      "equal?" -> :eq
       :+ -> :+
       :* -> :*
       :- -> :-
       :/ -> :/
       :__if -> :__if
+      :__cond -> :__cond
       x -> env.(x)
     end
   end
