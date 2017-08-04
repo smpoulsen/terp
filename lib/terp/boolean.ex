@@ -43,4 +43,34 @@ defmodule Terp.Boolean do
       Terp.eval_expr(alternative, env)
     end
   end
+
+  @doc """
+  `cond/2` evaluates a list of conditions one by one until
+  a true condition is found; when one is true, the body is evaluated.
+
+  ## Examples
+
+      iex> "(cond [(equal? 1 5) (9)] [#t 5])"
+      ...> |> Terp.eval()
+      5
+
+      iex> "(cond [(equal? 1 5) (9)] [#f 5])"
+      ...> |> Terp.eval()
+      {:error, {:terp, :no_true_condition}}
+
+      iex> "(cond [(equal? (+ 2 3) 5) 9] [#f 5])"
+      ...> |> Terp.eval()
+      9
+  """
+  def cond([], _env), do: {:error, {:terp, :no_true_condition}}
+  def cond([%{node: [condition | consequent]} | conditions], env) do
+    if Terp.eval_expr(condition, env) do
+      # An artifact of the parser; pulls in consequent as a list.
+      consequent
+      |> Enum.map(&Terp.eval_expr(&1, env))
+      |> List.first
+    else
+      cond(conditions, env)
+    end
+  end
 end

@@ -11,7 +11,8 @@ defmodule Terp.IO do
   def run_terp(file) do
     if is_terp_file(file) do
       {:ok, src} = File.read(file)
-      Terp.eval(src)
+      src
+      |> Terp.eval()
     else
       "#{file} is not a valid terp file"
     end

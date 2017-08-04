@@ -7,7 +7,9 @@
      + strings
      + basic arithmetic (=+=, =-=, =*=, =/=)
      + booleans (=#t=, =#f=)
-     + =if then else= conditionals
+     + conditionals
+       + =if then els=
+       + =cond=
      + Lambda functions (=lambda=)
      + variable binding (=let=)
      + recursive functions (=letrec=)
@@ -66,6 +68,48 @@
       (:identity :x)
       ;; 5
     #+END_SRC
+** Conditionals
+   =if= expressions must include a value for both the true and false case (an =if= and an =else=).
+   #+BEGIN_SRC scheme
+     (if #t 5 10)
+     ;; 5
+
+     (let x 5)
+     (if (equal? x 5) (* x x) 0)
+     ;; 25
+   #+END_SRC
+
+   =cond= can be used to test multiple possible conditions without chaining if/elses:
+   =cond= takes conditions and their outcomes should their case be true; the last condition should be a default.:w
+   #+BEGIN_SRC scheme
+     (let sound
+         (lambda (animal)
+           (cond
+            [(equal? animal "cow") "moo"]
+            [(equal? animal "cat") "meow"]
+            [(equal? animal "dog") "bark"]
+            [#t "zzz"]
+            )))
+
+     (sound "dog")
+     ;; "bark"
+   #+END_SRC
+** Function definition
+   Functions are defined using =lambda=; they can be bound to a name with =let=.
+
+   The arguments must be wrapped in parens. The body of the function can be bare if it does not have to be evaluated (e.g. returns a single value). Otherwise, the body must be parenthesized as well.
+   #+BEGIN_SRC scheme
+     ;; An anonymous identity function.
+     ;; It returns the value it receives.
+     (lambda (x) x)
+
+     ;; Defining a named function:
+     (let double
+         (x) (* x x))
+
+     (double 5)
+     ;; 10
+   #+END_SRC
 ** Recursive functions
    Recursive functions are defined with =letrec=:
     #+BEGIN_SRC scheme

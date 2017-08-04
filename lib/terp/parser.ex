@@ -36,6 +36,7 @@ defmodule Terp.Parser do
       lambda_parser(),
       letrec_parser(),
       let_parser(),
+      cond_parser(),
       application_parser(),
       ignore(newline()),
     ])
@@ -81,17 +82,38 @@ defmodule Terp.Parser do
     map(l_parser, fn x -> {:__letrec, x} end)
   end
 
+  # Parse a cond expression: (cond [c r] [c r])
+  defp cond_parser() do
+    l_parser = between(
+      string("(cond"),
+      many(
+        choice([
+          between(
+            string("["),
+            valid_expr_parser(),
+            string("]")
+          ),
+          ignore(space()),
+          ignore(newline()),
+        ])
+      ),
+      char(")")
+    )
+    map(l_parser, fn x -> {:__cond, x} end)
+  end
+
   defp valid_expr_parser() do
     many(
       choice([
         literal_parser(),
-        ignore(space()),
-        ignore(newline()),
         list_parser(),
+        lazy(fn -> cond_parser() end),
         lazy(fn -> lambda_parser() end),
         lazy(fn -> letrec_parser() end),
         lazy(fn -> let_parser() end),
-        lazy(fn -> application_parser() end)
+        lazy(fn -> application_parser() end),
+        ignore(space()),
+        ignore(newline()),
       ])
     )
   end
@@ -120,6 +142,7 @@ defmodule Terp.Parser do
       string_to_atom(ignore(char(":")) |> word()),
       both(word(), char("?"), &(&1 <> &2)),
       both(word(), char("!"), &(&1 <> &2)),
+      map(between(char("\""), word(), char("\"")), &({:__string, &1})),
       word(),
       lazy(fn -> list_parser() end),
     ])
@@ -201,6 +224,7 @@ defmodule Terp.Parser do
       end
     end
   end
+  def to_tree(x), do: RoseTree.new(x)
 
   # lazy parser implementation from
   # https://github.com/bitwalker/combine/issues/12#issuecomment-222539479
