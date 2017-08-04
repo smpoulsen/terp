@@ -215,7 +215,7 @@ defmodule Terp.Parser do
         ]
       ]
   """
-  def to_tree([]), do: {:error, :no_parse}
+  def to_tree([]), do: []
   def to_tree(expr) when is_list(expr) do
     for v <- expr do
       case v do

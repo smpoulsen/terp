@@ -154,7 +154,6 @@ defmodule Terp do
               case evaluated_list do
                 [] -> {:error, {:terp, :empty_list}}
                 [_h | t] -> t
-                |> IO.inspect(label: :cdr)
               end
             else
               nil -> {:error, {:terp, :empty_list}}
@@ -163,9 +162,7 @@ defmodule Terp do
             operands
             |> Enum.map(&eval_expr(&1, env))
             |> List.first()
-            |> IO.inspect(label: "first")
             |> Enum.empty?()
-            |> IO.inspect(label: "empty")
           true ->
             true
           false ->
