@@ -102,7 +102,7 @@ defmodule Terp do
       :__lambda ->
         Function.lambda(children, env)
       :__quote ->
-        children
+        Enum.map(children, &(&1.node))
       :__letrec ->
         Function.letrec(tree, env)
       :__cond ->
@@ -139,6 +139,33 @@ defmodule Terp do
             Arithmetic.divide(Enum.map(operands, &eval_expr(&1, env)))
           :eq ->
             (fn [x | [y | []]] -> x == y end).(Enum.map(operands, &eval_expr(&1, env)))
+          :__car ->
+            with operand <- List.first(operands),
+                 evaluated_list <- eval_expr(operand, env),
+                 true <- is_list(evaluated_list) do
+              List.first(evaluated_list)
+            else
+              nil -> {:error, {:terp, :empty_list}}
+            end
+          :__cdr ->
+            with operand <- List.first(operands),
+                 evaluated_list <- eval_expr(operand, env),
+                 true <- is_list(evaluated_list) do
+              case evaluated_list do
+                [] -> {:error, {:terp, :empty_list}}
+                [_h | t] -> t
+                |> IO.inspect(label: :cdr)
+              end
+            else
+              nil -> {:error, {:terp, :empty_list}}
+            end
+          :__empty ->
+            operands
+            |> Enum.map(&eval_expr(&1, env))
+            |> List.first()
+            |> IO.inspect(label: "first")
+            |> Enum.empty?()
+            |> IO.inspect(label: "empty")
           true ->
             true
           false ->
@@ -159,6 +186,9 @@ defmodule Terp do
       :/ -> :/
       :__if -> :__if
       :__cond -> :__cond
+      :__car -> :__car
+      :__cdr -> :__cdr
+      :__empty -> :__empty
       x -> env.(x)
     end
   end

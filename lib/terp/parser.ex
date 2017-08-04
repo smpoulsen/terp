@@ -18,7 +18,7 @@ defmodule Terp.Parser do
   """
   def parse(str) do
     str
-    |> Combine.parse(many1(expr_parser()))
+    |> Combine.parse(many(expr_parser()))
   end
 
   # `expr_parser/0` parses a terp expression.
@@ -169,6 +169,9 @@ defmodule Terp.Parser do
       string_to_atom(char("*")),
       string_to_atom(char("/")),
       map(string("if"), fn _x -> :__if end),
+      map(string("car"), fn _x -> :__car end),
+      map(string("cdr"), fn _x -> :__cdr end),
+      map(string("empty?"), fn _x -> :__empty end),
     ])
   end
 
