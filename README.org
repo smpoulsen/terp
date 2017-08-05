@@ -121,20 +121,36 @@
       (:factorial 5)
       ;; 120
     #+END_SRC
-** Module imports
-   Modules can be imported in to other modules to make their functions available.
+** Module system
+   Modules can be imported in to other modules to make their functions/defined expressions available.
+   Modules must specify the functions that they export or they cannot be used in other modules.
 
    Syntax is =(require ...)=, where =...= is a sequence of relative filepaths to the imported module.
    #+BEGIN_SRC racket
-     (require "examples/recursive.tp"
+     (require "examples/factorial.tp"
               "examples/identity.tp")
 
      (factorial (:identity 10))
    #+END_SRC
    
-   With [[https://github.com/tpoulsen/terp/blob/master/examples/recursive.tp]["examples/recursive.tp"]] and [[https://github.com/tpoulsen/terp/blob/master/examples/identity.tp]["examples/identity.tp"]] defined as in the examples directory.
+   With [[https://github.com/tpoulsen/terp/blob/master/examples/factorial.tp]["examples/factorial.tp"]] and [[https://github.com/tpoulsen/terp/blob/master/examples/identity.tp]["examples/identity.tp"]] defined as in the examples directory.
 
-   Currently, all of a module's defined functions are imported.
+   To use functions from an imported module, the module that is imported must explicitly export functions it wants to make available externally.
+   The syntax is =(provide ...)= where =...= is a sequence of function names.
+   #+BEGIN_SRC racket
+     ;; Module only exports factorial; identity is private.
+
+     (provide factorial)
+
+     (letrec factorial
+       (lambda (n)
+         (if (equal? n 0)
+             1
+             (* n (factorial (- n 1))))))
+
+     (let identity
+         (lambda (x) x))
+   #+END_SRC
 ** Evaluating a file:
    There's a mix task (=mix terp.run $FILENAME=) to evaluate a file:
 

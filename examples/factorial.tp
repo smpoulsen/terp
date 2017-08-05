@@ -1,4 +1,4 @@
-;; Recursive function definition
+;; Recursive definition of factorial
 (provide factorial)
 
 (letrec factorial
