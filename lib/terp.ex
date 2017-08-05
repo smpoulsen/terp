@@ -26,7 +26,7 @@ defmodule Terp do
       25
   """
   def eval(str) do
-    {result, _environment} = load_code(str)
+    {result, _environment} = evaluate_source(str)
     result
   end
 
@@ -34,13 +34,16 @@ defmodule Terp do
   Loads a terp module's code and returns both the result of evaluation and
   the resulting environment.
   """
-  def load_code(str, env \\ fn (z) -> {:error, {:unbound, z}} end) do
+  def evaluate_source(str, env \\ fn (z) -> {:error, {:unbound, z}} end) do
     trees = str
     |> Parser.parse()
     |> Enum.flat_map(&Parser.to_tree/1)
+    |> run_eval(env)
 
+  end
+  def run_eval(trees, env) do
     trees
-    |> filter_comments()
+    |> filter_nodes(:__comment)
     |> eval_trees(env)
   end
 
@@ -59,9 +62,9 @@ defmodule Terp do
     end
   end
 
-  # Filters comments out of the AST.
-  defp filter_comments(trees) do
-    Enum.reject(trees, fn %RoseTree{node: node} -> node == :__comment end)
+  # Filters nodes out of the AST.
+  defp filter_nodes(trees, node_name) do
+    Enum.reject(trees, fn %RoseTree{node: node} -> node == node_name end)
   end
 
   @doc """
@@ -100,10 +103,10 @@ defmodule Terp do
         str.node
       :__lambda ->
         :__lambda
-      :__provide ->
-        :__provide
       :__require ->
         :__require
+      :__provide ->
+        :__provide
       :__quote ->
         Enum.map(children, &(&1.node))
       :__cond ->
@@ -136,6 +139,8 @@ defmodule Terp do
             Function.lambda(operands, env)
           :__require ->
             ModuleSystem.require_modules(Enum.map(operands, &eval_expr(&1, env)), env)
+          :__provide ->
+            :noop
           :+ ->
             Arithmetic.add(Enum.map(operands, &eval_expr(&1, env)))
           :* ->

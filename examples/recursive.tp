@@ -1,4 +1,5 @@
 ;; Recursive function definition
+(provide factorial)
 
 (letrec factorial
   (lambda (n)
