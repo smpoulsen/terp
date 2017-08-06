@@ -18,7 +18,7 @@ defmodule Terp.Parser do
   """
   def parse(str) do
     str
-    |> Combine.parse(many1(expr_parser()))
+    |> Combine.parse(many(expr_parser()))
   end
 
   # `expr_parser/0` parses a terp expression.
@@ -33,9 +33,6 @@ defmodule Terp.Parser do
       comment_parser(),
       literal_parser(),
       list_parser(),
-      lambda_parser(),
-      letrec_parser(),
-      let_parser(),
       cond_parser(),
       application_parser(),
       ignore(newline()),
@@ -50,36 +47,6 @@ defmodule Terp.Parser do
       char(")")
     )
     map(app_parser, fn x -> {:__apply, x} end)
-  end
-
-  # Parser for a lambda expression.
-  defp lambda_parser() do
-    l_parser = between(
-      string("(lambda"),
-      valid_expr_parser(),
-      char(")")
-    )
-    map(l_parser, fn x -> {:__lambda, x} end)
-  end
-
-  # Parser for a lambda expression.
-  defp let_parser() do
-    l_parser = between(
-      string("(let"),
-      valid_expr_parser(),
-      char(")")
-    )
-    map(l_parser, fn x -> {:__let, x} end)
-  end
-
-  # Parser for recursive functions.
-  defp letrec_parser() do
-    l_parser = between(
-      string("(letrec"),
-      valid_expr_parser(),
-      char(")")
-    )
-    map(l_parser, fn x -> {:__letrec, x} end)
   end
 
   # Parse a cond expression: (cond [c r] [c r])
@@ -108,9 +75,6 @@ defmodule Terp.Parser do
         literal_parser(),
         list_parser(),
         lazy(fn -> cond_parser() end),
-        lazy(fn -> lambda_parser() end),
-        lazy(fn -> letrec_parser() end),
-        lazy(fn -> let_parser() end),
         lazy(fn -> application_parser() end),
         ignore(space()),
         ignore(newline()),
@@ -139,12 +103,31 @@ defmodule Terp.Parser do
       built_ins_parser(),
       bool_parser(),
       integer(),
+      punctuation_parser(),
       string_to_atom(ignore(char(":")) |> word()),
       both(word(), char("?"), &(&1 <> &2)),
       both(word(), char("!"), &(&1 <> &2)),
-      map(between(char("\""), word(), char("\"")), &({:__string, &1})),
+      string_parser(),
       word(),
       lazy(fn -> list_parser() end),
+    ])
+  end
+
+  defp string_parser() do
+    map(
+      between(
+        char("\""),
+        lazy(fn -> many(literal_parser()) end),
+        char("\"")
+      ),
+      &({:__string, Enum.join(&1)})
+    )
+  end
+
+  defp punctuation_parser() do
+    choice([
+      string("/"),
+      string("."),
     ])
   end
 
@@ -169,6 +152,14 @@ defmodule Terp.Parser do
       string_to_atom(char("*")),
       string_to_atom(char("/")),
       map(string("if"), fn _x -> :__if end),
+      map(string("car"), fn _x -> :__car end),
+      map(string("cdr"), fn _x -> :__cdr end),
+      map(string("empty?"), fn _x -> :__empty end),
+      map(string("lambda"), fn _x -> :__lambda end),
+      map(string("letrec"), fn _x -> :__letrec end),
+      map(string("let"), fn _x -> :__let end),
+      map(string("require"), fn _x -> :__require end),
+      map(string("provide"), fn _x -> :__provide end),
     ])
   end
 
@@ -212,7 +203,7 @@ defmodule Terp.Parser do
         ]
       ]
   """
-  def to_tree([]), do: {:error, :no_parse}
+  def to_tree([]), do: []
   def to_tree(expr) when is_list(expr) do
     for v <- expr do
       case v do

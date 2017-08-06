@@ -1,4 +1,5 @@
 ;; Example showing variable binding
+(provide :identity)
 
 (let :identity
     (lambda (:x) :x))

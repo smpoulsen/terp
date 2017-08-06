@@ -11,8 +11,8 @@ defmodule Terp.IOTest do
     assert IO.run_terp("examples/identity.tp") == 7
   end
 
-  test "recursive.tp" do
-    assert IO.run_terp("examples/recursive.tp") == 840
+  test "factorial.tp" do
+    assert IO.run_terp("examples/factorial.tp") == 840
   end
 
   test "conditional.tp" do
@@ -21,5 +21,13 @@ defmodule Terp.IOTest do
 
   test "partial_application.tp" do
     assert IO.run_terp("examples/partial_application.tp") == 8
+  end
+
+  test "modules.tp" do
+    assert IO.run_terp("examples/modules.tp") == 3628800
+  end
+
+  test "function_composition.tp" do
+    assert IO.run_terp("examples/function_composition.tp") == 17
   end
 end

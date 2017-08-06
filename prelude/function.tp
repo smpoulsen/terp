@@ -1,0 +1,10 @@
+;; (module prelude.function)
+(provide compose)
+
+;; Compose a sequence of functions
+;; Arguments:
+;; Usage:
+(let compose
+    (lambda (f g)
+      (lambda (arg)
+        (f (g arg)))))
