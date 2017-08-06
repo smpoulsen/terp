@@ -1,4 +1,7 @@
 ;; (module prelude.functor)
+(provide fold_list
+         sum
+         length)
 
 ;; Fold a list into a single value using the provided function.
 ;; Arguments:

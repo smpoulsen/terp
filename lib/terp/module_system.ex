@@ -32,8 +32,8 @@ defmodule Terp.ModuleSystem do
         |> Terp.run_eval(env)
 
         provides = find_node_values_of_type(ast, [:__provide])
-        defined_values = find_node_values_of_type(ast, [:__let, :__letrec])
-        cleaned_environment = hide_private_fns({provides, defined_values}, environment)
+        defined = find_node_values_of_type(ast, [:__let, :__letrec])
+        cleaned_environment = hide_private_fns({provides, defined}, environment)
 
         require_modules(filenames, cleaned_environment)
       {:error, :enoent} ->
@@ -56,8 +56,8 @@ defmodule Terp.ModuleSystem do
 
   # After loading the required module, hides the private
   # functions from the environment by resetting them to :unbound.
-  defp hide_private_fns({provided, hidden}, environment) do
-    Enum.reduce(hidden, environment,
+  defp hide_private_fns({provided, defined}, environment) do
+    Enum.reduce(defined, environment,
       fn (definition, environment) ->
         if Enum.member?(provided, definition) do
           environment

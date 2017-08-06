@@ -35,7 +35,7 @@ defmodule Terp do
   the resulting environment.
   """
   def evaluate_source(str, env \\ fn (z) -> {:error, {:unbound, z}} end) do
-    trees = str
+    str
     |> Parser.parse()
     |> Enum.flat_map(&Parser.to_tree/1)
     |> run_eval(env)
@@ -50,7 +50,13 @@ defmodule Terp do
   # Given a list of trees and an environment, evaluates the trees in
   # the context of the environment.
   defp eval_trees(_, env \\ fn (z) -> {:error, {:unbound, z}} end)
-  defp eval_trees([tree | []], env), do: {eval_expr(tree, env), env}
+  defp eval_trees([tree | []], env) do
+    res = eval_expr(tree, env)
+    case res do
+      x when is_function(x) -> {nil, res}
+      x -> {x, env}
+    end
+  end
   defp eval_trees([tree | trees], env) do
     case eval_expr(tree, env) do
       x when is_function(x) ->

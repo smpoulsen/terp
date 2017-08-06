@@ -1,0 +1,12 @@
+(require "prelude/function.tp")
+
+(let add
+    (lambda (x y) (+ x y)))
+
+(let add_two
+    (lambda (x) (add 2 x)))
+
+(let add_five
+    (lambda (x) (add 5 x)))
+
+((compose add_two add_five) 10)

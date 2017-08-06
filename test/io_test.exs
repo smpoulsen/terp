@@ -26,4 +26,8 @@ defmodule Terp.IOTest do
   test "modules.tp" do
     assert IO.run_terp("examples/modules.tp") == 3628800
   end
+
+  test "function_composition.tp" do
+    assert IO.run_terp("examples/function_composition.tp") == 17
+  end
 end
