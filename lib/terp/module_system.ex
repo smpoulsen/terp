@@ -1,4 +1,8 @@
 defmodule Terp.ModuleSystem do
+  @moduledoc"""
+  Functionality supporting a basic module system, e.g. export functions from a
+  module and import them in another.
+  """
   alias Terp.Parser
   alias RoseTree.Zipper
 
@@ -86,7 +90,8 @@ defmodule Terp.ModuleSystem do
   defp find_node_types(trees, node_types) do
     trees
     |> Enum.filter(fn tree ->
-      first_node = Zipper.from_tree(tree)
+      first_node = tree
+      |> Zipper.from_tree()
       |> Zipper.first_child()
       |> Zipper.lift(&Zipper.to_tree/1)
       Enum.member?(node_types, first_node.node)

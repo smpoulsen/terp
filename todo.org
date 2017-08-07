@@ -8,7 +8,8 @@
      - [ ] map, filter, fold, etc...
      - [ ] length, etc...
    - [ ] Rewrite some of the built-in functions that are currently in elixir in terp.
-** TODO [#A] clean up parser and terp implementations
+** INPROGRESS [#A] clean up parser and terp implementations
+   - State "INPROGRESS" from "TODO"       [2017-08-06 Sun 13:32]
    There's duplication and stuff that can likely be removed now that more functionality is built out.
    Would like to redo some of the early parsers in the style of more recent ones, e.g. tagging the value.
 *** Checklist [0/5]:
@@ -19,6 +20,8 @@
    + [ ] Add typespecs
 
 ** TODO [#B] variable/defined function hoisting
+** TODO Separate terp data structures from elixir data structures
+   Particularly noticeable in the return of =cdr=; should be returning a terp list instead of an elixir list.
 ** TODO [#B] pattern matching
    =pmatch= or equivalent, a list of possible cases and evaluate the first that's true
     <2017-08-03 Thu> - Added =cond= for multi-possibility conditionals. Pattern matching still to come.
