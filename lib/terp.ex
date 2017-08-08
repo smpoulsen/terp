@@ -142,6 +142,8 @@ defmodule Terp do
             Arithmetic.divide(Enum.map(operands, &eval_expr(&1, env)))
           :__equal? ->
             (fn [x | [y | []]] -> x == y end).(Enum.map(operands, &eval_expr(&1, env)))
+          :__cons ->
+            Terp.List.cons(operands, env)
           :__car ->
             Terp.List.car(operands, env)
           :__cdr ->

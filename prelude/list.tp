@@ -1,5 +1,7 @@
-;; (module prelude.functor)
-(provide fold_list
+;; (module prelude.list)
+(provide foldr
+         reverse
+         map
          sum
          length)
 
@@ -10,22 +12,45 @@
 ;;     values      -> A list of values. Lists must be quoted, e.g. '(1 2 3).
 ;;     accumulator -> An initial value to collect values into.
 ;; Usage:
-;;     (fold_list (lambda (n acc) (+ n acc)) '(1 10 100 1000) 0) -> 1111
-(letrec fold_list
+;;     (foldr (lambda (n acc) (+ n acc)) '(1 10 100 1000) 0) -> 1111
+(letrec foldr
   (lambda (fn values accumulator)
     (if (empty? values)
         accumulator
-        (fold_list
+        (foldr
          fn
          (cdr values)
          (fn (car values) accumulator)))))
+
+;; Reverse a list.
+;; Usage:
+;;     (reverse '(1 2 3 4 5))
+;;     '(5 4 3 2 1)
+(let reverse
+    (lambda (xs)
+      (foldr
+       (lambda (x acc) (cons x acc))
+       xs
+       '())))
+
+;; Map a function over a collection of items.
+;; Usage:
+;;     (map (lambda (x) (* 2 x)) '(1 2 3 4 5))
+;;     '(2 4 6 8 10)
+(let map
+    (lambda (f xs)
+      (reverse
+       (foldr
+        (lambda (x acc) (cons (f x) acc))
+        xs
+        '()))))
 
 ;; Sum of a list of numbers
 ;; Usage:
 ;;     (sum '(1 2 3)) -> 6
 (let sum
     (lambda (ns)
-      (fold_list
+      (foldr
        (lambda (n acc) (+ n acc))
        ns
        0)))
@@ -35,7 +60,7 @@
 ;;     (length '(4 5 6)) -> 3
 (let length
     (lambda (ns)
-      (fold_list
+      (foldr
        (lambda (n acc) (+ 1 acc))
        ns
        0)))

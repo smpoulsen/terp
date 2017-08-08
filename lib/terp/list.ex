@@ -4,6 +4,19 @@ defmodule Terp.List do
   """
 
   @doc """
+  Build a list by prepending an item to it.
+  """
+  def cons([], environment), do: Terp.eval_expr(nil, environment)
+  def cons([x | xs], environment) do
+    e = Terp.eval_expr(x, environment)
+    acc = case xs do
+      []  -> []
+      [t] -> Terp.eval_expr(t, environment)
+    end
+    [e | acc]
+  end
+
+  @doc """
   Take the first element from a list.
 
   ## Examples
