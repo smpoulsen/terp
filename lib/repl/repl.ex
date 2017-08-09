@@ -27,9 +27,7 @@ defmodule Terp.Repl do
         IO.write("\nBye!")
       _ ->
         updated_history = add_history(expr, history)
-        #|> IO.inspect(label: "HISTORY: ")
         env =  eval(expr, environment)
-        #|> IO.inspect(label: "ENV: ")
         loop("", env, updated_history)
     end
   end

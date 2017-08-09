@@ -189,6 +189,7 @@ defmodule Terp do
           x when is_function(x) ->
             Function.apply_lambda(operator, Enum.map(operands, &eval_expr(&1, env)), env)
           x when is_number(x) -> x
+          x = {:error, e} -> x
           _  -> eval(operator, Enum.map(operands, &eval_expr(&1, env)), env)
         end
       x when is_number(x) -> x
