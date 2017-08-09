@@ -67,7 +67,7 @@ defmodule Terp do
         eval_trees(trees, env)
     end
   end
-  defp eval_trees(x, env), do: {:error, {:unable_to_evaluate, x}}
+  defp eval_trees(x, env), do: {{:error, {:unable_to_evaluate, x}}, env}
 
   # Filters nodes out of the AST.
   defp filter_nodes(trees, node_name) do

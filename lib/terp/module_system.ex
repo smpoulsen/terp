@@ -31,7 +31,7 @@ defmodule Terp.ModuleSystem do
         {_res, environment} = ast
         |> Terp.run_eval(env)
 
-        provides = find_node_values_of_type(ast, [:__provide])
+        provides = find_exported_definitions(ast)
         defined = find_node_values_of_type(ast, [:__let, :__letrec])
         cleaned_environment = hide_private_fns({provides, defined}, environment)
 
@@ -50,7 +50,19 @@ defmodule Terp.ModuleSystem do
     else
       nodes
       |> Enum.map(&RoseTree.to_list/1)
-      |> Enum.map(fn [_p | [_i | node_values]] -> List.first(node_values) end)
+      |> Enum.map(fn [_p | [_i | name]] -> List.first(name) end)
+    end
+  end
+
+  @spec find_exported_definitions([RoseTree.t]) :: [atom] | [String.t]
+  defp find_exported_definitions(trees) do
+    nodes = find_node_types(trees, [:__provide])
+    if Enum.empty?(nodes) do
+      []
+    else
+      nodes
+      |> Enum.map(&RoseTree.to_list/1)
+      |> Enum.flat_map(fn [_p | [_i | name]] -> name end)
     end
   end
 

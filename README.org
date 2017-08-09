@@ -170,3 +170,7 @@
      7
    #+END_SRC
    * With =@debug= set to =true=, the results of the file evaluation are printed to stdout.
+** REPL
+   There's a basic repl using the mix task =mix terp.repl=.
+
+   Functionality is currently fairly limited.

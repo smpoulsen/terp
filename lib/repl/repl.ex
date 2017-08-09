@@ -8,18 +8,15 @@ defmodule Terp.Repl do
     loop("", fn (z) -> {:error, {:unbound_variable, z}} end, init_history(RoseTree.new(:start)))
   end
 
-  def loop(expr, environment, history) do
-    char = :io.get_chars(:standard_io, "terp> ", 1)
-    case char do
-      "\n" ->
-        full_expr = update_expr(char, expr)
-        updated_history = add_history(full_expr, history)
-        env =  eval(full_expr, environment)
-        loop("", env, updated_history)
+  def loop(init_expr, environment, history) do
+    if init_expr == "" do
+      :io.put_chars(init_expr)
+    end
+    expr = IO.gets("terp> ")
+    case expr do
       <<2>> ->
         # Ctl-B
         {previous, new_history} = scroll_back(history)
-        :io.put_chars(previous)
         loop(previous, environment, new_history)
       <<6>> ->
         # Ctl-F
@@ -29,15 +26,12 @@ defmodule Terp.Repl do
         # Ctl-D
         IO.write("\nBye!")
       _ ->
-        loop(update_expr(char, expr), environment, history)
+        updated_history = add_history(expr, history)
+        #|> IO.inspect(label: "HISTORY: ")
+        env =  eval(expr, environment)
+        #|> IO.inspect(label: "ENV: ")
+        loop("", env, updated_history)
     end
-  end
-
-  # Append the new char to the expr
-  defp update_expr(char, expr) do
-    reversed = String.reverse(expr)
-    updated = char <> reversed
-    String.reverse(updated)
   end
 
   # Evaluate the expression and return the updated environment.
@@ -48,10 +42,13 @@ defmodule Terp.Repl do
         Bunt.puts([:red, "There was an error:"])
         IO.puts("\tmsg: #{Atom.to_string(type)}")
         IO.puts("\targ: #{msg}")
+        environment
       nil ->
         Bunt.puts([:green, "ok"])
+        env
       _ ->
         IO.puts(res)
+        env
     end
     env
   end
