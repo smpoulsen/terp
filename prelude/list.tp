@@ -14,13 +14,13 @@
 ;; Usage:
 ;;     (foldr (lambda (n acc) (+ n acc)) '(1 10 100 1000) 0) -> 1111
 (letrec foldr
-  (lambda (fn values accumulator)
+  (lambda (fn accumulator values)
     (if (empty? values)
         accumulator
         (foldr
          fn
-         (cdr values)
-         (fn (car values) accumulator)))))
+         (fn accumulator (car values))
+         (cdr values)))))
 
 ;; Reverse a list.
 ;; Usage:
@@ -29,9 +29,9 @@
 (let reverse
     (lambda (xs)
       (foldr
-       (lambda (x acc) (cons x acc))
-       xs
-       '())))
+       (lambda (acc x) (cons x acc))
+       '()
+       xs)))
 
 ;; Map a function over a collection of items.
 ;; Usage:
@@ -41,9 +41,9 @@
     (lambda (f xs)
       (reverse
        (foldr
-        (lambda (x acc) (cons (f x) acc))
-        xs
-        '()))))
+        (lambda (acc x) (cons (f x) acc))
+        '()
+        xs))))
 
 ;; Sum of a list of numbers
 ;; Usage:
@@ -51,9 +51,9 @@
 (let sum
     (lambda (ns)
       (foldr
-       (lambda (n acc) (+ n acc))
-       ns
-       0)))
+       (lambda (acc n) (+ n acc))
+       0
+       ns)))
 
 ;; Length of a list
 ;; Usage:
@@ -61,6 +61,6 @@
 (let length
     (lambda (ns)
       (foldr
-       (lambda (n acc) (+ 1 acc))
-       ns
-       0)))
+       (lambda (acc n) (+ 1 acc))
+       0
+       ns)))
