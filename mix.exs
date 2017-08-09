@@ -27,6 +27,7 @@ defmodule Terp.Mixfile do
 
   defp deps do
     [
+      {:bunt, "~> 0.2.0"},
       {:combine, "~> 0.9.6"},
       {:rose_tree, "~> 0.2.0"},
       {:credo, "~> 0.8.2", only: [:dev, :test]},
