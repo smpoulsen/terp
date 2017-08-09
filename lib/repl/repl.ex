@@ -2,28 +2,105 @@ defmodule Terp.Repl do
   @moduledoc """
   A REPL (read-eval-print-loop) for terp.
   """
+  alias RoseTree.Zipper
 
-  def loop(environment \\ fn (z) -> {:error, {:unbound_variable, z}} end) do
-    expr = IO.gets("terp> ")
-    case expr do
-      :eof -> IO.write("\nBye!")
+  def init() do
+    loop("", fn (z) -> {:error, {:unbound_variable, z}} end, init_history(RoseTree.new(:start)))
+  end
+
+  def loop(expr, environment, history) do
+    char = :io.get_chars(:standard_io, "terp> ", 1)
+    case char do
+      "\n" ->
+        full_expr = update_expr(char, expr)
+        updated_history = add_history(full_expr, history)
+        env =  eval(full_expr, environment)
+        loop("", env, updated_history)
+      <<2>> ->
+        # Ctl-B
+        {previous, new_history} = scroll_back(history)
+        :io.put_chars(previous)
+        loop(previous, environment, new_history)
+      <<6>> ->
+        # Ctl-F
+        {next, new_history} = scroll_forward(history)
+        loop(next, environment, new_history)
+      :eof ->
+        # Ctl-D
+        IO.write("\nBye!")
       _ ->
-        {res, env} = Terp.evaluate_source(expr, environment)
-        case res do
-          {:error, {type, msg}} ->
-            Bunt.puts([:red, "There was an error:"])
-            IO.puts("\tmsg: #{Atom.to_string(type)}")
-            IO.puts("\targ: #{msg}")
-          nil ->
-            Bunt.puts([:green, "ok"])
-          _ ->
-            IO.puts(res)
-        end
-        loop(env)
+        loop(update_expr(char, expr), environment, history)
     end
   end
 
-  def track_history() do
+  # Append the new char to the expr
+  defp update_expr(char, expr) do
+    reversed = String.reverse(expr)
+    updated = char <> reversed
+    String.reverse(updated)
+  end
+
+  # Evaluate the expression and return the updated environment.
+  defp eval(expr, environment) do
+    {res, env} = Terp.evaluate_source(expr, environment)
+    case res do
+      {:error, {type, msg}} ->
+        Bunt.puts([:red, "There was an error:"])
+        IO.puts("\tmsg: #{Atom.to_string(type)}")
+        IO.puts("\targ: #{msg}")
+      nil ->
+        Bunt.puts([:green, "ok"])
+      _ ->
+        IO.puts(res)
+    end
+    env
+  end
+
+  ### History ###
+  # History is implemented as a 1-ary rose tree.
+
+  # Initialize with an empty tree
+  defp init_history(item) do
+    item
+    |> RoseTree.new()
+    |> Zipper.from_tree()
+  end
+
+  # Insert new item into history.
+  defp add_history(new_item, history) do
     # use a zipper to track history.
+    {:ok, updated} = history
+    |> Zipper.insert_first_child(RoseTree.new(String.trim(new_item)))
+    updated
+  end
+
+  # Scroll backwards through history. Wraps around if at the top.
+  defp scroll_back(history) do
+    with {:ok, previous} <- Zipper.ascend(history),
+         tree <- Zipper.to_tree(previous) do
+    {tree.node, history}
+    else
+      {:error, {:rose_tree, :no_parent}} ->
+        last = history
+        |> Zipper.to_leaf()
+        |> Zipper.to_tree()
+        {last.node, history}
+    {:error, e} -> e
+    end
+  end
+
+  # Scroll forwards through history. Wraps around if at the bottom.
+  defp scroll_forward(history) do
+    with {:ok, next} <- Zipper.first_child(history),
+         tree <- Zipper.to_tree(next) do
+      {tree.node, history}
+    else
+      {:error, {:rose_tree, :bad_path}} ->
+        first = history
+        |> Zipper.to_root()
+        |> Zipper.to_tree()
+      {first.node, history}
+    {:error, e} -> e
+    end
   end
 end

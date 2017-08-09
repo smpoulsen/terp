@@ -6,6 +6,6 @@ defmodule Mix.Tasks.Terp.Repl do
   alias Terp.Repl
 
   def run(args) do
-    Repl.loop()
+    Repl.init()
   end
 end
