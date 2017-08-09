@@ -3,7 +3,7 @@ defmodule Terp.Repl do
   A REPL (read-eval-print-loop) for terp.
   """
 
-  def loop(environment \\ fn (z) -> {:error, {:unbound, z}} end) do
+  def loop(environment \\ fn (z) -> {:error, {:unbound_variable, z}} end) do
     expr = IO.gets("terp> ")
     case expr do
       :eof -> IO.write("\nBye!")
