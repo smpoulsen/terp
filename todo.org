@@ -12,10 +12,10 @@
    - State "INPROGRESS" from "TODO"       [2017-08-06 Sun 13:32]
    There's duplication and stuff that can likely be removed now that more functionality is built out.
    Would like to redo some of the early parsers in the style of more recent ones, e.g. tagging the value.
-*** Checklist [0/5]:
-   + [ ] Clean up parsers
+*** Checklist [2/5]:
+   + [X] Clean up parsers
    + [ ] Pull out condition bodies from the big case in terp.eval_trees
-   + [ ] Improve documentation
+   + [X] Improve documentation
    + [ ] Rename some poorly named functions
    + [ ] Add typespecs
 
@@ -25,7 +25,11 @@
 ** TODO [#B] pattern matching
    =pmatch= or equivalent, a list of possible cases and evaluate the first that's true
     <2017-08-03 Thu> - Added =cond= for multi-possibility conditionals. Pattern matching still to come.
-** TODO [#C] repl
+** DONE [#C] repl
+   CLOSED: [2017-08-09 Wed 21:08]
+   - State "DONE"       from "INPROGRESS" [2017-08-09 Wed 21:08] \\
+     Initial implementation merged today. Doesn't have scrollback, tab completion, etc... might have to actually hijack the erlang shell to get those.
+   - State "INPROGRESS" from "TODO"       [2017-08-09 Wed 21:08]
    An elixir shell that just waits for input and runs terp eval on it?
 ** DONE [#A] module system
    CLOSED: [2017-08-05 Sat 14:09]
