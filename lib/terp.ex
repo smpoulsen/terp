@@ -54,6 +54,7 @@ defmodule Terp do
     res = eval_expr(tree, env)
     case res do
       x when is_function(x) -> {nil, res}
+      {{:ok, msg}, env} -> res
       x -> {x, env}
     end
   end
