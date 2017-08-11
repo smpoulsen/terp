@@ -70,10 +70,12 @@ defmodule Terp.Function do
     |> Terp.eval_expr(env)
     |> y()
 
-    Terp.eval_expr(name, fn y ->
-      fn name ->
-        if name == y, do: recursive_fn, else: env.(y)
+    Terp.eval_expr(name,
+      fn y ->
+        fn arg ->
+          if arg == y, do: recursive_fn, else: env.(arg)
+        end
       end
-    end)
+    )
   end
 end
