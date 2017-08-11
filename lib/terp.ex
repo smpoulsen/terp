@@ -36,12 +36,19 @@ defmodule Terp do
   the resulting environment.
   """
   def evaluate_source(str, env \\ fn (z) -> {:error, {:unbound_variable, z}} end) do
-    str
-    |> Parser.parse()
-    |> Enum.flat_map(&Parser.to_tree/1)
-    |> run_eval(env)
-
+    parsed = Parser.parse(str)
+    if is_list(parsed) do
+      parsed
+      |> Enum.flat_map(&Parser.to_tree/1)
+      |> run_eval(env)
+    else
+      {:error, parsed}
+    end
   end
+
+  @doc """
+  Filters comments out of the syntax tree and evaluates the remaining expressions.
+  """
   def run_eval(trees, env) do
     trees
     |> filter_nodes(:__comment)
@@ -53,9 +60,14 @@ defmodule Terp do
   defp eval_trees([tree | []], env) do
     res = eval_expr(tree, env)
     case res do
-      x when is_function(x) -> {nil, res}
-      {{:ok, _msg}, _env} -> res
-      x -> {x, env}
+      x when is_function(x) ->
+        {nil, res}
+      {{:ok, _msg}, _env} ->
+        res
+      {:error, e} ->
+        {{:error, e}, env}
+      x ->
+        {x, env}
     end
   end
   defp eval_trees([tree | trees], env) do
@@ -144,7 +156,7 @@ defmodule Terp do
           :__div ->
             Arithmetic.divide(Enum.map(operands, &eval_expr(&1, env)))
           :__equal? ->
-            (fn [x | [y | []]] -> x == y end).(Enum.map(operands, &eval_expr(&1, env)))
+            Terp.Boolean.equal?(operands, env)
           :__cons ->
             Terp.List.cons(operands, env)
           :__car ->
@@ -152,12 +164,11 @@ defmodule Terp do
           :__cdr ->
             Terp.List.cdr(operands, env)
           :__empty? ->
-            operands
-            |> Enum.map(&eval_expr(&1, env))
-            |> List.first()
-            |> Enum.empty?()
+            Terp.List.empty?(operands, env)
           x when is_function(x) ->
             Function.apply_lambda(operator, Enum.map(operands, &eval_expr(&1, env)), env)
+          {:error, reason} ->
+            {:error, reason}
           _ ->
             {:error, {:not_a_procedure, operator}}
         end

@@ -48,17 +48,17 @@ defmodule Terp.List do
 
   ## Examples
 
-  iex> "(cdr '(1 2 3))"
-  ...> |> Terp.eval()
-  [2, 3]
+      iex> "(cdr '(1 2 3))"
+      ...> |> Terp.eval()
+      [2, 3]
 
-  iex> "(cdr '())"
-  ...> |> Terp.eval()
-  {:error, {:terp, :empty_list}}
+      iex> "(cdr '())"
+      ...> |> Terp.eval()
+      {:error, {:terp, :empty_list}}
 
-  iex> "(cdr 5)"
-  ...> |> Terp.eval()
-  {:error, {:terp, {:not_a_list, 5}}}
+      iex> "(cdr 5)"
+      ...> |> Terp.eval()
+      {:error, {:terp, {:not_a_list, 5}}}
   """
   def cdr(operands, environment) do
     operands
@@ -69,4 +69,23 @@ defmodule Terp.List do
   defp cdr_helper([]), do: {:error, {:terp, :empty_list}}
   defp cdr_helper([_h | t]), do: t
   defp cdr_helper(e), do: {:error, {:terp, {:not_a_list, e}}}
+
+  @doc """
+  Predicate to check if a list is empty.
+
+  ## Examples
+      iex> "(empty? '(1 2 3))"
+      ...> |> Terp.eval()
+      false
+
+      iex> "(empty? '())"
+      ...> |> Terp.eval()
+      true
+  """
+  def empty?(operands, environment) do
+    operands
+    |> Enum.map(&Terp.eval_expr(&1, environment))
+    |> List.first()
+    |> Enum.empty?()
+  end
 end

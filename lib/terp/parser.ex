@@ -80,7 +80,10 @@ defmodule Terp.Parser do
   defp between_parens_parser(parser) do
     between(
       either(char("("), char("[")),
-      parser,
+      followed_by(
+        parser,
+        either(char(")"), char("]"))
+      ),
       either(char(")"), char("]"))
     )
   end
