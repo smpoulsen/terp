@@ -4,7 +4,9 @@
          reverse
          map
          sum
-         length)
+         length
+         filter
+         )
 
 ;; Fold a list into a single value using the provided function.
 ;; foldl evaluates from left to right.
@@ -79,3 +81,20 @@
        (lambda (acc n) (+ 1 acc))
        0
        ns)))
+
+;; Filter a list based on a predicate function
+;; Arguments:
+;;     predicate -> A function of type (a -> boolean)
+;;     xs        -> A list of values of type (a)
+;; Returns:
+;;     A list of values of type (a), <= the length of xs,
+;;       containing values for which predicate(x) == true.
+;; Usage:
+;;     (let eq2 (lambda (x) (equal? x 2)))
+;;     (filter eq2 '(1 2 3 4 5 2 6 7 8)) -> '(2 2)
+(let filter
+    (lambda (predicate xs)
+      (foldr
+       (lambda (x acc) (if (predicate x) (cons x acc) acc))
+       '()
+       xs)))

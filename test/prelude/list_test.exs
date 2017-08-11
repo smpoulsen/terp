@@ -41,4 +41,9 @@ defmodule Terp.Prelude.ListTest do
     assert src <> "(length '())"
     |> Terp.eval == 0
   end
+
+  test "Prelude Functor - Filter", %{src: src} do
+    assert src <> "(filter (lambda (x) (equal? 2 x)) '(1 2 3 5 4))"
+    |> Terp.eval == [2]
+  end
 end
