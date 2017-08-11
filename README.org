@@ -175,3 +175,5 @@
 
    Currently allows expression evaluation (including module imports). History/scrollback not currently implemented.
    [[file:media/repl_demo.gif]] 
+
+   As a workaround for history/scrollback in the repl, start it as =iex -S mix terp.repl=. The IEx shell provides those features while still running the terp repl.
