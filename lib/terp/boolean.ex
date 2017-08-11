@@ -56,7 +56,7 @@ defmodule Terp.Boolean do
 
       iex> "(cond [(equal? 1 5) (9)] [#f 5])"
       ...> |> Terp.eval()
-      {:error, {:terp, :no_true_condition}}
+      {:error, {:cond, "no true condition"}}
 
       iex> "(cond [(equal? (+ 2 3) 5) 9] [#f 5])"
       ...> |> Terp.eval()

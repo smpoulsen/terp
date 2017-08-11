@@ -82,6 +82,7 @@ defmodule Terp do
         eval_trees(trees, env)
     end
   end
+  defp eval_trees(x, env) when is_bitstring(x), do: {x, env}
   defp eval_trees(x, env), do: {{:error, {:unable_to_evaluate, x}}, env}
 
   # Filters nodes out of the AST.
@@ -124,7 +125,7 @@ defmodule Terp do
         str = List.first(children)
         str.node
       :__quote ->
-        Enum.map(children, &(&1.node))
+        Environment.quote(children)
       :__cond ->
         Boolean.cond(children, env)
       :"__#t" ->
