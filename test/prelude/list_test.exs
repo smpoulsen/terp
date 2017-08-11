@@ -6,6 +6,16 @@ defmodule Terp.Prelude.ListTest do
     {:ok, %{src: src}}
   end
 
+  test "Prelude Functor - foldl", %{src: src} do
+    assert src <> "(foldl (lambda (x acc) (- acc x)) 0 '(1 2 3 4 5))"
+    |> Terp.eval == 3
+  end
+
+  test "Prelude Functor - foldr", %{src: src} do
+    assert src <> "(foldr (lambda (x acc) (- acc x)) 0 '(1 2 3 4 5))"
+    |> Terp.eval == -15
+  end
+
   test "Prelude Functor - Map", %{src: src} do
     assert src <> "(map (lambda (x) (* x 2)) '(1 2 3 4 5))"
     |> Terp.eval == [2, 4, 6, 8, 10]

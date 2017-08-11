@@ -1,26 +1,42 @@
 ;; (module prelude.list)
-(provide foldr
+(provide foldl
+         foldr
          reverse
          map
          sum
          length)
 
 ;; Fold a list into a single value using the provided function.
+;; foldl evaluates from left to right.
 ;; Arguments:
 ;;     fn          -> A function that takes a value and an accumulator;
 ;;                    must return a value of the same type as the accumulator.
 ;;     values      -> A list of values. Lists must be quoted, e.g. '(1 2 3).
 ;;     accumulator -> An initial value to collect values into.
 ;; Usage:
-;;     (foldr (lambda (n acc) (+ n acc)) '(1 10 100 1000) 0) -> 1111
+;;     (foldl (lambda (n acc) (+ n acc)) 0 '(1 10 100 1000)) -> 1111
+;;     (foldl (lambda (x y) (cons y x)) '() '(1 2 3 4)) -> '(1 2 3 4)
+(letrec foldl
+  (lambda (fn accumulator values)
+    (if (empty? values)
+        accumulator
+        (foldl fn (fn accumulator (car values)) (cdr values)))))
+
+;; Fold a list into a single value using the provided function.
+;; foldr evaluates from right to left.
+;; Arguments:
+;;     fn          -> A function that takes a value and an accumulator;
+;;                    must return a value of the same type as the accumulator.
+;;     values      -> A list of values. Lists must be quoted, e.g. '(1 2 3).
+;;     accumulator -> An initial value to collect values into.
+;; Usage:
+;;     (foldr (lambda (acc n) (+ n acc)) 0 '(1 10 100 1000)) -> 1111
+;;     (foldl (lambda (x y) (cons x y)) '() '(1 2 3 4)) -> '(1 2 3 4)
 (letrec foldr
   (lambda (fn accumulator values)
     (if (empty? values)
         accumulator
-        (foldr
-         fn
-         (fn accumulator (car values))
-         (cdr values)))))
+        (fn (car values) (foldr fn accumulator (cdr values))))))
 
 ;; Reverse a list.
 ;; Usage:
@@ -28,7 +44,7 @@
 ;;     '(5 4 3 2 1)
 (let reverse
     (lambda (xs)
-      (foldr
+      (foldl
        (lambda (acc x) (cons x acc))
        '()
        xs)))
@@ -39,18 +55,17 @@
 ;;     '(2 4 6 8 10)
 (let map
     (lambda (f xs)
-      (reverse
-       (foldr
-        (lambda (acc x) (cons (f x) acc))
-        '()
-        xs))))
+      (foldr
+       (lambda (x acc) (cons (f x) acc))
+       '()
+       xs)))
 
 ;; Sum of a list of numbers
 ;; Usage:
 ;;     (sum '(1 2 3)) -> 6
 (let sum
     (lambda (ns)
-      (foldr
+      (foldl
        (lambda (acc n) (+ n acc))
        0
        ns)))
@@ -60,7 +75,7 @@
 ;;     (length '(4 5 6)) -> 3
 (let length
     (lambda (ns)
-      (foldr
+      (foldl
        (lambda (acc n) (+ 1 acc))
        0
        ns)))
