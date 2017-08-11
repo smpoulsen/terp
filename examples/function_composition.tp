@@ -3,10 +3,13 @@
 (let add
     (lambda (x y) (+ x y)))
 
+(let subtract
+    (lambda (x y) (- x y)))
+
 (let add_two
     (lambda (x) (add 2 x)))
 
-(let add_five
-    (lambda (x) (add 5 x)))
+(let five_minus
+    (lambda (x) (subtract 5 x)))
 
-((compose add_two add_five) 10)
+((compose add_two five_minus) 10)

@@ -1,4 +1,8 @@
 defmodule Terp.ModuleSystem do
+  @moduledoc"""
+  Functionality supporting a basic module system, e.g. export functions from a
+  module and import them in another.
+  """
   alias Terp.Parser
   alias RoseTree.Zipper
 
@@ -19,8 +23,12 @@ defmodule Terp.ModuleSystem do
     3. Returns the environment that now contains the exported definitions
          from the required modules.
   """
-  def require_modules([], env), do: env
-  def require_modules([filename | filenames], env) do
+  def require_modules(filenames, env), do: require_modules(filenames, env, [])
+  def require_modules([], env, imports) do
+    stringified_imports = Enum.map(imports, fn {f, i} -> "#{f}: #{Enum.join(i, ", ")}" end)
+    {{:ok, {:imported, Enum.join(stringified_imports, "\n")}}, env}
+  end
+  def require_modules([filename | filenames], env, imports) do
     case File.read(filename) do
       {:ok, module} ->
         ast =
@@ -34,8 +42,9 @@ defmodule Terp.ModuleSystem do
         provides = find_exported_definitions(ast)
         defined = find_node_values_of_type(ast, [:__let, :__letrec])
         cleaned_environment = hide_private_fns({provides, defined}, environment)
+        updated_imports = [{filename, provides} | imports]
 
-        require_modules(filenames, cleaned_environment)
+        require_modules(filenames, cleaned_environment, updated_imports)
       {:error, :enoent} ->
         {:error, {:module_doesnt_exist, filename}}
     end
@@ -86,7 +95,8 @@ defmodule Terp.ModuleSystem do
   defp find_node_types(trees, node_types) do
     trees
     |> Enum.filter(fn tree ->
-      first_node = Zipper.from_tree(tree)
+      first_node = tree
+      |> Zipper.from_tree()
       |> Zipper.first_child()
       |> Zipper.lift(&Zipper.to_tree/1)
       Enum.member?(node_types, first_node.node)

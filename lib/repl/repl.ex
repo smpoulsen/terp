@@ -41,11 +41,15 @@ defmodule Terp.Repl do
         IO.puts("\tmsg: #{Atom.to_string(type)}")
         IO.puts("\targ: #{msg}")
         environment
+      {:ok, {type, msg}} ->
+        Bunt.puts([:green, "Success!"])
+        Bunt.puts([:blue, "#{msg}"])
+        env
       nil ->
         Bunt.puts([:green, "ok"])
         env
       _ ->
-        IO.puts(res)
+        IO.inspect(res, charlists: :as_lists)
         env
     end
     env

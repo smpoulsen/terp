@@ -11,10 +11,10 @@ defmodule Terp.Parser do
   ## Examples
 
       iex> Terp.Parser.parse("(+ 1 2 3)")
-      [[__apply: [:+, 1, 2, 3]]]
+      [[__apply: [:"__+", 1, 2, 3]]]
 
       iex> Terp.Parser.parse("(+ 1 2 (* 2 3))")
-      [[__apply: [:+, 1, 2, {:__apply, [:*, 2, 3]}]]]
+      [[__apply: [:"__+", 1, 2, {:__apply, [:"__*", 2, 3]}]]]
   """
   def parse(str) do
     str
@@ -25,9 +25,6 @@ defmodule Terp.Parser do
   # Valid expressions are s-expression like (they are not however
   # stored internally as binary trees); expressions are enclosed
   # in parentheses and use prefix notation.
-
-  # TODO: currently, parsing application of literals works even
-  # if it doesn't make sense to, e.g. `(#t)` is considered valid
   defp expr_parser() do
     choice([
       comment_parser(),
@@ -41,11 +38,8 @@ defmodule Terp.Parser do
 
   # `application_parser/0` parses function application.
   defp application_parser() do
-    app_parser = between(
-      char("("),
-      valid_expr_parser(),
-      char(")")
-    )
+    app_parser = valid_expr_parser()
+      |> between_parens_parser()
     map(app_parser, fn x -> {:__apply, x} end)
   end
 
@@ -56,9 +50,9 @@ defmodule Terp.Parser do
       many(
         choice([
           between(
-            string("["),
+            either(string("["), string("(")),
             valid_expr_parser(),
-            string("]")
+            either(string("]"), string(")"))
           ),
           ignore(space()),
           ignore(newline()),
@@ -79,6 +73,15 @@ defmodule Terp.Parser do
         ignore(space()),
         ignore(newline()),
       ])
+    )
+  end
+
+  # Wrapper for parenthesized expressions
+  defp between_parens_parser(parser) do
+    between(
+      either(char("("), char("[")),
+      parser,
+      either(char(")"), char("]"))
     )
   end
 
@@ -139,28 +142,34 @@ defmodule Terp.Parser do
   # Parses true/false booleans
   defp bool_parser() do
     either(
-      string("#t"), # boolean true
-      string("#f") # boolean false
+      to_built_in(string("#t")), # boolean true
+      to_built_in(string("#f")) # boolean false
     )
   end
 
   # Parses valid built-in functions/terms in terp.
   defp built_ins_parser() do
     choice([
-      string_to_atom(char("+")),
-      string_to_atom(char("-")),
-      string_to_atom(char("*")),
-      string_to_atom(char("/")),
-      map(string("if"), fn _x -> :__if end),
-      map(string("car"), fn _x -> :__car end),
-      map(string("cdr"), fn _x -> :__cdr end),
-      map(string("empty?"), fn _x -> :__empty end),
-      map(string("lambda"), fn _x -> :__lambda end),
-      map(string("letrec"), fn _x -> :__letrec end),
-      map(string("let"), fn _x -> :__let end),
-      map(string("require"), fn _x -> :__require end),
-      map(string("provide"), fn _x -> :__provide end),
+      to_built_in(char("+")),
+      to_built_in(char("-")),
+      to_built_in(char("*")),
+      to_built_in(string("div")), # / collides with the symbol
+      to_built_in(string("if")),
+      to_built_in(string("car")),
+      to_built_in(string("cdr")),
+      to_built_in(string("cons")),
+      to_built_in(string("empty?")),
+      to_built_in(string("equal?")),
+      to_built_in(string("lambda")),
+      to_built_in(string("letrec")),
+      to_built_in(string("let")),
+      to_built_in(string("require")),
+      to_built_in(string("provide")),
     ])
+  end
+
+  defp to_built_in(parser) do
+    map(parser, fn x -> String.to_atom("__" <> x) end)
   end
 
   defp comment_parser() do

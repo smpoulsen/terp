@@ -3,10 +3,11 @@ defmodule Terp do
   A toy interpreter.
   """
   alias Terp.Parser
+  alias Terp.Environment
+  alias Terp.ModuleSystem
   alias Terp.Arithmetic
   alias Terp.Boolean
   alias Terp.Function
-  alias Terp.ModuleSystem
 
   @debug false
 
@@ -49,11 +50,11 @@ defmodule Terp do
 
   # Given a list of trees and an environment, evaluates the trees in
   # the context of the environment.
-  defp eval_trees(_, env \\ fn (z) -> {:error, {:unbound_variable, z}} end)
   defp eval_trees([tree | []], env) do
     res = eval_expr(tree, env)
     case res do
       x when is_function(x) -> {nil, res}
+      {{:ok, _msg}, _env} -> res
       x -> {x, env}
     end
   end
@@ -61,6 +62,8 @@ defmodule Terp do
     case eval_expr(tree, env) do
       x when is_function(x) ->
         eval_trees(trees, x)
+      {{:ok, {_res, _msg}}, env} ->
+        eval_trees(trees, env)
       {:error, e} ->
         e
       _ ->
@@ -108,113 +111,65 @@ defmodule Terp do
       :__string ->
         str = List.first(children)
         str.node
-      :__lambda ->
-        :__lambda
-      :__require ->
-        :__require
-      :__provide ->
-        :__provide
       :__quote ->
         Enum.map(children, &(&1.node))
       :__cond ->
         Boolean.cond(children, env)
+      :"__#t" ->
+        Boolean.t()
+      :"__#f" ->
+        Boolean.f()
       :__apply ->
         [operator | operands] = children
         operator = eval_expr(operator, env)
-        if @debug do
-          IO.inspect({"OPERATOR", operator})
-          IO.inspect({"OPERANDS", operands})
-        end
         case operator do
           :__if ->
             Boolean.conditional(operands, env)
           :__letrec ->
             Function.letrec(operands, env)
           :__let ->
-            [name | [bound | []]] = operands
-            eval_expr(name,
-              fn y ->
-                fn name ->
-                  if y == name do
-                    eval_expr(bound, env)
-                  else
-                    env.(name)
-                  end
-                end
-              end)
+            Environment.let(operands, env)
           :__lambda ->
             Function.lambda(operands, env)
           :__require ->
             ModuleSystem.require_modules(Enum.map(operands, &eval_expr(&1, env)), env)
           :__provide ->
             :noop
-          :+ ->
+          :"__+" ->
             Arithmetic.add(Enum.map(operands, &eval_expr(&1, env)))
-          :* ->
+          :"__*" ->
             Arithmetic.multiply(Enum.map(operands, &eval_expr(&1, env)))
-          :- ->
+          :"__-" ->
             Arithmetic.subtract(Enum.map(operands, &eval_expr(&1, env)))
-          :/ ->
+          :__div ->
             Arithmetic.divide(Enum.map(operands, &eval_expr(&1, env)))
-          :eq ->
+          :__equal? ->
             (fn [x | [y | []]] -> x == y end).(Enum.map(operands, &eval_expr(&1, env)))
+          :__cons ->
+            Terp.List.cons(operands, env)
           :__car ->
-            with operand <- List.first(operands),
-                 evaluated_list <- eval_expr(operand, env),
-                 true <- is_list(evaluated_list) do
-              List.first(evaluated_list)
-            else
-              nil -> {:error, {:terp, :empty_list}}
-            end
+            Terp.List.car(operands, env)
           :__cdr ->
-            with operand <- List.first(operands),
-                 evaluated_list <- eval_expr(operand, env),
-                 true <- is_list(evaluated_list) do
-              case evaluated_list do
-                [] -> {:error, {:terp, :empty_list}}
-                [_h | t] -> t
-              end
-            else
-              nil -> {:error, {:terp, :empty_list}}
-            end
-          :__empty ->
+            Terp.List.cdr(operands, env)
+          :__empty? ->
             operands
             |> Enum.map(&eval_expr(&1, env))
             |> List.first()
             |> Enum.empty?()
-          true ->
-            true
-          false ->
-            false
           x when is_function(x) ->
             Function.apply_lambda(operator, Enum.map(operands, &eval_expr(&1, env)), env)
-          x when is_number(x) -> x
-          x = {:error, e} -> x
-          _  -> eval(operator, Enum.map(operands, &eval_expr(&1, env)), env)
+          _ ->
+            {:error, {:not_a_procedure, operator}}
         end
       x when is_number(x) -> x
-      #TODO Remove all of this duplication between here and apply
-      "#t" -> Boolean.t()
-      "#f" -> Boolean.f()
-      "equal?" -> :eq
-      :+ -> :+
-      :* -> :*
-      :- -> :-
-      :/ -> :/
-      :__if -> :__if
-      :__cond -> :__cond
-      :__car -> :__car
-      :__cdr -> :__cdr
-      :__empty -> :__empty
-      :__let -> :__let
-      :__letrec -> :__letrec
-      x -> env.(x)
+      x ->
+        with true <- is_atom(x),
+             s <- Atom.to_string(x),
+             true <- String.starts_with?(s, "__") do
+          x
+        else
+          _ -> env.(x)
+        end
     end
   end
-
-  @doc """
-  Apply a list of arguments to a curried function.
-  """
-  def eval(operator, [h | []], env), do: operator.(env.(h))
-  def eval(operator, [h | t], env), do: eval(operator.(env.(h)), t, env)
 end
