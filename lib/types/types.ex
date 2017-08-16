@@ -32,21 +32,16 @@ defmodule Terp.Types.Types do
   end
 
   @spec function(Types.t, Types.t) :: Types.t
-  def function(t1, t2) do
+  def function(%Types{} = t1, %Types{} = t2) do
     %Types{
       constructor: :Tarrow,
       t: {t1, t2},
       str: "#{t1.str} -> #{t2.str}"
     }
   end
-  def function(t1) do
-    fn t2 ->
-      function(t1, t2)
-    end
-  end
 
   @spec list(Types.t) :: Types.t
-  def list(x) do
+  def list(%Types{} = x) do
     %Types{constructor: :Tlist, t: x, str: "[#{x.string}]"}
   end
 

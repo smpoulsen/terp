@@ -43,7 +43,7 @@ defmodule Terp.Repl do
     |> String.trim()
     |> String.trim_leading(":t ")
 
-    {e, {s, type}} = trimmed
+    type = trimmed
     |> Types.type_check()
     |> List.first() #TODO
 
