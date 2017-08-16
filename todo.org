@@ -8,6 +8,12 @@
      - [ ] map, filter, fold, etc...
      - [ ] length, etc...
    - [ ] Rewrite some of the built-in functions that are currently in elixir in terp.
+** INPROGRESS Type system
+   HM type inference
+   + need to pass in the environment so that let definitions can be type checked?
+   + bubble errors up in a meaningful way
+   + =if=, =cond=
+   + list type, and handlers for associated functions
 ** INPROGRESS [#A] clean up parser and terp implementations
    - State "INPROGRESS" from "TODO"       [2017-08-06 Sun 13:32]
    There's duplication and stuff that can likely be removed now that more functionality is built out.

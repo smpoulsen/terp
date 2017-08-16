@@ -41,7 +41,9 @@ defmodule Terp.Types.TypeEvaluator do
             t = Types.function(Types.function(Types.int(), Types.int()), Types.int())
             infer_binary_op(eval_env, type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :__equal? ->
-            t = Types.function(Types.function(Types.int(), Types.int()), Types.bool())
+            {eval_env, tv1} = fresh_type_var(eval_env)
+            {eval_env, tv2} = fresh_type_var(eval_env)
+            t = Types.function(Types.function(tv1, tv2), Types.bool())
             infer_binary_op(eval_env, type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :__let ->
             [_name | [bound | []]] = operands
@@ -169,7 +171,6 @@ defmodule Terp.Types.TypeEvaluator do
   where as = Set.toList $ ftv t `Set.difference` ftv env
   """
   def generalize(eval_env, type_env, type) do
-    require IEx; IEx.pry
     xs = type
     |> MapSet.difference(ftv(type_env))
     |> ftv()
@@ -219,7 +220,7 @@ defmodule Terp.Types.TypeEvaluator do
   """
   @spec ftv(Types.t | scheme | [Types.t] | type_environment) :: MapSet.t
   def ftv(%Types{constructor: :Tconst}), do: MapSet.new()
-  def ftv(%Types{constructor: :Tvar, t: t}), do: MapSet.new(t)
+  def ftv(%Types{constructor: :Tvar} = type), do: MapSet.new([type])
   def ftv(%Types{constructor: :Tarrow, t: {t1, t2}}) do
     MapSet.union(ftv(t1), ftv(t2))
   end
@@ -256,7 +257,7 @@ defmodule Terp.Types.TypeEvaluator do
   @spec bind(t, Types.t, Types.t) :: {t, substitution}
   def bind(%{errors: errors} = eval_env, a, type) do
     cond do
-      a == type -> {eval_env, null_substitution()}
+      a == type.t -> {eval_env, null_substitution()}
       occurs_check(a, type) -> {%{eval_env | errors: ["infinite type" | errors]}, nil}
       true -> {eval_env, %{a => type}}
     end
