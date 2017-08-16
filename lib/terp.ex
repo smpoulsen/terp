@@ -39,6 +39,7 @@ defmodule Terp do
     str
     |> Parser.parse()
     |> Enum.flat_map(&Parser.to_tree/1)
+    |> filter_nodes(:__comment)
   end
 
   @doc """
@@ -56,7 +57,6 @@ defmodule Terp do
   """
   def run_eval(trees, env) do
     trees
-    |> filter_nodes(:__comment)
     |> eval_trees(env)
   end
 
@@ -90,8 +90,10 @@ defmodule Terp do
   defp eval_trees(x, env) when is_bitstring(x), do: {x, env}
   defp eval_trees(x, env), do: {{:error, {:unable_to_evaluate, x}}, env}
 
-  # Filters nodes out of the AST.
-  defp filter_nodes(trees, node_name) do
+  @doc """
+  Filters nodes out of the AST.
+  """
+  def filter_nodes(trees, node_name) do
     Enum.reject(trees, fn %RoseTree{node: node} -> node == node_name end)
   end
 

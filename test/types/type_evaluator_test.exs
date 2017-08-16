@@ -16,6 +16,20 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
     assert type.str == "Int"
   end
 
+  test "type-checking a literal bool - true" do
+    type = "#t"
+    |> Types.type_check()
+    |> List.first()
+    assert type.str == "Bool"
+  end
+
+  test "type-checking a literal bool - false" do
+    type = "#f"
+    |> Types.type_check()
+    |> List.first()
+    assert type.str == "Bool"
+  end
+
   test "type-checking a lambda application" do
     type = "((lambda (x) x) 5)"
     |> Types.type_check()
@@ -49,5 +63,19 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
     |> Types.type_check()
     |> List.first()
     assert type.str == "b -> a -> Bool"
+  end
+
+  test "type-checking an if statement" do
+    type = "(if #t 8 1)"
+    |> Types.type_check()
+    |> List.first()
+    assert type.str == "Int"
+  end
+
+  test "type-checking an if statement with an equals? test" do
+    type = "(lambda (x) (if (equal? x #t) 8 1))"
+    |> Types.type_check()
+    |> List.first()
+    assert type.str == "a -> Int"
   end
 end

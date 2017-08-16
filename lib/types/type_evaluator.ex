@@ -25,6 +25,10 @@ defmodule Terp.Types.TypeEvaluator do
         {eval_env, {null_substitution(), Types.bool()}}
       :__string ->
         {eval_env, {null_substitution(), Types.string()}}
+      :"__#t" -> # Seems spurious, but probably don't need the when boolean?
+        {eval_env, {null_substitution, Types.bool()}}
+      :"__#f" ->
+        {eval_env, {null_substitution, Types.bool()}}
       :__apply ->
         [operator | operands] = children
         case operator.node do
@@ -48,6 +52,19 @@ defmodule Terp.Types.TypeEvaluator do
           :__let ->
             [_name | [bound | []]] = operands
             infer(bound, type_env, eval_env)
+          :__if ->
+            [test | [consequent | [alternative | []]]] = operands
+            {eval_env, {s1, t1}} = infer(test, type_env, eval_env)
+            {eval_env, {s2, t2}} = infer(consequent, type_env, eval_env)
+            {eval_env, {s3, t3}} = infer(alternative, type_env, eval_env)
+            {eval_env, s4} = unify(eval_env, t1, Types.bool())
+            {eval_env, s5} = unify(eval_env, t2, t3)
+            composed_scheme = s2
+            |> compose(s1)
+            |> compose(s3)
+            |> compose(s4)
+            |> compose(s5)
+            {eval_env, {composed_scheme, apply_sub(s5, t2)}}
           :__lambda ->
             [%RoseTree{node: :__apply, children: args} | body] = operands
 
