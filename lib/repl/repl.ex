@@ -3,6 +3,7 @@ defmodule Terp.Repl do
   A REPL (read-eval-print-loop) for terp.
   """
   alias RoseTree.Zipper
+  alias Terp.Types.Types
 
   def init() do
     loop("", fn (z) -> {:error, {:unbound_variable, z}} end, init_history(RoseTree.new(:start)))
@@ -26,10 +27,27 @@ defmodule Terp.Repl do
         # Ctl-D
         IO.write("\nBye!")
       _ ->
-        updated_history = add_history(expr, history)
-        env =  eval(expr, environment)
-        loop("", env, updated_history)
+        if String.starts_with?(expr, ":t ") do
+          type_check(expr)
+          loop("", environment, history)
+        else
+          updated_history = add_history(expr, history)
+          env =  eval(expr, environment)
+          loop("", env, updated_history)
+        end
     end
+  end
+
+  defp type_check(expr) do
+    trimmed = expr
+    |> String.trim()
+    |> String.trim_leading(":t ")
+
+    {e, {s, type}} = trimmed
+    |> Types.type_check()
+    |> List.first() #TODO
+
+    Bunt.puts([:blue, trimmed, :green, " : ", :yellow, type.str])
   end
 
   # Evaluate the expression and return the updated environment.

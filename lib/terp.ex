@@ -32,18 +32,23 @@ defmodule Terp do
   end
 
   @doc """
+  Parse source code and convert it to an ast.
+  """
+  @spec to_ast(String.t) :: [RoseTree.t]
+  def to_ast(str) do
+    str
+    |> Parser.parse()
+    |> Enum.flat_map(&Parser.to_tree/1)
+  end
+
+  @doc """
   Loads a terp module's code and returns both the result of evaluation and
   the resulting environment.
   """
   def evaluate_source(str, env \\ fn (z) -> {:error, {:unbound_variable, z}} end) do
-    parsed = Parser.parse(str)
-    if is_list(parsed) do
-      parsed
-      |> Enum.flat_map(&Parser.to_tree/1)
-      |> run_eval(env)
-    else
-      {:error, parsed}
-    end
+    str
+    |> to_ast()
+    |> run_eval(env)
   end
 
   @doc """
