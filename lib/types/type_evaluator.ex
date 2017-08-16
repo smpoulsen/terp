@@ -43,6 +43,9 @@ defmodule Terp.Types.TypeEvaluator do
           :__equal? ->
             t = Types.function(Types.function(Types.int(), Types.int()), Types.bool())
             infer_binary_op(eval_env, type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
+          :__let ->
+            [_name | [bound | []]] = operands
+            infer(bound, type_env, eval_env)
           :__lambda ->
             [%RoseTree{node: :__apply, children: args} | body] = operands
 
@@ -160,6 +163,20 @@ defmodule Terp.Types.TypeEvaluator do
     {env_prime, type}
   end
 
+  @doc """
+  generalize :: TypeEnv -> Type -> Scheme
+  generalize env t  = Forall as t
+  where as = Set.toList $ ftv t `Set.difference` ftv env
+  """
+  def generalize(eval_env, type_env, type) do
+    require IEx; IEx.pry
+    xs = type
+    |> MapSet.difference(ftv(type_env))
+    |> ftv()
+    |> MapSet.to_list()
+    {xs, type}
+  end
+
   ## Substitutions
   def null_substitution() do
     Map.new()
@@ -180,7 +197,7 @@ defmodule Terp.Types.TypeEvaluator do
   def apply_sub(substitution, %Types{constructor: :Tarrow, t: {t1, t2}}) do
     Types.function(apply_sub(substitution, t1), apply_sub(substitution, t2))
   end
-  def apply_sub(substitution, {as, t}) do
+  def apply_sub(substitution, {as, t} = _type_scheme) do
     substitution_prime = as
     |> Enum.reduce(substitution, fn (type_var, new_sub) ->
       Map.drop(new_sub, type_var) end
@@ -191,7 +208,7 @@ defmodule Terp.Types.TypeEvaluator do
   def apply_sub(substitution, xs) when is_list(xs) do
     Enum.map(xs, &apply(substitution, &1))
   end
-  def apply_sub(substitution, type_env) do
+  def apply_sub(substitution, %{} = type_env) do
     type_env
     |> Enum.map(fn {k, v} -> {k, apply_sub(substitution, v)} end)
     |> Map.new()
