@@ -26,9 +26,9 @@ defmodule Terp.Types.TypeEvaluator do
       :__string ->
         {eval_env, {null_substitution(), Types.string()}}
       :"__#t" -> # Seems spurious, but probably don't need the when boolean?
-        {eval_env, {null_substitution, Types.bool()}}
+        {eval_env, {null_substitution(), Types.bool()}}
       :"__#f" ->
-        {eval_env, {null_substitution, Types.bool()}}
+        {eval_env, {null_substitution(), Types.bool()}}
       :__apply ->
         [operator | operands] = children
         case operator.node do
@@ -52,6 +52,12 @@ defmodule Terp.Types.TypeEvaluator do
           :__let ->
             [_name | [bound | []]] = operands
             infer(bound, type_env, eval_env)
+          :__letrec ->
+            [_name | [bound | []]] = operands
+            {eval_env, {s1, t}} = infer(bound, type_env, eval_env)
+            {eval_env, tv} = fresh_type_var(eval_env)
+            {eval_env, s2} = unify(eval_env, Types.function(tv, tv), t)
+            {eval_env, {s2, apply_sub(s1, t)}}
           :__if ->
             [test | [consequent | [alternative | []]]] = operands
             {eval_env, {s1, t1}} = infer(test, type_env, eval_env)
@@ -59,8 +65,8 @@ defmodule Terp.Types.TypeEvaluator do
             {eval_env, {s3, t3}} = infer(alternative, type_env, eval_env)
             {eval_env, s4} = unify(eval_env, t1, Types.bool())
             {eval_env, s5} = unify(eval_env, t2, t3)
-            composed_scheme = s2
-            |> compose(s1)
+            composed_scheme = s1
+            |> compose(s2)
             |> compose(s3)
             |> compose(s4)
             |> compose(s5)
@@ -113,6 +119,9 @@ defmodule Terp.Types.TypeEvaluator do
 
             composed_scheme = compose(s3, compose(s2, s1))
             {env_prime, {composed_scheme, apply_sub(s3, tv)}}
+          _ ->
+            {eval_env, t} = fresh_type_var(eval_env)
+            {eval_env, {null_substitution(), t}}
         end
       _ ->
         lookup(eval_env, type_env, node)
@@ -173,6 +182,9 @@ defmodule Terp.Types.TypeEvaluator do
     end
   end
 
+  @doc """
+  Instantiate a type
+  """
   def instantiate(eval_env, {xs, t}) do
     {env_prime, fresh_type_vars} = xs
     |> Enum.reduce({eval_env, []}, fn (_x, {env, vars}) ->
@@ -187,11 +199,9 @@ defmodule Terp.Types.TypeEvaluator do
   end
 
   @doc """
-  generalize :: TypeEnv -> Type -> Scheme
-  generalize env t  = Forall as t
-  where as = Set.toList $ ftv t `Set.difference` ftv env
+  Generalize a bound type
   """
-  def generalize(eval_env, type_env, type) do
+  def generalize(_eval_env, type_env, type) do
     xs = type
     |> MapSet.difference(ftv(type_env))
     |> ftv()
