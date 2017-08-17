@@ -68,7 +68,8 @@ defmodule Terp.Types.TypeEvaluator do
           :__lambda ->
             [%RoseTree{node: :__apply, children: args} | body] = operands
 
-            {eval_env_prime, type_vars} = args
+            # Generate a fresh type variable for each argument
+            {eval_env, type_vars} = args
             |> Enum.reduce(
               {eval_env, []},
             fn (_arg, {env, vars}) ->
@@ -77,23 +78,26 @@ defmodule Terp.Types.TypeEvaluator do
             end
             )
 
-            type_env_prime = args
+            # Extend the type environment with the arguments
+            type_env = args
+            |> Enum.reverse()
             |> Enum.zip(type_vars)
             |> Enum.reduce(
               type_env,
               fn ({arg, var}, acc) -> extend(acc, {arg.node, {[arg.node], var}}) end
             )
 
+            # Infer the type of the function body
             {eval_env, _type_env, sub, fn_type} = body
             |> Enum.reduce(
-              {eval_env_prime, type_env_prime, null_substitution(), []},
+              {eval_env, type_env, null_substitution(), []},
               fn (expr, {eval_env, type_env, _substitution, types}) ->
                 {f, {sub, type}} = TypeEvaluator.infer(expr, type_env, eval_env)
-                substituted = apply_sub(sub, type)
-                {f, type_env, sub, [substituted | types]}
+                {f, type_env, sub, [type | types]}
               end)
 
-            {eval_env, {sub, TypeEvaluator.build_up_arrows((type_vars ++ fn_type))}}
+            substituted_type_vars = Enum.map(type_vars, &apply_sub(sub, &1))
+            {eval_env, {sub, build_up_arrows((substituted_type_vars ++ fn_type))}}
           :__apply ->
             # applying a lambda
             {env_prime, {s1, t1}} = infer(operator, type_env, eval_env)
@@ -103,11 +107,12 @@ defmodule Terp.Types.TypeEvaluator do
               {env, {sub_prime, type}} = infer(expr, t_env, e_env)
               {env, type_env, {sub_prime, [type | types]}}
             end)
+
             {env_prime, tv} = fresh_type_var(env_prime)
             {env_prime, s3} = unify(env_prime, apply_sub(s2, t1), Types.function(List.first(ts), tv))
-            c1 = compose(s1, s2)
-            c2 = compose(c1, s3)
-            {env_prime, {c2, apply_sub(s3, tv)}}
+
+            composed_scheme = compose(s3, compose(s2, s1))
+            {env_prime, {composed_scheme, apply_sub(s3, tv)}}
         end
       _ ->
         lookup(eval_env, type_env, node)
@@ -120,10 +125,9 @@ defmodule Terp.Types.TypeEvaluator do
     {eval_env, {s1, t1}} = infer(arg1, type_env, eval_env)
     {eval_env, {s2, t2}} = infer(arg2, type_env, eval_env)
     inferred_op_type = build_up_arrows([t1, t2, tv])
-    {eval_env, s3} = unify(eval_env, inferred_op_type, binary_type)
-    c1 = compose(s1, s2)
-    c2 = compose(c1, s3)
-    {eval_env, {c2, apply_sub(s3, tv)}}
+    {eval_env, s3} = unify(eval_env, binary_type, inferred_op_type)
+    composed_scheme = compose(s1, compose(s2, s3))
+    {eval_env, {composed_scheme, apply_sub(s3, tv)}}
   end
 
   @spec build_up_arrows([Types.t]) :: Types.t

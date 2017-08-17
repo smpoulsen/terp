@@ -48,7 +48,7 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
     type = "(lambda (x) (+ x 5))"
     |> Types.type_check()
     |> List.first()
-    assert type.str == "a -> Int"
+    assert type.str == "Int -> Int"
   end
 
   test "type-checking equality" do
@@ -70,6 +70,13 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
     |> Types.type_check()
     |> List.first()
     assert type.str == "Int"
+  end
+
+  test "type-checking an if statement wrapped in a lambda" do
+    type = "(lambda (x) (if #t x 1))"
+    |> Types.type_check()
+    |> List.first()
+    assert type.str == "Int -> Int"
   end
 
   test "type-checking an if statement with an equals? test" do
