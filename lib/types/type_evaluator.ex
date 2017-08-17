@@ -45,14 +45,15 @@ defmodule Terp.Types.TypeEvaluator do
             t = Types.function(Types.function(Types.int(), Types.int()), Types.int())
             infer_binary_op(eval_env, type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :__equal? ->
-            {eval_env, tv1} = fresh_type_var(eval_env)
-            {eval_env, tv2} = fresh_type_var(eval_env)
-            t = Types.function(Types.function(tv1, tv2), Types.bool())
+            # Using a single type variable because equality between different types would be ill-typed
+            {eval_env, tv} = fresh_type_var(eval_env)
+            t = Types.function(Types.function(tv, tv), Types.bool())
             infer_binary_op(eval_env, type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :__let ->
             [_name | [bound | []]] = operands
             infer(bound, type_env, eval_env)
           :__letrec ->
+            # TODO not inferring the specific type
             [_name | [bound | []]] = operands
             {eval_env, {s1, t}} = infer(bound, type_env, eval_env)
             {eval_env, tv} = fresh_type_var(eval_env)
@@ -65,11 +66,11 @@ defmodule Terp.Types.TypeEvaluator do
             {eval_env, {s3, t3}} = infer(alternative, type_env, eval_env)
             {eval_env, s4} = unify(eval_env, t1, Types.bool())
             {eval_env, s5} = unify(eval_env, t2, t3)
-            composed_scheme = s1
-            |> compose(s2)
-            |> compose(s3)
+            composed_scheme = s5
             |> compose(s4)
-            |> compose(s5)
+            |> compose(s3)
+            |> compose(s2)
+            |> compose(s1)
             {eval_env, {composed_scheme, apply_sub(s5, t2)}}
           :__lambda ->
             [%RoseTree{node: :__apply, children: args} | body] = operands
