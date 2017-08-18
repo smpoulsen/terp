@@ -85,4 +85,25 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
     |> List.first()
     assert type.str == "Bool -> Int"
   end
+
+  test "type-checking a list of integers" do
+    type = "'(3 2 5 9)"
+    |> Types.type_check()
+    |> List.first()
+    assert type.str == "[Int]"
+  end
+
+  test "type-checking a function that builds a list of integers" do
+    type = "(lambda (x) '(3 2 5 x))"
+    |> Types.type_check()
+    |> List.first()
+    assert type.str == "Int -> [Int]"
+  end
+
+  test "type-checking a list of lists of integers" do
+    type = "'('(1 2 3) '(4 5 6))"
+    |> Types.type_check()
+    |> List.first()
+    assert type.str == "[[Int]]"
+  end
 end

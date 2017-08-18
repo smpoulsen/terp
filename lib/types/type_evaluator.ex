@@ -29,6 +29,43 @@ defmodule Terp.Types.TypeEvaluator do
         {eval_env, {null_substitution(), Types.bool()}}
       :"__#f" ->
         {eval_env, {null_substitution(), Types.bool()}}
+      :__quote ->
+        {eval_env, type_env, sub, types} = children
+        |> Enum.reduce({eval_env, type_env, %{}, []},
+            fn (expr, {eval_env, type_env, sub, types}) ->
+              {eval_env, {s, t}} = infer(expr, type_env, eval_env)
+              {eval_env, type_env, compose(sub, s), [t | types]}
+            end
+           )
+
+        unique_types = types
+        |> Enum.uniq()
+        |> Enum.group_by(&(&1.constructor == :Tvar))
+
+        # unique_types[false] = :Tconst, :Tarrow, :Tlist
+        # unique_types[true] = :Tvar
+        case unique_types[false] do
+          nil ->
+            case unique_types[true] do
+              nil ->
+                {eval_env, tv} = fresh_type_var(eval_env)
+                {eval_env, {sub, Types.list(tv)}}
+              [t | _ts] ->
+                {eval_env, {sub, Types.list(t)}}
+            end
+          [t | []] ->
+            case unique_types[true] do
+              nil ->
+                {eval_env, {sub, Types.list(t)}}
+              vars ->
+                {eval_env, sub} = unify_list_types(eval_env, Enum.flat_map(vars, &[&1, t]))
+                {eval_env, {sub, Types.list(t)}}
+            end
+          ts ->
+            type_strings = Enum.map(ts, &(&1.str))
+            |> Enum.join(", ")
+            {eval_env, {:error, {:type, "unable to unify: #{type_strings}"}}}
+        end
       :__apply ->
         [operator | operands] = children
         case operator.node do
@@ -103,7 +140,9 @@ defmodule Terp.Types.TypeEvaluator do
                 {f, type_env, sub, [type | types]}
               end)
 
-            substituted_type_vars = Enum.map(type_vars, &apply_sub(sub, &1))
+            substituted_type_vars = type_vars
+            |> Enum.reverse()
+            |> Enum.map(&apply_sub(sub, &1))
             {eval_env, {sub, build_up_arrows((substituted_type_vars ++ fn_type))}}
           :__apply ->
             # applying a lambda
@@ -151,6 +190,16 @@ defmodule Terp.Types.TypeEvaluator do
   end
   def build_up_arrows([type1 | [type2 | types]]) do
     build_up_arrows(types, Types.function(type1, type2))
+  end
+
+  def unify_list_types(eval_env, types), do: unify_list_types(eval_env, types, %{})
+  def unify_list_types(eval_env, [type1 | types], unification) do
+    case List.pop_at(types, 0) do
+      {nil, []} -> {eval_env, unification}
+      {type2, _remaining_types} ->
+        {eval_env, unification2} = unify(eval_env, type1, type2)
+        unify_list_types(eval_env, types, compose(unification, unification2))
+    end
   end
 
   @spec fresh_type_var(t) :: {t, Types.t}
@@ -284,7 +333,7 @@ defmodule Terp.Types.TypeEvaluator do
     {eval_env, s2} = unify(eval_env, apply_sub(s1, r1), apply_sub(s1, r2))
     {eval_env, compose(s2, s1)}
   end
-  def unify(%{errors: errors} = eval_env, t1, t2), do: {%{eval_env | errors: ["unable to unify #{t1.str} and #{t2.str}" | errors]}, nil}
+  def unify(%{errors: errors} = eval_env, t1, t2), do: {%{eval_env | errors: ["unable to unify #{t1.str} and #{t2.str}" | errors]}, %{}}
 
   @spec bind(t, Types.t, Types.t) :: {t, substitution}
   def bind(%{errors: errors} = eval_env, a, type) do

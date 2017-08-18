@@ -47,7 +47,13 @@ defmodule Terp.Repl do
     |> Types.type_check()
     |> List.first() #TODO
 
-    Bunt.puts([:blue, trimmed, :green, " : ", :yellow, type.str])
+    case type do
+      {module, reason} ->
+        Bunt.puts([:red, "#{to_string(module)} error:"])
+        Bunt.puts([:yellow, "\t#{reason}"])
+      _ ->
+        Bunt.puts([:blue, trimmed, :green, " : ", :yellow, type.str])
+    end
   end
 
   # Evaluate the expression and return the updated environment.
