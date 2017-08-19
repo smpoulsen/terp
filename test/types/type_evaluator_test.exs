@@ -62,7 +62,7 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
     type = "(lambda (x y) (equal? x y))"
     |> Types.type_check()
     |> List.first()
-    assert type.str == "b -> b -> Bool"
+    assert type.str == "a -> a -> Bool"
   end
 
   test "type-checking an if statement" do

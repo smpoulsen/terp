@@ -1,8 +1,9 @@
 defmodule Terp.Types.TypeEvaluator do
   alias Terp.Types.Types
   alias Terp.Types.TypeEvaluator
+  alias Terp.Types.TypeVars
 
-  defstruct [var_index: 0, errors: []]
+  defstruct [var_index: 0, errors: [], bound_vars: %{}]
 
   @type scheme :: {[Types.t], Types.t}
   @type type_environment :: map()
@@ -12,29 +13,33 @@ defmodule Terp.Types.TypeEvaluator do
 
   @spec infer(RoseTree.t) :: Types.t
   def infer(%RoseTree{} = expr) do
-    {_eval_env, {_substitution, type}} = infer(expr, %{}, %TypeEvaluator{})
+    {_substitution, type} = infer(expr, %{})
     type
   end
 
-  @spec infer(RoseTree.t, type_environment, t) :: {t, {substitution, Type.t}}
-  def infer(%RoseTree{node: node, children: children}, type_env, %TypeEvaluator{} = eval_env) do
+  @spec infer(RoseTree.t, type_environment) :: {substitution, Type.t}
+  def infer(%RoseTree{node: node, children: children}, type_env) do
+    case TypeVars.start_link() do
+      {:ok, _} -> :ok
+      {:error, _} -> :ok
+    end
     case node do
       x when is_integer(x) ->
-        {eval_env, {null_substitution(), Types.int()}}
+        {null_substitution(), Types.int()}
       x when is_boolean(x) ->
-        {eval_env, {null_substitution(), Types.bool()}}
+        {null_substitution(), Types.bool()}
       :__string ->
-        {eval_env, {null_substitution(), Types.string()}}
+        {null_substitution(), Types.string()}
       :"__#t" -> # Seems spurious, but probably don't need the when boolean?
-        {eval_env, {null_substitution(), Types.bool()}}
+        {null_substitution(), Types.bool()}
       :"__#f" ->
-        {eval_env, {null_substitution(), Types.bool()}}
+        {null_substitution(), Types.bool()}
       :__quote ->
-        {eval_env, type_env, sub, types} = children
-        |> Enum.reduce({eval_env, type_env, %{}, []},
-            fn (expr, {eval_env, type_env, sub, types}) ->
-              {eval_env, {s, t}} = infer(expr, type_env, eval_env)
-              {eval_env, type_env, compose(sub, s), [t | types]}
+        {type_env, sub, types} = children
+        |> Enum.reduce({type_env, %{}, []},
+            fn (expr, {type_env, sub, types}) ->
+              {s, t} = infer(expr, type_env)
+              {type_env, compose(sub, s), [t | types]}
             end
            )
 
@@ -42,85 +47,77 @@ defmodule Terp.Types.TypeEvaluator do
         |> Enum.uniq()
         |> Enum.group_by(&(&1.constructor == :Tvar))
 
-        # unique_types[false] = :Tconst, :Tarrow, :Tlist
-        # unique_types[true] = :Tvar
         case unique_types[false] do
           nil ->
             case unique_types[true] do
               nil ->
-                {eval_env, tv} = fresh_type_var(eval_env)
-                {eval_env, {sub, Types.list(tv)}}
+                tv = TypeVars.fresh()
+                {sub, Types.list(tv)}
               [t | _ts] ->
-                {eval_env, {sub, Types.list(t)}}
+                {sub, Types.list(t)}
             end
           [t | []] ->
             case unique_types[true] do
               nil ->
-                {eval_env, {sub, Types.list(t)}}
+                {sub, Types.list(t)}
               vars ->
-                {eval_env, sub} = unify_list_types(eval_env, Enum.map(vars, &{&1, t}))
-                {eval_env, {sub, Types.list(t)}}
+                sub = unify_list_types(Enum.map(vars, &{&1, t}))
+                {sub, Types.list(t)}
             end
           ts ->
             type_strings = Enum.map(ts, &(&1.str))
             |> Enum.join(", ")
-            {eval_env, {:error, {:type, "unable to unify: #{type_strings}"}}}
+            {:error, {:type, "unable to unify: #{type_strings}"}}
         end
       :__apply ->
         [operator | operands] = children
         case operator.node do
           :"__+" ->
             t = Types.function(Types.function(Types.int(), Types.int()), Types.int())
-            infer_binary_op(eval_env, type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
+            infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :"__-" ->
             t = Types.function(Types.function(Types.int(), Types.int()), Types.int())
-            infer_binary_op(eval_env, type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
+            infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :"__*" ->
             t = Types.function(Types.function(Types.int(), Types.int()), Types.int())
-            infer_binary_op(eval_env, type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
+            infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :__div ->
             t = Types.function(Types.function(Types.int(), Types.int()), Types.int())
-            infer_binary_op(eval_env, type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
+            infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :__equal? ->
             # Using a single type variable because equality between different types would be ill-typed
-            {eval_env, tv} = fresh_type_var(eval_env)
+            tv = TypeVars.fresh()
             t = Types.function(Types.function(tv, tv), Types.bool())
-            infer_binary_op(eval_env, type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
+            infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :__let ->
             [_name | [bound | []]] = operands
-            infer(bound, type_env, eval_env)
+            infer(bound, type_env)
           :__letrec ->
             # TODO not inferring the specific type
             [_name | [bound | []]] = operands
-            {eval_env, {s1, t}} = infer(bound, type_env, eval_env)
-            {eval_env, tv} = fresh_type_var(eval_env)
-            {eval_env, s2} = unify(eval_env, Types.function(tv, tv), t)
-            {eval_env, {s2, apply_sub(s1, t)}}
+            {s1, t} = infer(bound, type_env)
+            tv = TypeVars.fresh()
+            s2 = unify(Types.function(tv, tv), t)
+            {s2, apply_sub(s1, t)}
           :__if ->
             [test | [consequent | [alternative | []]]] = operands
-            {eval_env, {s1, t1}} = infer(test, type_env, eval_env)
-            {eval_env, {s2, t2}} = infer(consequent, type_env, eval_env)
-            {eval_env, {s3, t3}} = infer(alternative, type_env, eval_env)
-            {eval_env, s4} = unify(eval_env, t1, Types.bool())
-            {eval_env, s5} = unify(eval_env, t2, t3)
+            {s1, t1} = infer(test, type_env)
+            {s2, t2} = infer(consequent, type_env)
+            {s3, t3} = infer(alternative, type_env)
+            s4 = unify(t1, Types.bool())
+            s5 = unify(t2, t3)
             composed_scheme = s5
             |> compose(s4)
             |> compose(s3)
             |> compose(s2)
             |> compose(s1)
-            {eval_env, {composed_scheme, apply_sub(s5, t2)}}
+            {composed_scheme, apply_sub(s5, t2)}
           :__lambda ->
             [%RoseTree{node: :__apply, children: args} | body] = operands
 
             # Generate a fresh type variable for each argument
-            {eval_env, type_vars} = args
-            |> Enum.reduce(
-              {eval_env, []},
-            fn (_arg, {env, vars}) ->
-              {new_env, var} = fresh_type_var(env)
-              {new_env, [var | vars]}
-            end
-            )
+            type_vars = args
+            |> Enum.map(fn (_arg) -> TypeVars.fresh() end)
 
             # Extend the type environment with the arguments
             type_env = args
@@ -132,51 +129,54 @@ defmodule Terp.Types.TypeEvaluator do
             )
 
             # Infer the type of the function body
-            {eval_env, _type_env, sub, fn_type} = body
+            {_type_env, sub, fn_type} = body
             |> Enum.reduce(
-              {eval_env, type_env, null_substitution(), []},
-              fn (expr, {eval_env, type_env, _substitution, types}) ->
-                {f, {sub, type}} = TypeEvaluator.infer(expr, type_env, eval_env)
-                {f, type_env, sub, [type | types]}
+              {type_env, null_substitution(), []},
+              fn (expr, {type_env, _substitution, types}) ->
+                {sub, type} = TypeEvaluator.infer(expr, type_env)
+                {type_env, sub, [type | types]}
               end)
 
             substituted_type_vars = type_vars
             |> Enum.reverse()
             |> Enum.map(&apply_sub(sub, &1))
-            {eval_env, {sub, build_up_arrows((substituted_type_vars ++ fn_type))}}
+            {sub, build_up_arrows((substituted_type_vars ++ fn_type))}
           :__apply ->
             # applying a lambda
-            {env_prime, {s1, t1}} = infer(operator, type_env, eval_env)
-            {env_prime, _type_env, {s2, ts}} = operands
-            |> Enum.reduce({env_prime, type_env, []},
-            fn (expr, {e_env, t_env, types}) ->
-              {env, {sub_prime, type}} = infer(expr, t_env, e_env)
-              {env, type_env, {sub_prime, [type | types]}}
+            {s1, t1} = infer(operator, type_env)
+            {_type_env, {s2, ts}} = operands
+            |> Enum.reduce({type_env, []},
+            fn (expr, {t_env, types}) ->
+              {sub_prime, type} = infer(expr, t_env)
+              {type_env, {sub_prime, [type | types]}}
             end)
 
-            {env_prime, tv} = fresh_type_var(env_prime)
-            {env_prime, s3} = unify(env_prime, apply_sub(s2, t1), Types.function(List.first(ts), tv))
+            tv = TypeVars.fresh()
+            s3 = unify(apply_sub(s2, t1), Types.function(List.first(ts), tv))
 
             composed_scheme = compose(s3, compose(s2, s1))
-            {env_prime, {composed_scheme, apply_sub(s3, tv)}}
+            {composed_scheme, apply_sub(s3, tv)}
+          :__provide ->
+            # TODO filter our provide nodes
+            {null_substitution(), nil}
           _ ->
-            {eval_env, t} = fresh_type_var(eval_env)
-            {eval_env, {null_substitution(), t}}
+            t = TypeVars.fresh()
+            {null_substitution(), t}
         end
       _ ->
-        lookup(eval_env, type_env, node)
+        lookup(type_env, node)
     end
   end
 
-  @spec infer_binary_op(t, type_environment, Types.t, {RoseTree.t, RoseTree.t}) :: {t, {substitution, Types.t}}
-  def infer_binary_op(eval_env, type_env, binary_type, {arg1, arg2}) do
-    {eval_env, tv} = fresh_type_var(eval_env)
-    {eval_env, {s1, t1}} = infer(arg1, type_env, eval_env)
-    {eval_env, {s2, t2}} = infer(arg2, type_env, eval_env)
+  @spec infer_binary_op(type_environment, Types.t, {RoseTree.t, RoseTree.t}) :: {t, {substitution, Types.t}}
+  def infer_binary_op(type_env, binary_type, {arg1, arg2}) do
+    tv = TypeVars.fresh()
+    {s1, t1} = infer(arg1, type_env)
+    {s2, t2} = infer(arg2, type_env)
     inferred_op_type = build_up_arrows([t1, t2, tv])
-    {eval_env, s3} = unify(eval_env, binary_type, inferred_op_type)
+    s3 = unify(binary_type, inferred_op_type)
     composed_scheme = compose(s1, compose(s2, s3))
-    {eval_env, {composed_scheme, apply_sub(s3, tv)}}
+    {composed_scheme, apply_sub(s3, tv)}
   end
 
   @spec build_up_arrows([Types.t]) :: Types.t
@@ -192,21 +192,11 @@ defmodule Terp.Types.TypeEvaluator do
     build_up_arrows(types, Types.function(type1, type2))
   end
 
-  def unify_list_types(eval_env, types), do: unify_list_types(eval_env, types, %{})
-  def unify_list_types(eval_env, [], unification), do: {eval_env, unification}
-  def unify_list_types(eval_env, [{type_var, type} | types], unification) do
-    {eval_env, unification2} = unify(eval_env, type_var, type)
-    unify_list_types(eval_env, types, compose(unification, unification2))
-  end
-
-  @spec fresh_type_var(t) :: {t, Types.t}
-  def fresh_type_var(%TypeEvaluator{var_index: index} = env) do
-    vars = Stream.cycle([
-      "a", "b", "c", "d", "e", "f", "g", "h", "i",
-      "j", "k", "l", "m", "n", "o", "p", "q", "r",
-      "s", "t", "u", "v", "w", "x", "y", "z"
-    ])
-    {%{env | var_index: index + 1}, Types.var(Enum.at(vars, index))}
+  def unify_list_types(types), do: unify_list_types(types, %{})
+  def unify_list_types([], unification), do: unification
+  def unify_list_types([{type_var, type} | types], unification) do
+    unification2 = unify(type_var, type)
+    unify_list_types(types, compose(unification, unification2))
   end
 
   @spec extend(type_environment, {atom() | String.t, scheme}) :: type_environment
@@ -219,36 +209,34 @@ defmodule Terp.Types.TypeEvaluator do
     Map.drop(type_env, var)
   end
 
-  @spec lookup(t, type_environment, atom() | String.t) :: {t, scheme} | {:error, {:unbound, atom() | String.t}}
-  def lookup(eval_env, type_environment, var) do
+  @spec lookup(type_environment, atom() | String.t) :: {t, scheme} | {:error, {:unbound, atom() | String.t}}
+  def lookup(type_environment, var) do
     case Map.get(type_environment, var) do
       nil -> {:error, {:unbound, var}}
       x ->
-        {env_prime, t} = instantiate(eval_env, x)
-        {env_prime, {null_substitution(), t}}
+      {null_substitution(), instantiate(x)}
     end
   end
 
   @doc """
   Instantiate a type
   """
-  def instantiate(eval_env, {xs, t}) do
-    {env_prime, fresh_type_vars} = xs
-    |> Enum.reduce({eval_env, []}, fn (_x, {env, vars}) ->
-      {new_env, var} = fresh_type_var(env)
-      {new_env, [var | vars]}
-    end)
+  def instantiate({xs, t}) do
+    fresh_type_vars = xs
+    |> Enum.map(fn (_x) -> TypeVars.fresh() end)
+
     type = xs
     |> Enum.zip(fresh_type_vars)
     |> Map.new()
     |> apply_sub(t)
-    {env_prime, type}
+
+    type
   end
 
   @doc """
   Generalize a bound type
   """
-  def generalize(_eval_env, type_env, type) do
+  def generalize(type_env, type) do
     xs = type
     |> MapSet.difference(ftv(type_env))
     |> ftv()
@@ -315,29 +303,25 @@ defmodule Terp.Types.TypeEvaluator do
   end
 
   ## Type unification
-  @spec unify(t, Types.t, Types.t) :: {t, {substitution, Types.t}}
-  def unify(infer, %Types{constructor: :Tvar, t: a}, type) do
-    bind(infer, a, type)
+  @spec unify(Types.t, Types.t) :: {substitution, Types.t}
+  def unify(%Types{constructor: :Tvar, t: a}, type), do: bind(a, type)
+  def unify(type, %Types{constructor: :Tvar, t: a}), do: bind(a, type)
+  def unify(%Types{constructor: :Tconst, t: a}, %Types{constructor: :Tconst, t: a}) do
+    null_substitution()
   end
-  def unify(infer, type, %Types{constructor: :Tvar, t: a}) do
-    bind(infer, a, type)
+  def unify(%Types{constructor: :Tarrow, t: {l1, r1}}, %Types{constructor: :Tarrow, t: {l2, r2}}) do
+    s1 = unify(l1, l2)
+    s2 = unify(apply_sub(s1, r1), apply_sub(s1, r2))
+    compose(s2, s1)
   end
-  def unify(infer, %Types{constructor: :Tconst, t: a}, %Types{constructor: :Tconst, t: a}) do
-    {infer, null_substitution()}
-  end
-  def unify(eval_env, %Types{constructor: :Tarrow, t: {l1, r1}}, %Types{constructor: :Tarrow, t: {l2, r2}}) do
-    {eval_env, s1} = unify(eval_env, l1, l2)
-    {eval_env, s2} = unify(eval_env, apply_sub(s1, r1), apply_sub(s1, r2))
-    {eval_env, compose(s2, s1)}
-  end
-  def unify(%{errors: errors} = eval_env, t1, t2), do: {%{eval_env | errors: ["unable to unify #{t1.str} and #{t2.str}" | errors]}, %{}}
+  def unify(t1, t2), do: {:error, {:type, "Unable to unify #{t1.str} with #{t2.str}"}}
 
-  @spec bind(t, Types.t, Types.t) :: {t, substitution}
-  def bind(%{errors: errors} = eval_env, a, type) do
+  @spec bind(Types.t, Types.t) :: {t, substitution}
+  def bind(a, type) do
     cond do
-      a == type.t -> {eval_env, null_substitution()}
-      occurs_check(a, type) -> {%{eval_env | errors: ["infinite type" | errors]}, nil}
-      true -> {eval_env, %{a => type}}
+      a == type.t -> null_substitution()
+      occurs_check(a, type) -> {:error, {:type, "Unable to construct infinite type"}}
+      true -> %{a => type}
     end
   end
 
