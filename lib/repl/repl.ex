@@ -48,7 +48,7 @@ defmodule Terp.Repl do
     |> List.first() #TODO
 
     case type do
-      {module, reason} ->
+      {:error, {module, reason}} ->
         Bunt.puts([:red, "#{to_string(module)} error:"])
         Bunt.puts([:yellow, "\t#{reason}"])
       _ ->

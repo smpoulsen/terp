@@ -152,5 +152,11 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
       assert type.str == "Int -> [Int]"
     end
 
+    test "type-checking cons consing a string to [Int]" do
+      type = "(cons \"asdf\" '(3 2 5 9))"
+      |> Types.type_check()
+      |> List.first()
+      assert type == {:error, {:type, "Unable to unify Int with String"}}
+    end
   end
 end
