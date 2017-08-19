@@ -89,6 +89,20 @@ defmodule Terp.Types.TypeEvaluator do
             tv = TypeVars.fresh()
             t = Types.function(Types.function(tv, tv), Types.bool())
             infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
+          :__car ->
+            [lst | []] = operands
+            {sub, %Types{t: {:LIST, t}}} = lst
+            |> infer(type_env)
+            {sub, t}
+          :__cdr ->
+            [lst | []] = operands
+            infer(lst, type_env)
+          :__cons ->
+            [elem | [lst | []]] = operands
+            tv = TypeVars.fresh()
+            {s1, %Types{t: {:LIST, t}} = list_type} = infer(lst, type_env)
+            cons_type = Types.function(Types.function(t, list_type), list_type)
+            infer_binary_op(type_env, cons_type, {elem, lst})
           :__let ->
             [_name | [bound | []]] = operands
             infer(bound, type_env)
@@ -258,6 +272,7 @@ defmodule Terp.Types.TypeEvaluator do
 
   @spec apply_sub(substitution, Types.t) :: Types.t
   def apply_sub(_, %Types{constructor: :Tconst} = type), do: type
+  def apply_sub(_, %Types{constructor: :Tlist} = type), do: type
   def apply_sub(substitution, %Types{constructor: :Tvar, t: t} = type) do
     Map.get(substitution, t, type)
   end
@@ -286,6 +301,7 @@ defmodule Terp.Types.TypeEvaluator do
   """
   @spec ftv(Types.t | scheme | [Types.t] | type_environment) :: MapSet.t
   def ftv(%Types{constructor: :Tconst}), do: MapSet.new()
+  def ftv(%Types{constructor: :Tlist, t: {:LIST, t}}), do: ftv(t)
   def ftv(%Types{constructor: :Tvar} = type), do: MapSet.new([type])
   def ftv(%Types{constructor: :Tarrow, t: {t1, t2}}) do
     MapSet.union(ftv(t1), ftv(t2))
@@ -308,6 +324,9 @@ defmodule Terp.Types.TypeEvaluator do
   def unify(type, %Types{constructor: :Tvar, t: a}), do: bind(a, type)
   def unify(%Types{constructor: :Tconst, t: a}, %Types{constructor: :Tconst, t: a}) do
     null_substitution()
+  end
+  def unify(%Types{constructor: :Tlist, t: {:LIST, t1}}, %Types{constructor: :Tlist, t: {:LIST, t2}}) do
+    unify(t1, t2)
   end
   def unify(%Types{constructor: :Tarrow, t: {l1, r1}}, %Types{constructor: :Tarrow, t: {l2, r2}}) do
     s1 = unify(l1, l2)
