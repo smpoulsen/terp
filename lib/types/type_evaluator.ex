@@ -58,7 +58,7 @@ defmodule Terp.Types.TypeEvaluator do
               nil ->
                 {eval_env, {sub, Types.list(t)}}
               vars ->
-                {eval_env, sub} = unify_list_types(eval_env, Enum.flat_map(vars, &[&1, t]))
+                {eval_env, sub} = unify_list_types(eval_env, Enum.map(vars, &{&1, t}))
                 {eval_env, {sub, Types.list(t)}}
             end
           ts ->
@@ -193,13 +193,10 @@ defmodule Terp.Types.TypeEvaluator do
   end
 
   def unify_list_types(eval_env, types), do: unify_list_types(eval_env, types, %{})
-  def unify_list_types(eval_env, [type1 | types], unification) do
-    case List.pop_at(types, 0) do
-      {nil, []} -> {eval_env, unification}
-      {type2, _remaining_types} ->
-        {eval_env, unification2} = unify(eval_env, type1, type2)
-        unify_list_types(eval_env, types, compose(unification, unification2))
-    end
+  def unify_list_types(eval_env, [], unification), do: {eval_env, unification}
+  def unify_list_types(eval_env, [{type_var, type} | types], unification) do
+    {eval_env, unification2} = unify(eval_env, type_var, type)
+    unify_list_types(eval_env, types, compose(unification, unification2))
   end
 
   @spec fresh_type_var(t) :: {t, Types.t}
