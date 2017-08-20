@@ -27,13 +27,14 @@ defmodule Terp.Repl do
         # Ctl-D
         IO.write("\nBye!")
       _ ->
-        if String.starts_with?(expr, ":t ") do
-          type_check(expr)
-          loop("", environment, history)
-        else
-          updated_history = add_history(expr, history)
-          env =  eval(expr, environment)
-          loop("", env, updated_history)
+        cond do
+          String.starts_with?(expr, ":t ") || String.starts_with?(expr, ":type ") ->
+            type_check(expr)
+            loop("", environment, history)
+          true ->
+            updated_history = add_history(expr, history)
+            env =  eval(expr, environment)
+            loop("", env, updated_history)
         end
     end
   end
@@ -41,6 +42,7 @@ defmodule Terp.Repl do
   defp type_check(expr) do
     trimmed = expr
     |> String.trim()
+    |> String.trim_leading(":type ")
     |> String.trim_leading(":t ")
 
     type = trimmed

@@ -158,5 +158,34 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
       |> List.first()
       assert type == {:error, {:type, "Unable to unify Int with String"}}
     end
+
+    test "type-checking empty? for a list of integers" do
+      type = "(empty? '(3 2 5 9))"
+      |> Types.type_check()
+      |> List.first()
+      assert type.str == "Bool"
+    end
+
+    test "type-checking empty? inside a function application" do
+      type = "(lambda (x) (empty? x))"
+      |> Types.type_check()
+      |> List.first()
+      assert type.str == "[c] -> Bool"
+    end
+  end
+
+  describe "recursive functions" do
+    test "type-checking factorial" do
+      type = """
+      (letrec factorial
+        (lambda (n)
+          (if (equal? n 0)
+            1
+            (* n (factorial (- n 1))))))
+      """
+      |> Types.type_check()
+      |> List.first()
+      assert type.str == "Int -> Int"
+    end
   end
 end

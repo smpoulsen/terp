@@ -101,14 +101,54 @@ defmodule Terp.Types.TypeEvaluator do
           :__car ->
             [lst | []] = operands
             case infer(lst, type_env) do
-              {:ok, {sub, %Types{t: {:LIST, t}}}} ->
-                {:ok, {sub, t}}
+              {:ok, {_s1, list_type}} ->
+                case list_type do
+                  %Types{constructor: :Tlist, t: {:LIST, t}} ->
+                    {:ok, {null_substitution(), t}}
+                  %Types{constructor: :Tvar} ->
+                    tv = TypeVars.fresh()
+                    {:ok, sub} = unify(list_type, Types.list(tv))
+                    {:ok, {sub, tv}}
+                  _ ->
+                    {:error, {:type, "Cannot unify #{list_type.str} with [a]"}}
+                end
               {:error, e} ->
                 {:error, e}
             end
           :__cdr ->
             [lst | []] = operands
-            infer(lst, type_env)
+            case infer(lst, type_env) do
+              {:ok, {_s1, list_type}} ->
+                case list_type do
+                  %Types{constructor: :Tlist} ->
+                    {:ok, {null_substitution(), list_type}}
+                  %Types{constructor: :Tvar} ->
+                    tv = TypeVars.fresh()
+                    {:ok, sub} = unify(list_type, Types.list(tv))
+                    {:ok, {sub, Types.list(tv)}}
+                  _ ->
+                    {:error, {:type, "Cannot unify #{list_type.str} with [a]"}}
+                end
+              {:error, e} ->
+                {:error, e}
+            end
+          :__empty? ->
+            [lst | []] = operands
+            case infer(lst, type_env) do
+              {:ok, {_s1, list_type}} ->
+                case list_type do
+                  %Types{constructor: :Tlist} ->
+                    {:ok, {null_substitution(), Types.bool()}}
+                  %Types{constructor: :Tvar} ->
+                    t = Types.list(TypeVars.fresh())
+                    {:ok, sub} = unify(list_type, t)
+                    {:ok, {sub, Types.bool()}}
+                  _ ->
+                    {:error, {:type, "Cannot unify #{list_type.str} with [a]"}}
+                end
+              {:error, e} ->
+                {:error, e}
+            end
           :__cons ->
             [elem | [lst | []]] = operands
             tv = TypeVars.fresh()
@@ -149,7 +189,7 @@ defmodule Terp.Types.TypeEvaluator do
               {:error, e} -> {:error, e}
             end
           :__lambda ->
-            [%RoseTree{node: :__apply, children: args} | body] = operands
+            [%RoseTree{node: :__apply, children: args} | [body | []]] = operands
 
             # Generate a fresh type variable for each argument
             type_vars = args
@@ -165,23 +205,16 @@ defmodule Terp.Types.TypeEvaluator do
             )
 
             # Infer the type of the function body
-            {_type_env, sub, fn_type} = body
-            |> Enum.reduce(
-              {type_env, null_substitution(), []},
-              fn (expr, {type_env, _substitution, types}) ->
-                case infer(expr, type_env) do
-                  {:ok, {sub, type}} ->
-                    {type_env, sub, [type | types]}
-                  {:error, e} ->
-                    {:error, e}
-                end
-                (_expr, {:error, e}) -> {:error, e}
-              end)
-
-            substituted_type_vars = type_vars
-            |> Enum.reverse()
-            |> Enum.map(&apply_sub(sub, &1))
-            {:ok, {sub, build_up_arrows((substituted_type_vars ++ fn_type))}}
+            fn_type = infer(body, type_env)
+            case fn_type do
+              {:ok, {s, t}} ->
+                substituted_type_vars = type_vars
+                |> Enum.reverse()
+                |> Enum.map(&apply_sub(s, &1))
+                {:ok, {s, build_up_arrows((substituted_type_vars ++ List.wrap(t)))}}
+              {:error, e} ->
+                {:error, e}
+            end
           :__apply ->
             # applying a lambda
             tv = TypeVars.fresh()
@@ -198,7 +231,8 @@ defmodule Terp.Types.TypeEvaluator do
             # TODO filter our provide nodes
             {:ok, {null_substitution(), nil}}
           _ ->
-            {:error, {:type, "Not a procedure"}}
+            t = TypeVars.fresh()
+            {:ok, {null_substitution(), t}}
         end
       _ ->
         lookup(type_env, node)
