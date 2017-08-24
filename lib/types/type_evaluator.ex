@@ -276,8 +276,15 @@ defmodule Terp.Types.TypeEvaluator do
     new_arrow = Types.function(arrows, type)
     build_up_arrows(types, new_arrow)
   end
+  def build_up_arrows([type | []]), do: type
   def build_up_arrows([type1 | [type2 | types]]) do
     build_up_arrows(types, Types.function(type1, type2))
+  end
+
+  @spec build_up_right_arrows([Types.t]) :: Types.t
+  def build_up_right_arrows([type | []]), do: type
+  def build_up_right_arrows([type1 | types]) do
+    Types.function(type1, build_up_arrows(types))
   end
 
   def unify_list_types(types), do: unify_list_types(types, %{})
@@ -304,7 +311,8 @@ defmodule Terp.Types.TypeEvaluator do
   @spec lookup(type_environment, atom() | String.t) :: {:ok, scheme} | {:error, {:unbound, atom() | String.t}}
   def lookup(type_environment, var) do
     case Map.get(type_environment, var) do
-      nil -> {:error, {:unbound, var}}
+      nil ->
+        {:error, {:unbound, var}}
       x ->
       {:ok, {null_substitution(), instantiate(x)}}
     end
@@ -317,12 +325,10 @@ defmodule Terp.Types.TypeEvaluator do
     fresh_type_vars = xs
     |> Enum.map(fn (_x) -> TypeVars.fresh() end)
 
-    type = xs
+    xs
     |> Enum.zip(fresh_type_vars)
     |> Map.new()
     |> apply_sub(t)
-
-    type
   end
 
   @doc """
@@ -360,7 +366,7 @@ defmodule Terp.Types.TypeEvaluator do
   def apply_sub(substitution, {as, t} = _type_scheme) do
     substitution_prime = as
     |> Enum.reduce(substitution, fn (type_var, new_sub) ->
-      Map.drop(new_sub, type_var) end
+      Map.delete(new_sub, type_var) end
     )
     t_prime = apply_sub(substitution_prime, t)
     {as, t_prime}
