@@ -240,12 +240,14 @@ defmodule Terp.Types.TypeEvaluator do
   end
 
   def infer_operands(operands, type_env) do
-    Enum.reduce(operands, {type_env, []},
+    Enum.reduce(operands, {type_env, {%{}, []}},
       fn (_expr, {:error, _} = error)  -> error
-        (expr, {t_env, types}) ->
+        (expr, {t_env, {sub, types}}) ->
         case infer(expr, t_env) do
           {:ok, {sub_prime, type}} ->
-            {:ok, {type_env, {sub_prime, [type | types]}}}
+            subbed_env = apply_sub(sub_prime, type_env)
+            composed_sub = compose(sub, sub_prime)
+            {:ok, {subbed_env, {composed_sub, [type | types]}}}
           {:error, e} ->
             {:error, e}
         end
