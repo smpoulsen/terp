@@ -172,7 +172,6 @@ defmodule Terp.Types.TypeEvaluator do
             type_env = extend(type_env, {name.node, t1_prime})
             with {:ok, {s1, t}} <- infer(bound, type_env),
                  {:ok, s2} <- unify(Types.function(tv, tv), t) do
-              require IEx; IEx.pry
               {:ok, {s2, apply_sub(s1, tv)}}
             else
             {:error, e} -> {:error, e}
@@ -202,7 +201,6 @@ defmodule Terp.Types.TypeEvaluator do
 
             # Extend the type environment with the arguments
             type_env = args
-            |> Enum.reverse()
             |> Enum.zip(type_vars)
             |> Enum.reduce(
               type_env,
@@ -216,8 +214,9 @@ defmodule Terp.Types.TypeEvaluator do
                 substituted_type_vars = type_vars
                 |> Enum.reverse()
                 |> Enum.map(&apply_sub(s, &1))
-                require IEx; IEx.pry
-                {:ok, {s, build_up_arrows((substituted_type_vars ++ List.wrap(t)))}}
+                |> Enum.map(&wrap_fn_type_in_parens/1)
+                arrows = build_up_arrows((substituted_type_vars ++ List.wrap(t)))
+                {:ok, {s, arrows}}
               {:error, e} ->
                 {:error, e}
             end
@@ -226,7 +225,7 @@ defmodule Terp.Types.TypeEvaluator do
             tv = TypeVars.fresh()
             with {:ok, {s1, t1}} <- infer(operator, type_env),
                  {:ok, {_type_env, {s2, ts}}} <- infer_operands(operands, type_env),
-                 {:ok, s3} <- unify(apply_sub(s2, t1), Types.function(List.first(ts), tv)) do
+                 {:ok, s3} <- unify(apply_sub(s2, t1), Types.function(ts, tv)) do
               composed_scheme = compose(s3, compose(s2, s1))
               {:ok, {composed_scheme, apply_sub(s3, tv)}}
             else
@@ -244,12 +243,11 @@ defmodule Terp.Types.TypeEvaluator do
                            {null_substitution(), TypeVars.fresh()}
                        end
 
-            with {:ok, {type_env, {s2, ts}}} <- infer_operands(operands, apply_sub(s1, type_env)),
-                 tv = TypeVars.fresh(),
-                   fn_type = build_up_arrows(Enum.reverse([tv | ts])),
-                 {:ok, s3} <- unify(apply_sub(s2, t1), fn_type) do
+            tv = TypeVars.fresh()
+            with {:ok, {type_env, {s2, ts}}} <- infer_operands(operands, apply_sub(s1, type_env), tv),
+                   #fn_type = build_up_arrows([ts, tv]),
+                 {:ok, s3} <- unify(apply_sub(s2, t1), ts) do
               composed_scheme = compose(s3, compose(s2, s1))
-              require IEx; IEx.pry
               {:ok, {composed_scheme, apply_sub(s3, tv)}}
             else
               {:error, e} ->
@@ -261,15 +259,22 @@ defmodule Terp.Types.TypeEvaluator do
     end
   end
 
-  def infer_operands(operands, type_env) do
-    Enum.reduce(operands, {:ok, {type_env, {%{}, []}}},
+  def wrap_fn_type_in_parens(%Types{constructor: :Tarrow} = type) do
+    %{type | str: "(#{type.str})"}
+  end
+  def wrap_fn_type_in_parens(type), do: type
+
+  def infer_operands(operands, type_env, result_type \\ []) do
+    operands
+    |> Enum.reverse()
+    |> Enum.reduce({:ok, {type_env, {%{}, result_type}}},
       fn (_expr, {:error, _} = error)  -> error
         (expr, {:ok, {t_env, {sub, types}}}) ->
         case infer(expr, t_env) do
           {:ok, {sub_prime, type}} ->
             subbed_env = apply_sub(sub_prime, type_env)
             composed_sub = compose(sub, sub_prime)
-            {:ok, {subbed_env, {composed_sub, [type | types]}}}
+            {:ok, {subbed_env, {composed_sub, build_up_arrows([type | List.wrap(types)])}}}
           {:error, e} ->
             {:error, e}
         end
