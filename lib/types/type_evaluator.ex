@@ -164,11 +164,16 @@ defmodule Terp.Types.TypeEvaluator do
             infer(bound, type_env)
           :__letrec ->
             # TODO not inferring the specific type
-            [_name | [bound | []]] = operands
+            [name | [bound | []]] = operands
+            tv = TypeVars.fresh()
+            {s1, t1} = {null_substitution(), tv}
+            type_env = apply_sub(s1, type_env)
+            t1_prime = generalize(type_env, t1)
+            type_env = extend(type_env, {name.node, t1_prime})
             with {:ok, {s1, t}} <- infer(bound, type_env),
-                 tv = TypeVars.fresh(),
                  {:ok, s2} <- unify(Types.function(tv, tv), t) do
-              {:ok, {s2, apply_sub(s1, t)}}
+              require IEx; IEx.pry
+              {:ok, {s2, apply_sub(s1, tv)}}
             else
             {:error, e} -> {:error, e}
             end
@@ -211,6 +216,7 @@ defmodule Terp.Types.TypeEvaluator do
                 substituted_type_vars = type_vars
                 |> Enum.reverse()
                 |> Enum.map(&apply_sub(s, &1))
+                require IEx; IEx.pry
                 {:ok, {s, build_up_arrows((substituted_type_vars ++ List.wrap(t)))}}
               {:error, e} ->
                 {:error, e}
@@ -231,8 +237,24 @@ defmodule Terp.Types.TypeEvaluator do
             # TODO filter our provide nodes
             {:ok, {null_substitution(), nil}}
           _ ->
-            t = TypeVars.fresh()
-            {:ok, {null_substitution(), t}}
+            {s1, t1} = case lookup(type_env, operator.node) do
+                         {:ok, {s, t}} ->
+                           {s, t}
+                         {:error, _} ->
+                           {null_substitution(), TypeVars.fresh()}
+                       end
+
+            with {:ok, {type_env, {s2, ts}}} <- infer_operands(operands, apply_sub(s1, type_env)),
+                 tv = TypeVars.fresh(),
+                   fn_type = build_up_arrows(Enum.reverse([tv | ts])),
+                 {:ok, s3} <- unify(apply_sub(s2, t1), fn_type) do
+              composed_scheme = compose(s3, compose(s2, s1))
+              require IEx; IEx.pry
+              {:ok, {composed_scheme, apply_sub(s3, tv)}}
+            else
+              {:error, e} ->
+                {:error, e}
+            end
         end
       _ ->
         lookup(type_env, node)
@@ -240,9 +262,9 @@ defmodule Terp.Types.TypeEvaluator do
   end
 
   def infer_operands(operands, type_env) do
-    Enum.reduce(operands, {type_env, {%{}, []}},
+    Enum.reduce(operands, {:ok, {type_env, {%{}, []}}},
       fn (_expr, {:error, _} = error)  -> error
-        (expr, {t_env, {sub, types}}) ->
+        (expr, {:ok, {t_env, {sub, types}}}) ->
         case infer(expr, t_env) do
           {:ok, {sub_prime, type}} ->
             subbed_env = apply_sub(sub_prime, type_env)
@@ -336,10 +358,11 @@ defmodule Terp.Types.TypeEvaluator do
   @doc """
   Generalize a bound type
   """
+  @spec generalize(type_environment, Types.t) :: scheme
   def generalize(type_env, type) do
     xs = type
-    |> MapSet.difference(ftv(type_env))
     |> ftv()
+    |> MapSet.difference(ftv(type_env))
     |> MapSet.to_list()
     {xs, type}
   end
@@ -374,7 +397,7 @@ defmodule Terp.Types.TypeEvaluator do
     {as, t_prime}
   end
   def apply_sub(substitution, xs) when is_list(xs) do
-    Enum.map(xs, &apply(substitution, &1))
+    Enum.map(xs, &apply_sub(substitution, &1))
   end
   def apply_sub(substitution, %{} = type_env) do
     type_env
@@ -393,7 +416,7 @@ defmodule Terp.Types.TypeEvaluator do
     MapSet.union(ftv(t1), ftv(t2))
   end
   def ftv({as, type}) do
-    ftv(MapSet.difference(type, MapSet.new(as)))
+    MapSet.difference(ftv(type), MapSet.new(as))
   end
   def ftv(xs) when is_list(xs) do
     Enum.reduce(xs, MapSet.new(), fn (x, acc) -> MapSet.union(ftv(x), acc) end)
