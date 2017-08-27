@@ -66,25 +66,31 @@ defmodule Terp.Repl do
 
   # Evaluate the expression and return the updated environment.
   defp eval(expr, environment) do
-    {res, env} = Terp.evaluate_source(expr, environment)
-    case res do
-      {:error, {type, msg}} ->
-        Bunt.puts([:red, "There was an error:"])
-        IO.puts("\tmsg: #{Atom.to_string(type)}")
-        IO.puts("\targ: #{msg}")
-        environment
-      {:ok, {_type, msg}} ->
-        Bunt.puts([:green, "Success!"])
-        Bunt.puts([:blue, "#{msg}"])
-        env
-      nil ->
-        Bunt.puts([:green, "ok"])
-        env
-      _ ->
-        IO.inspect(res, charlists: :as_lists)
-        env
+    with {:ok, _type} <- List.first(Types.type_check(expr)),
+         {res, env} <- Terp.evaluate_source(expr, environment) do
+      case res do
+        {:error, {type, msg}} ->
+          Bunt.puts([:red, "There was an error:"])
+          IO.puts("\tmsg: #{Atom.to_string(type)}")
+          IO.puts("\targ: #{msg}")
+          environment
+        {:ok, {_type, msg}} ->
+          Bunt.puts([:green, "Success!"])
+          Bunt.puts([:blue, "#{msg}"])
+          env
+        nil ->
+          Bunt.puts([:green, "ok"])
+          env
+        _ ->
+          IO.inspect(res, charlists: :as_lists)
+          env
+      end
+      env
+    else
+      {:error, {module, reason}} ->
+        Bunt.puts([:red, "#{to_string(module)} error:"])
+      Bunt.puts([:yellow, "\t#{reason}"])
     end
-    env
   end
 
   ### History ###
