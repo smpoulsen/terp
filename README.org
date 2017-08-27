@@ -155,17 +155,17 @@
 ** Type system
    Terp implements Hindley-Milner type inference. Currently, type checking is performed only on code run in the REPL; this is a work in progress and will change in the future.
 
-   The REPL maintains a type environment that includes functions and variables defined with =let= or =letrec=:
-
-   #+CAPTION: /Binding a simple variable/
-   [[file:media/repl_simple_env.gif]]
-   
-   #+CAPTION: /Binding a recursive, higher-order function and using it/
-   [[file:media/repl_type_env.png]]
-
    Expressions in the REPL are type checked prior to evaluation. If an expression fails the type check, it won't be evaluated.
    To see the inferred type for an expressions, prefix it with =:t= or =:type=. 
-   [[file:media/type_check_ex.png]]
+
+   The REPL maintains a type environment that includes functions and variables defined with =let= or =letrec=:
+
+   /Binding a simple variable:/
+
+   [[file:media/repl_simple_env.gif]]
+   
+   /Binding and using a recursive, higher-order function:/
+   [[file:media/repl_type_env.png]]
 
 ** Evaluating a file:
    There's a mix task (=mix terp.run $FILENAME=) to evaluate a file:
