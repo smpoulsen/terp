@@ -155,8 +155,11 @@
    Terp implements Hindley-Milner type inference. Currently, type checking is performed only on code run in the REPL; this is a work in progress and will change in the future.
 
    The REPL maintains a type environment that includes functions and variables defined with =let= or =letrec=:
-   [[file:media/repl_simple_env.png]]
 
+   #+CAPTION: /Binding a simple variable/
+   [[file:media/repl_simple_env.gif]]
+   
+   #+CAPTION: /Binding a recursive, higher-order function and using it/
    [[file:media/repl_type_env.png]]
 
    Expressions in the REPL are type checked prior to evaluation. If an expression fails the type check, it won't be evaluated.

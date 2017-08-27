@@ -82,7 +82,6 @@ defmodule Terp.Repl do
           Bunt.puts([:blue, "#{msg}"])
           env
         nil ->
-          Bunt.puts([:green, "ok"])
           env
         _ ->
           IO.inspect(res, charlists: :as_lists)
