@@ -15,7 +15,8 @@ defmodule Terp.Types.TypeEvaluator do
     end
     case infer(expr, %{}) do
       {:ok, {_substitution, type}} ->
-        type
+        type_scheme = generalize(%{}, type)
+        {:ok, substitute_type_vars(type_scheme)}
       {:error, _e} = error ->
         error
     end
@@ -184,12 +185,12 @@ defmodule Terp.Types.TypeEvaluator do
                  {:ok, {s3, t3}} <- infer(alternative, apply_sub(s1, type_env)),
                  {:ok, s4} <- unify(t1, Types.bool()),
                  {:ok, s5} = unify(t2, t3) do
-              composed_scheme = s5
+              composed_substitution = s5
               |> compose(s4)
               |> compose(s3)
               |> compose(s2)
               |> compose(s1)
-              {:ok, {composed_scheme, apply_sub(s5, t2)}}
+              {:ok, {composed_substitution, apply_sub(s5, t2)}}
             else
               {:error, e} -> {:error, e}
             end
@@ -206,7 +207,7 @@ defmodule Terp.Types.TypeEvaluator do
             |> Enum.reduce(
               type_env,
               fn ({arg, var}, acc) ->
-                extend(acc, {arg.node, {[arg.node], var}})
+                extend(acc, {arg.node, generalize(type_env, var)})
               end)
 
             # Infer the type of the function body
@@ -227,8 +228,8 @@ defmodule Terp.Types.TypeEvaluator do
                  {:ok, {_type_env, {s2, ts}}} <- infer_operands(operands, apply_sub(s1, type_env)),
                  arrows = build_up_arrows(Enum.reverse([tv | ts])),
                  {:ok, s3} <- unify(apply_sub(s2, t1), arrows) do
-              composed_scheme = compose(s3, compose(s2, s1))
-              {:ok, {composed_scheme, apply_sub(s3, tv)}}
+              composed_substitution = compose(s3, compose(s2, s1))
+              {:ok, {composed_substitution, apply_sub(s3, tv)}}
             else
               {:error, e} ->
                 {:error, e}
@@ -247,8 +248,8 @@ defmodule Terp.Types.TypeEvaluator do
             with {:ok, {_type_env, {s2, ts}}} <- infer_operands(operands, apply_sub(s1, type_env)),
                  arrows = build_up_arrows(Enum.reverse([tv | ts])),
                  {:ok, s3} <- unify(apply_sub(s2, t1), arrows) do
-              composed_scheme = compose(s3, compose(s2, s1))
-              {:ok, {composed_scheme, apply_sub(s3, tv)}}
+              composed_substitution = compose(s3, compose(s2, s1))
+              {:ok, {composed_substitution, apply_sub(s3, tv)}}
             else
               {:error, e} ->
                 {:error, e}
@@ -287,8 +288,8 @@ defmodule Terp.Types.TypeEvaluator do
          {:ok, {s2, t2}} <- infer(arg2, type_env),
          inferred_op_type <- build_up_arrows([t1, t2, tv]),
          {:ok, s3} <- unify(binary_type, inferred_op_type) do
-      composed_scheme = compose(s1, compose(s2, s3))
-      {:ok, {composed_scheme, apply_sub(s3, tv)}}
+      composed_substitution = compose(s1, compose(s2, s3))
+      {:ok, {composed_substitution, apply_sub(s3, tv)}}
     else
       {:error, e} ->
         {:error, e}
@@ -485,4 +486,35 @@ defmodule Terp.Types.TypeEvaluator do
     reconcile(l1, l2, Map.merge(substitution, s2, fn _k, v1, _v2 -> v1 end))
   end
   def reconcile(_, _, substitution), do: substitution
+
+  @doc """
+  Goes through and replaces type variables with fresh ones (after
+  resetting TypeVars state).
+
+  ## Examples
+
+      iex> {[%Types{constructor: :Tvar, t: :b, str: "b"}], %Types{constructor: :Tvar, t: :b, str: "b"}}
+      ...> |> substitute_type_vars()
+      {[%Types{constructor: :Tvar, t: :a, str: "a"}], %Types{constructor: :Tvar, t: :a, str: "a"}}
+  """
+  def substitute_type_vars({vars, type}) do
+    TypeVars.reset()
+    fresh_vars = for _var <- vars, do: TypeVars.fresh()
+    zipped = Enum.zip(vars, fresh_vars)
+    updated_type = Enum.reduce(zipped, type, fn (var, type) -> substitute_type_var(type, var) end)
+    {fresh_vars, updated_type}
+  end
+  defp substitute_type_var(%Types{constructor: :Tvar, t: t} = type, {old_var, new_var}) do
+    if t == old_var.t, do: new_var, else: type
+  end
+  defp substitute_type_var(%Types{constructor: :Tlist, t: {:LIST, t}} = type, vars) do
+    subbed_t = substitute_type_var(t, vars)
+    %{type | t: {:LIST, subbed_t}, str: "[#{subbed_t.str}]"}
+  end
+  defp substitute_type_var(%Types{constructor: :Tarrow, t: {t1, t2}} = type, vars) do
+    subbed_t1 = substitute_type_var(t1, vars)
+    subbed_t2 = substitute_type_var(t2, vars)
+    %{type | t: {subbed_t1, subbed_t2}, str: "(#{subbed_t1.str} -> #{subbed_t2.str})"}
+  end
+  defp substitute_type_var(type, _vars), do: type
 end

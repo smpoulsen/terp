@@ -4,14 +4,14 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
 
   describe "basic function inference" do
     test "infer a lambda" do
-      type = "(lambda (x) x)"
+      {:ok, {_vars, type}} = "(lambda (x) x)"
       |> Types.type_check()
       |> List.first()
       assert type.str == "(a -> a)"
     end
 
     test "infer a lambda application" do
-      type = "((lambda (x) x) 5)"
+      {:ok, {_vars, type}} = "((lambda (x) x) 5)"
       |> Types.type_check()
       |> List.first()
       assert type.str == "Int"
@@ -20,28 +20,28 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
 
   describe "literal inference" do
     test "infer a literal int" do
-      type = "5"
+      {:ok, {_vars, type}} = "5"
       |> Types.type_check()
       |> List.first()
       assert type.str == "Int"
     end
 
     test "infer a literal bool - true" do
-      type = "#t"
+      {:ok, {_vars, type}} = "#t"
       |> Types.type_check()
       |> List.first()
       assert type.str == "Bool"
     end
 
     test "infer a literal bool - false" do
-      type = "#f"
+      {:ok, {_vars, type}} = "#f"
       |> Types.type_check()
       |> List.first()
       assert type.str == "Bool"
     end
 
     test "infer a literal string" do
-      type = "\"testing\""
+      {:ok, {_vars, type}} = "\"testing\""
       |> Types.type_check()
       |> List.first()
       assert type.str == "String"
@@ -50,13 +50,13 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
 
   describe "binary operation inference" do
     test "infer a binary operation application" do
-      type = "((lambda (x) (+ x 5)) 5)"
+      {:ok, {_vars, type}} = "((lambda (x) (+ x 5)) 5)"
       |> Types.type_check() |> List.first()
       assert type.str == "Int"
     end
 
     test "infer a binary operation inside a lambda" do
-      type = "(lambda (x) (+ x 5))"
+      {:ok, {_vars, type}} = "(lambda (x) (+ x 5))"
       |> Types.type_check()
       |> List.first()
       assert type.str == "(Int -> Int)"
@@ -65,37 +65,37 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
 
   describe "equality inference" do
     test "infer equality" do
-      type = "(lambda (x) (equal? x 5))"
+      {:ok, {_vars, type}} = "(lambda (x) (equal? x 5))"
       |> Types.type_check()
       |> List.first()
       assert type.str == "(Int -> Bool)"
     end
 
     test "infer equality pt. 2" do
-      type = "(lambda (x y) (equal? x y))"
+      {:ok, {_vars, type}} = "(lambda (x y) (equal? x y))"
       |> Types.type_check()
       |> List.first()
-      assert type.str == "((b -> b) -> Bool)"
+      assert type.str == "((a -> a) -> Bool)"
     end
   end
 
   describe "if statement inference" do
     test "infer an if statement" do
-      type = "(if #t 8 1)"
+      {:ok, {_vars, type}} = "(if #t 8 1)"
       |> Types.type_check()
       |> List.first()
       assert type.str == "Int"
     end
 
     test "infer an if statement wrapped in a lambda" do
-      type = "(lambda (x) (if #t x 1))"
+      {:ok, {_vars, type}} = "(lambda (x) (if #t x 1))"
       |> Types.type_check()
       |> List.first()
       assert type.str == "(Int -> Int)"
     end
 
     test "infer an if statement with an equals? test" do
-      type = "(lambda (x) (if (equal? x #t) 8 1))"
+      {:ok, {_vars, type}} = "(lambda (x) (if (equal? x #t) 8 1))"
       |> Types.type_check()
       |> List.first()
       assert type.str == "(Bool -> Int)"
@@ -104,79 +104,79 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
 
   describe "list inference" do
     test "infer a list of integers" do
-      type = "'(3 2 5 9)"
+      {:ok, {_vars, type}} = "'(3 2 5 9)"
       |> Types.type_check()
       |> List.first()
       assert type.str == "[Int]"
     end
 
     test "infer a function that builds a list of integers" do
-      type = "(lambda (x) '(3 2 5 x))"
+      {:ok, {_vars, type}} = "(lambda (x) '(3 2 5 x))"
       |> Types.type_check()
       |> List.first()
       assert type.str == "(Int -> [Int])"
     end
 
     test "infer a list of lists of integers" do
-      type = "'('(1 2 3) '(4 5 6))"
+      {:ok, {_vars, type}} = "'('(1 2 3) '(4 5 6))"
       |> Types.type_check()
       |> List.first()
       assert type.str == "[[Int]]"
     end
 
     test "infer car" do
-      type = "(car '(3 2 5 9))"
+      {:ok, {_vars, type}} = "(car '(3 2 5 9))"
       |> Types.type_check()
       |> List.first()
       assert type.str == "Int"
     end
 
     test "infer cdr" do
-      type = "(cdr '(3 2 5 9))"
+      {:ok, {_vars, type}} = "(cdr '(3 2 5 9))"
       |> Types.type_check()
       |> List.first()
       assert type.str == "[Int]"
     end
 
     test "infer cons" do
-      type = "(cons 4 '(3 2 5 9))"
+      {:ok, {_vars, type}} = "(cons 4 '(3 2 5 9))"
       |> Types.type_check()
       |> List.first()
       assert type.str == "[Int]"
     end
 
     test "infer cons in a function" do
-      type = "(lambda (x) (cons x '(3 2 5 9)))"
+      {:ok, {_vars, type}} = "(lambda (x) (cons x '(3 2 5 9)))"
       |> Types.type_check()
       |> List.first()
       assert type.str == "(Int -> [Int])"
     end
 
     test "infer cons consing a string to [Int]" do
-      type = "(cons \"asdf\" '(3 2 5 9))"
+      {:error, e} = "(cons \"asdf\" '(3 2 5 9))"
       |> Types.type_check()
       |> List.first()
-      assert type == {:error, {:type, "Unable to unify Int with String"}}
+      assert e == {:type, "Unable to unify Int with String"}
     end
 
     test "infer empty? for a list of integers" do
-      type = "(empty? '(3 2 5 9))"
+      {:ok, {_vars, type}} = "(empty? '(3 2 5 9))"
       |> Types.type_check()
       |> List.first()
       assert type.str == "Bool"
     end
 
     test "infer empty? inside a function application" do
-      type = "(lambda (x) (empty? x))"
+      {:ok, {_vars, type}} = "(lambda (x) (empty? x))"
       |> Types.type_check()
       |> List.first()
-      assert type.str == "([c] -> Bool)"
+      assert type.str == "([a] -> Bool)"
     end
   end
 
   describe "recursive functions" do
     test "infer factorial" do
-      type = """
+      {:ok, {_vars, type}} = """
       (letrec factorial
         (lambda (n)
           (if (equal? n 0)
@@ -191,14 +191,14 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
 
   describe "higher order functions" do
     test "infer a general higher order function" do
-      type = "(lambda (f x) (f x))"
+      {:ok, {_vars, type}} = "(lambda (f x) (f x))"
       |> Types.type_check()
       |> List.first()
-      assert type.str == "(((b -> d) -> b) -> d)"
+      assert type.str == "(((a -> b) -> a) -> b)"
     end
 
     test "infer a specific higher order function" do
-      type = """
+      {:ok, {_vars, type}} = """
       (lambda (f x)
         (if (equal? x 0)
           x

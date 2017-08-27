@@ -45,16 +45,22 @@ defmodule Terp.Repl do
     |> String.trim_leading(":type ")
     |> String.trim_leading(":t ")
 
-    type = trimmed
+    inference = trimmed
     |> Types.type_check()
     |> List.first() #TODO
 
-    case type do
+    case inference do
       {:error, {module, reason}} ->
         Bunt.puts([:red, "#{to_string(module)} error:"])
         Bunt.puts([:yellow, "\t#{reason}"])
-      _ ->
-        Bunt.puts([:blue, trimmed, :green, " : ", :yellow, type.str])
+      {:ok, {type_vars, type}} ->
+        type_str = if Enum.empty?(type_vars) do
+          type.str
+        else
+          variables = Enum.map(type_vars, &(&1.str))
+          "∀ #{Enum.join(variables, " ")} => #{type.str}"
+        end
+        Bunt.puts([:blue, trimmed, :green, " : ", :yellow, type_str])
     end
   end
 
@@ -67,7 +73,7 @@ defmodule Terp.Repl do
         IO.puts("\tmsg: #{Atom.to_string(type)}")
         IO.puts("\targ: #{msg}")
         environment
-      {:ok, {type, msg}} ->
+      {:ok, {_type, msg}} ->
         Bunt.puts([:green, "Success!"])
         Bunt.puts([:blue, "#{msg}"])
         env
