@@ -152,10 +152,17 @@
          (lambda (x) x))
    #+END_SRC
 ** Type system
-   Terp implements Hindley-Milner type inference. Currently, type checking is performed explicitly in the REPL; this will change in the future.
+   Terp implements Hindley-Milner type inference. Currently, type checking is performed only on code run in the REPL; this is a work in progress and will change in the future.
 
-   To check the type of an expression, prefix it with =:t= or =:type= in the REPL:
+   The REPL maintains a type environment that includes functions and variables defined with =let= or =letrec=:
+   [[file:media/repl_simple_env.png]]
+
+   [[file:media/repl_type_env.png]]
+
+   Expressions in the REPL are type checked prior to evaluation. If an expression fails the type check, it won't be evaluated.
+   To see the inferred type for an expressions, prefix it with =:t= or =:type=. 
    [[file:media/type_check_ex.png]]
+
 ** Evaluating a file:
    There's a mix task (=mix terp.run $FILENAME=) to evaluate a file:
 

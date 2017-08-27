@@ -4,8 +4,11 @@ defmodule Terp.Repl do
   """
   alias RoseTree.Zipper
   alias Terp.Types.Types
+  alias Terp.Types.TypeEnvironment
 
   def init() do
+    # Starts a persisted type environment for the current session.
+    TypeEnvironment.start_link()
     loop("", fn (z) -> {:error, {:unbound_variable, z}} end, init_history(RoseTree.new(:start)))
   end
 
