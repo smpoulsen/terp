@@ -58,7 +58,7 @@ defmodule Terp.Types.Types do
     src
     |> Terp.to_ast()
     |> Enum.map(fn x ->
-      TypeEvaluator.infer(x)
+      TypeEvaluator.run_infer(x)
     end)
   end
 end

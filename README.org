@@ -1,6 +1,6 @@
 * Terp
 
-   =terp= is an interpreter for a toy, lisp-like language.
+   =terp= is a toy language that falls somewhere between an ML and a lisp.
 
    Currently implemented:
      + integers
@@ -15,6 +15,7 @@
      + variable binding (=let=)
      + recursive functions (=letrec=)
      + module imports
+     + HM type inference
 
    Additional examples can be found in the [[https://github.com/tpoulsen/terp/tree/master/examples][examples]] directory.
 * Usage
@@ -151,6 +152,21 @@
      (let identity
          (lambda (x) x))
    #+END_SRC
+** Type system
+   Terp implements Hindley-Milner type inference. Currently, type checking is performed only on code run in the REPL; this is a work in progress and will change in the future.
+
+   The REPL maintains a type environment that includes functions and variables defined with =let= or =letrec=:
+
+   #+CAPTION: /Binding a simple variable/
+   [[file:media/repl_simple_env.gif]]
+   
+   #+CAPTION: /Binding a recursive, higher-order function and using it/
+   [[file:media/repl_type_env.png]]
+
+   Expressions in the REPL are type checked prior to evaluation. If an expression fails the type check, it won't be evaluated.
+   To see the inferred type for an expressions, prefix it with =:t= or =:type=. 
+   [[file:media/type_check_ex.png]]
+
 ** Evaluating a file:
    There's a mix task (=mix terp.run $FILENAME=) to evaluate a file:
 

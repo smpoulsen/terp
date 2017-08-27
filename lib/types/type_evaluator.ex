@@ -1,14 +1,15 @@
 defmodule Terp.Types.TypeEvaluator do
   alias Terp.Types.Types
   alias Terp.Types.TypeVars
+  alias Terp.Types.TypeEnvironment
 
   @type scheme :: {[Types.t], Types.t}
   @type type_environment :: map()
   @type substitution :: %{required(Types.t) => Types.t}
   @type errors :: [String.t]
 
-  @spec infer(RoseTree.t) :: Types.t
-  def infer(%RoseTree{} = expr) do
+  @spec run_infer(RoseTree.t) :: Types.t
+  def run_infer(%RoseTree{} = expr) do
     case TypeVars.start_link() do
       {:ok, _} -> :ok
       {:error, _} -> TypeVars.reset()
@@ -16,6 +17,7 @@ defmodule Terp.Types.TypeEvaluator do
     case infer(expr, %{}) do
       {:ok, {_substitution, type}} ->
         type_scheme = generalize(%{}, type)
+        TypeEnvironment.extend_environment(expr, type_scheme)
         {:ok, substitute_type_vars(type_scheme)}
       {:error, _e} = error ->
         error
@@ -161,7 +163,12 @@ defmodule Terp.Types.TypeEvaluator do
                 {:error, e}
             end
           :__let ->
-            [_name | [bound | []]] = operands
+            [name | [bound | []]] = operands
+            tv = TypeVars.fresh()
+            {s1, t1} = {null_substitution(), tv}
+            type_env = apply_sub(s1, type_env)
+            t1_prime = generalize(type_env, t1)
+            type_env = extend(type_env, {name.node, t1_prime})
             infer(bound, type_env)
           :__letrec ->
             # TODO not inferring the specific type
@@ -341,7 +348,7 @@ defmodule Terp.Types.TypeEvaluator do
   def lookup(type_environment, var) do
     case Map.get(type_environment, var) do
       nil ->
-        {:error, {:unbound, var}}
+        TypeEnvironment.lookup(var)
       x ->
       {:ok, {null_substitution(), instantiate(x)}}
     end
