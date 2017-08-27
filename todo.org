@@ -8,17 +8,26 @@
      - [ ] map, filter, fold, etc...
      - [ ] length, etc...
    - [ ] Rewrite some of the built-in functions that are currently in elixir in terp.
+** INPROGRESS Type system
+   HM type inference
+   + need to pass in the environment so that let definitions can be type checked?
+   + bubble errors up in a meaningful way
+   + =if=, =cond=
+   + list type, and handlers for associated functions
 ** INPROGRESS [#A] clean up parser and terp implementations
    - State "INPROGRESS" from "TODO"       [2017-08-06 Sun 13:32]
    There's duplication and stuff that can likely be removed now that more functionality is built out.
    Would like to redo some of the early parsers in the style of more recent ones, e.g. tagging the value.
-*** Checklist [2/5]:
+*** Checklist [3/5]:
    + [X] Clean up parsers
-   + [ ] Pull out condition bodies from the big case in terp.eval_trees
+   + [X] Pull out condition bodies from the big case in terp.eval_trees
    + [X] Improve documentation
    + [ ] Rename some poorly named functions
    + [ ] Add typespecs
-
+** TODO [#B] improve error handling
+   Propagate error messages instead of ending in crashes
+** TODO Remove circular dependencies
+   Many of the functions that were split out of the eval function still reference it to evaluate their internals.
 ** TODO [#B] variable/defined function hoisting
 ** TODO Separate terp data structures from elixir data structures
    Particularly noticeable in the return of =cdr=; should be returning a terp list instead of an elixir list.

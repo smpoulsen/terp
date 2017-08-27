@@ -13,4 +13,8 @@ defmodule Terp.Environment do
       end
     end)
   end
+
+  def quote(children) do
+    Enum.map(children, &(&1.node))
+  end
 end

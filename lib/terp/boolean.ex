@@ -56,13 +56,13 @@ defmodule Terp.Boolean do
 
       iex> "(cond [(equal? 1 5) (9)] [#f 5])"
       ...> |> Terp.eval()
-      {:error, {:terp, :no_true_condition}}
+      {:error, {:cond, "no true condition"}}
 
       iex> "(cond [(equal? (+ 2 3) 5) 9] [#f 5])"
       ...> |> Terp.eval()
       9
   """
-  def cond([], _env), do: {:error, {:terp, :no_true_condition}}
+  def cond([], _env), do: {:error, {:cond, "no true condition"}}
   def cond([%{node: [condition | consequent]} | conditions], env) do
     if Terp.eval_expr(condition, env) do
       # An artifact of the parser; pulls in consequent as a list.
@@ -71,6 +71,26 @@ defmodule Terp.Boolean do
       |> List.first
     else
       cond(conditions, env)
+    end
+  end
+
+  @doc """
+  Test whether two values are equal.
+
+  ## Examples
+
+      iex> "(equal? 5 3)" |> Terp.eval()
+      false
+
+      iex> "(equal? 5 5)" |> Terp.eval()
+      true
+  """
+  def equal?(operands, environment) do
+    case Enum.map(operands, &Terp.eval_expr(&1, environment)) do
+      [x | [y | []]] ->
+        x == y
+      _ ->
+        {:error, {:equal?, "invalid number of arguments"}}
     end
   end
 end

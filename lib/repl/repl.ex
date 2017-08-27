@@ -3,6 +3,7 @@ defmodule Terp.Repl do
   A REPL (read-eval-print-loop) for terp.
   """
   alias RoseTree.Zipper
+  alias Terp.Types.Types
 
   def init() do
     loop("", fn (z) -> {:error, {:unbound_variable, z}} end, init_history(RoseTree.new(:start)))
@@ -26,9 +27,40 @@ defmodule Terp.Repl do
         # Ctl-D
         IO.write("\nBye!")
       _ ->
-        updated_history = add_history(expr, history)
-        env =  eval(expr, environment)
-        loop("", env, updated_history)
+        cond do
+          String.starts_with?(expr, ":t ") || String.starts_with?(expr, ":type ") ->
+            type_check(expr)
+            loop("", environment, history)
+          true ->
+            updated_history = add_history(expr, history)
+            env =  eval(expr, environment)
+            loop("", env, updated_history)
+        end
+    end
+  end
+
+  defp type_check(expr) do
+    trimmed = expr
+    |> String.trim()
+    |> String.trim_leading(":type ")
+    |> String.trim_leading(":t ")
+
+    inference = trimmed
+    |> Types.type_check()
+    |> List.first() #TODO
+
+    case inference do
+      {:error, {module, reason}} ->
+        Bunt.puts([:red, "#{to_string(module)} error:"])
+        Bunt.puts([:yellow, "\t#{reason}"])
+      {:ok, {type_vars, type}} ->
+        type_str = if Enum.empty?(type_vars) do
+          type.str
+        else
+          variables = Enum.map(type_vars, &(&1.str))
+          "∀ #{Enum.join(variables, " ")} => #{type.str}"
+        end
+        Bunt.puts([:blue, trimmed, :green, " : ", :yellow, type_str])
     end
   end
 
@@ -41,7 +73,7 @@ defmodule Terp.Repl do
         IO.puts("\tmsg: #{Atom.to_string(type)}")
         IO.puts("\targ: #{msg}")
         environment
-      {:ok, {type, msg}} ->
+      {:ok, {_type, msg}} ->
         Bunt.puts([:green, "Success!"])
         Bunt.puts([:blue, "#{msg}"])
         env

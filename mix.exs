@@ -21,7 +21,7 @@ defmodule Terp.Mixfile do
 
   def description() do
     """
-    An interpreter for a toy lisp implementation.
+    A statically typed language somewhere between an ML and a lisp.
     """
   end
 

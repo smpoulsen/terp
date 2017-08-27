@@ -32,19 +32,31 @@ defmodule Terp do
   end
 
   @doc """
+  Parse source code and convert it to an ast.
+  """
+  @spec to_ast(String.t) :: [RoseTree.t]
+  def to_ast(str) do
+    str
+    |> Parser.parse()
+    |> Enum.flat_map(&Parser.to_tree/1)
+    |> filter_nodes(:__comment)
+  end
+
+  @doc """
   Loads a terp module's code and returns both the result of evaluation and
   the resulting environment.
   """
   def evaluate_source(str, env \\ fn (z) -> {:error, {:unbound_variable, z}} end) do
     str
-    |> Parser.parse()
-    |> Enum.flat_map(&Parser.to_tree/1)
+    |> to_ast()
     |> run_eval(env)
-
   end
+
+  @doc """
+  Filters comments out of the syntax tree and evaluates the remaining expressions.
+  """
   def run_eval(trees, env) do
     trees
-    |> filter_nodes(:__comment)
     |> eval_trees(env)
   end
 
@@ -53,9 +65,14 @@ defmodule Terp do
   defp eval_trees([tree | []], env) do
     res = eval_expr(tree, env)
     case res do
-      x when is_function(x) -> {nil, res}
-      {{:ok, _msg}, _env} -> res
-      x -> {x, env}
+      x when is_function(x) ->
+        {nil, res}
+      {{:ok, _msg}, _env} ->
+        res
+      {:error, e} ->
+        {{:error, e}, env}
+      x ->
+        {x, env}
     end
   end
   defp eval_trees([tree | trees], env) do
@@ -70,10 +87,13 @@ defmodule Terp do
         eval_trees(trees, env)
     end
   end
+  defp eval_trees(x, env) when is_bitstring(x), do: {x, env}
   defp eval_trees(x, env), do: {{:error, {:unable_to_evaluate, x}}, env}
 
-  # Filters nodes out of the AST.
-  defp filter_nodes(trees, node_name) do
+  @doc """
+  Filters nodes out of the AST.
+  """
+  def filter_nodes(trees, node_name) do
     Enum.reject(trees, fn %RoseTree{node: node} -> node == node_name end)
   end
 
@@ -112,7 +132,7 @@ defmodule Terp do
         str = List.first(children)
         str.node
       :__quote ->
-        Enum.map(children, &(&1.node))
+        Environment.quote(children)
       :__cond ->
         Boolean.cond(children, env)
       :"__#t" ->
@@ -144,7 +164,7 @@ defmodule Terp do
           :__div ->
             Arithmetic.divide(Enum.map(operands, &eval_expr(&1, env)))
           :__equal? ->
-            (fn [x | [y | []]] -> x == y end).(Enum.map(operands, &eval_expr(&1, env)))
+            Terp.Boolean.equal?(operands, env)
           :__cons ->
             Terp.List.cons(operands, env)
           :__car ->
@@ -152,12 +172,11 @@ defmodule Terp do
           :__cdr ->
             Terp.List.cdr(operands, env)
           :__empty? ->
-            operands
-            |> Enum.map(&eval_expr(&1, env))
-            |> List.first()
-            |> Enum.empty?()
+            Terp.List.empty?(operands, env)
           x when is_function(x) ->
             Function.apply_lambda(operator, Enum.map(operands, &eval_expr(&1, env)), env)
+          {:error, reason} ->
+            {:error, reason}
           _ ->
             {:error, {:not_a_procedure, operator}}
         end
