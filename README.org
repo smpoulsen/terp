@@ -1,6 +1,6 @@
 * Terp
 
-   =terp= is an interpreter for a toy, lisp-like language.
+   =terp= is a toy language that falls somewhere between an ML and a lisp.
 
    Currently implemented:
      + integers
@@ -15,6 +15,7 @@
      + variable binding (=let=)
      + recursive functions (=letrec=)
      + module imports
+     + HM type inference
 
    Additional examples can be found in the [[https://github.com/tpoulsen/terp/tree/master/examples][examples]] directory.
 * Usage
