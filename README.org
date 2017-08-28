@@ -193,3 +193,6 @@
    [[file:media/repl_demo.gif]] 
 
    As a workaround for history/scrollback in the repl, start it as =iex -S mix terp.repl=. The IEx shell provides those features while still running the terp repl.
+** Error Messages
+   To help with debugging, error messages try to be as informative as possible:
+   [[file:media/error_messages.png]]
