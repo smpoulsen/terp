@@ -156,7 +156,13 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
       {:error, e} = "(cons \"asdf\" '(3 2 5 9))"
       |> Types.type_check()
       |> List.first()
-      assert e == {:type, "Unable to unify Int with String"}
+      assert e == {
+        :type, {
+          :unification,
+          %{expected: %Terp.Types.Types{constructor: :Tconst, str: "Int", t: :INTEGER},
+            received: %Terp.Types.Types{constructor: :Tconst, str: "String", t: :STRING}}
+        }
+      }
     end
 
     test "infer empty? for a list of integers" do
