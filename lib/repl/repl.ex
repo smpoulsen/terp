@@ -8,7 +8,7 @@ defmodule Terp.Repl do
   def init() do
     # Starts a persisted type environment for the current session.
     TypeEnvironment.start_link()
-    loop(fn (z) -> {:error, {:unbound_variable, z}} end)
+    loop(fn (z) -> {:error, {:unbound, z}} end)
   end
 
   def loop(environment) do
@@ -23,7 +23,9 @@ defmodule Terp.Repl do
             type_check(expr)
             loop(environment)
           true ->
-            env =  eval(expr, environment)
+            env = expr
+            |> String.trim()
+            |> eval(environment)
             loop(env)
         end
     end
@@ -40,9 +42,8 @@ defmodule Terp.Repl do
     |> List.first() #TODO
 
     case inference do
-      {:error, {module, reason}} ->
-        Bunt.puts([:red, "#{to_string(module)} error:"])
-        Bunt.puts([:yellow, "\t#{reason}"])
+      {:error, _} = e ->
+        pretty_print_error(e, trimmed)
       {:ok, {type_vars, type}} ->
         type_str = if Enum.empty?(type_vars) do
           type.str
@@ -59,10 +60,8 @@ defmodule Terp.Repl do
     with {:ok, _type} <- List.first(Types.type_check(expr)),
          {res, env} <- Terp.evaluate_source(expr, environment) do
       case res do
-        {:error, {type, msg}} ->
-          Bunt.puts([:red, "There was an error:"])
-          IO.puts("\tmsg: #{Atom.to_string(type)}")
-          IO.puts("\targ: #{msg}")
+        {:error, _} = e ->
+          pretty_print_error(e, expr)
           environment
         {:ok, {_type, msg}} ->
           Bunt.puts([:green, "Success!"])
@@ -76,9 +75,33 @@ defmodule Terp.Repl do
       end
       env
     else
-      {:error, {module, reason}} ->
-        Bunt.puts([:red, "#{to_string(module)} error:"])
-      Bunt.puts([:yellow, "\t#{reason}"])
+      nil ->
+        environment
+      {:error, _} = e ->
+        pretty_print_error(e, expr)
     end
+  end
+
+  defp pretty_print_error({:error, {:type, {:unification, %{expected: e, received: r}}}}, expr) do
+    Bunt.puts([:red, "--TYPE ERROR--"])
+    Bunt.puts(["Unable to unify types in the expression"])
+    Bunt.puts([:blue, "\t#{expr}"])
+    Bunt.puts(["Expected: ", :blue, "#{e.str}"])
+    Bunt.puts(["Received: ", :red, "#{r.str}"])
+  end
+  defp pretty_print_error({:error, {:type, msg}}, expr) do
+    Bunt.puts([:red, "--TYPE ERROR--"])
+    Bunt.puts(["#{msg} when evaluating the expression"])
+    Bunt.puts([:blue, "\t#{expr}"])
+  end
+  defp pretty_print_error({:error, {:unbound, name}}, expr) do
+    Bunt.puts([:red, "--UNBOUND VARIABLE ERROR--"])
+    Bunt.puts([:yellow, :bright,  name, :lightgray, " is not in scope when evaluating the expression"])
+    Bunt.puts([:blue, "\t#{expr}"])
+  end
+  defp pretty_print_error({:error, {module, reason}}, expr) do
+    Bunt.puts([:red, "--#{String.upcase(to_string(module))} ERROR--"])
+    Bunt.puts(["#{reason} when evaluating the expression"])
+    Bunt.puts([:blue, "\t#{expr}"])
   end
 end

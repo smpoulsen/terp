@@ -458,7 +458,7 @@ defmodule Terp.Types.TypeEvaluator do
         {:error, e}
     end
   end
-  def unify(t1, t2), do: {:error, {:type, "Unable to unify #{t1.str} with #{t2.str}"}}
+  def unify(t1, t2), do: {:error, {:type, {:unification, %{expected: t1, received: t2}}}}
 
   @spec bind(Types.t, Types.t) :: {:ok, substitution} | {:error, {:type, String.t}}
   def bind(a, type) do

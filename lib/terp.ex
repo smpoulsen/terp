@@ -46,7 +46,7 @@ defmodule Terp do
   Loads a terp module's code and returns both the result of evaluation and
   the resulting environment.
   """
-  def evaluate_source(str, env \\ fn (z) -> {:error, {:unbound_variable, z}} end) do
+  def evaluate_source(str, env \\ fn (z) -> {:error, {:unbound, z}} end) do
     str
     |> to_ast()
     |> run_eval(env)
@@ -106,24 +106,24 @@ defmodule Terp do
       iex> "(+ 5 3)"
       ...> |> Terp.Parser.parse()
       ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
-      ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound_variable, z}} end) end)
+      ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [8]
 
       # (* 2 4 5)
       iex> "(* 2 4 5)"
       ...> |> Terp.Parser.parse()
       ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
-      ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound_variable, z}} end) end)
+      ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [40]
 
       # (* 2 4 (+ 4 1))
       iex> "(* 2 4 (+ 4 1))"
       ...> |> Terp.Parser.parse()
       ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
-      ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound_variable, z}} end) end)
+      ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [40]
   """
-  def eval_expr(%RoseTree{node: node, children: children} = tree, env \\ fn (y) -> {:error, {:unbound_variable, y}} end) do
+  def eval_expr(%RoseTree{node: node, children: children} = tree, env \\ fn (y) -> {:error, {:unbound, y}} end) do
     if @debug do
       IO.inspect({"TREE", tree})
     end
