@@ -102,6 +102,24 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
     end
   end
 
+  describe "cond inference" do
+    test "infer a cond from string -> string" do
+      {:ok, {_vars, type}} = """
+      (let sound
+        (lambda (animal)
+          (cond
+            [(equal? animal "cow") "moo"]
+            [(equal? animal "cat") "meow"]
+            [(equal? animal "dog") "bark"]
+            [#t "zzz"]
+            )))
+      """
+      |> Types.type_check()
+      |> List.first()
+      assert type.str == "(String -> String)"
+    end
+  end
+
   describe "list inference" do
     test "infer a list of integers" do
       {:ok, {_vars, type}} = "'(3 2 5 9)"

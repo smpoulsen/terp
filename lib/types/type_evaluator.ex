@@ -81,6 +81,8 @@ defmodule Terp.Types.TypeEvaluator do
             |> Enum.join(", ")
             {:error, {:type, "Unable to unify list types: #{type_strings}"}}
         end
+      :__cond ->
+        infer_cond(type_env, children)
       :__apply ->
         [operator | operands] = children
         case operator.node do
@@ -303,6 +305,40 @@ defmodule Terp.Types.TypeEvaluator do
     end
   end
 
+  def infer_cond(type_env, expr) do
+    # This is a bit kludgy.
+    # Cond is ({Bool, a} -> a)
+    tv = TypeVars.fresh()
+    cond_type = Types.function(Types.tuple(Types.bool(), tv), tv)
+
+    {s, test_t, res_t} = expr
+    |> Enum.reduce({%{}, nil, nil},
+    fn (_expr, {:error, _} = e) -> e
+      (%RoseTree{node: [test | [res | []]]}, {subs, test_types, res_types}) ->
+        {:ok, {s1, t1}} = infer(test, type_env)
+        {:ok, {s2, t2}} = infer(res, type_env)
+        test_type = if test_types == nil || t1 == test_types, do: t1, else: {:error, {:bad_type, t1}}
+        res_type = if res_types == nil || t2 == res_types, do: t2, else: {:error, {:bad_type, t2}}
+        {compose(s1, compose(s2, subs)), test_type, res_type}
+    end)
+
+    case test_t do
+      {:error, {:bad_type, x}} ->
+        {:error, {:type, {:unification, %{expected: Types.bool(), received: x}}}}
+      %Types{t: :BOOLEAN} ->
+        case res_t do
+          {:error, {:bad_type, x}} ->
+            {:error, {:type, {:unification, %{expected: Types.bool(), received: x}}}}
+          %Types{} = t ->
+            expr_type = Types.function(Types.tuple(Types.bool(), t), t)
+            with {:ok, s3} <- unify(expr_type, cond_type) do
+              composed_substitution = compose(s3, s)
+              {:ok, {composed_substitution, apply_sub(s3, tv)}}
+            end
+        end
+    end
+  end
+
   @spec build_up_arrows([Types.t]) :: Types.t
   def build_up_arrows([], arrows), do: arrows
   def build_up_arrows([type | []], %Types{constructor: :Tarrow} = arrows) do
@@ -397,6 +433,9 @@ defmodule Terp.Types.TypeEvaluator do
   def apply_sub(substitution, %Types{constructor: :Tvar, t: t} = type) do
     Map.get(substitution, t, type)
   end
+  def apply_sub(substitution, %Types{constructor: :Ttuple, t: {t1, t2}}) do
+    Types.tuple(apply_sub(substitution, t1), apply_sub(substitution, t2))
+  end
   def apply_sub(substitution, %Types{constructor: :Tarrow, t: {t1, t2}}) do
     Types.function(apply_sub(substitution, t1), apply_sub(substitution, t2))
   end
@@ -423,6 +462,9 @@ defmodule Terp.Types.TypeEvaluator do
   @spec ftv(Types.t | scheme | [Types.t] | type_environment) :: MapSet.t
   def ftv(%Types{constructor: :Tconst}), do: MapSet.new()
   def ftv(%Types{constructor: :Tlist, t: t}), do: ftv(t)
+  def ftv(%Types{constructor: :Ttuple, t: {t1, t2}}) do
+    MapSet.union(ftv(t1), ftv(t2))
+  end
   def ftv(%Types{constructor: :Tvar} = type), do: MapSet.new([type])
   def ftv(%Types{constructor: :Tarrow, t: {t1, t2}}) do
     MapSet.union(ftv(t1), ftv(t2))
@@ -449,6 +491,15 @@ defmodule Terp.Types.TypeEvaluator do
   def unify(%Types{constructor: :Tlist, t: t1}, %Types{constructor: :Tlist, t: t2}) do
     unify(t1, t2)
   end
+  def unify(%Types{constructor: :Ttuple, t: {l1, r1}}, %Types{constructor: :Ttuple, t: {l2, r2}}) do
+    with {:ok, s1} <- unify(l1, l2),
+         {:ok, s2} <- unify(apply_sub(s1, r1), apply_sub(s1, r2)) do
+      {:ok, compose(s2, s1)}
+    else
+      {:error, e} ->
+        {:error, e}
+    end
+  end
   def unify(%Types{constructor: :Tarrow, t: {l1, r1}}, %Types{constructor: :Tarrow, t: {l2, r2}}) do
     with {:ok, s1} <- unify(l1, l2),
          {:ok, s2} <- unify(apply_sub(s1, r1), apply_sub(s1, r2)) do
@@ -463,7 +514,7 @@ defmodule Terp.Types.TypeEvaluator do
   @spec bind(Types.t, Types.t) :: {:ok, substitution} | {:error, {:type, String.t}}
   def bind(a, type) do
     cond do
-      a == type.t -> null_substitution()
+      a == type.t -> {:ok, null_substitution()}
       occurs_check(a, type) -> {:error, {:type, "Unable to construct infinite type"}}
       true -> {:ok, %{a => type}}
     end
