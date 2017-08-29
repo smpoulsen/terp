@@ -555,6 +555,11 @@ defmodule Terp.Types.TypeEvaluator do
     subbed_t = substitute_type_var(t, vars)
     %{type | t: subbed_t, str: "[#{subbed_t.str}]"}
   end
+  defp substitute_type_var(%Types{constructor: :Ttuple, t: {t1, t2}} = type, vars) do
+    subbed_t1 = substitute_type_var(t1, vars)
+    subbed_t2 = substitute_type_var(t2, vars)
+    %{type | t: {subbed_t1, subbed_t2}, str: "{#{subbed_t1.str}, #{subbed_t2.str}}"}
+  end
   defp substitute_type_var(%Types{constructor: :Tarrow, t: {t1, t2}} = type, vars) do
     subbed_t1 = substitute_type_var(t1, vars)
     subbed_t2 = substitute_type_var(t2, vars)
