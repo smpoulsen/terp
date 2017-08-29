@@ -106,7 +106,7 @@ defmodule Terp.Types.TypeEvaluator do
             case infer(lst, type_env) do
               {:ok, {_s1, list_type}} ->
                 case list_type do
-                  %Types{constructor: :Tlist, t: {:LIST, t}} ->
+                  %Types{constructor: :Tlist, t: t} ->
                     {:ok, {null_substitution(), t}}
                   %Types{constructor: :Tvar} ->
                     tv = TypeVars.fresh()
@@ -156,7 +156,7 @@ defmodule Terp.Types.TypeEvaluator do
             [elem | [lst | []]] = operands
             tv = TypeVars.fresh()
             case infer(lst, type_env) do
-              {:ok, {_s1, %Types{t: {:LIST, t}} = list_type}} ->
+              {:ok, {_s1, %Types{t: t} = list_type}} ->
                 cons_type = Types.function(Types.function(t, list_type), list_type)
                 infer_binary_op(type_env, cons_type, {elem, lst})
               {:error, e} ->
@@ -422,7 +422,7 @@ defmodule Terp.Types.TypeEvaluator do
   """
   @spec ftv(Types.t | scheme | [Types.t] | type_environment) :: MapSet.t
   def ftv(%Types{constructor: :Tconst}), do: MapSet.new()
-  def ftv(%Types{constructor: :Tlist, t: {:LIST, t}}), do: ftv(t)
+  def ftv(%Types{constructor: :Tlist, t: t}), do: ftv(t)
   def ftv(%Types{constructor: :Tvar} = type), do: MapSet.new([type])
   def ftv(%Types{constructor: :Tarrow, t: {t1, t2}}) do
     MapSet.union(ftv(t1), ftv(t2))
@@ -446,7 +446,7 @@ defmodule Terp.Types.TypeEvaluator do
   def unify(%Types{constructor: :Tconst, t: a}, %Types{constructor: :Tconst, t: a}) do
     {:ok, null_substitution()}
   end
-  def unify(%Types{constructor: :Tlist, t: {:LIST, t1}}, %Types{constructor: :Tlist, t: {:LIST, t2}}) do
+  def unify(%Types{constructor: :Tlist, t: t1}, %Types{constructor: :Tlist, t: t2}) do
     unify(t1, t2)
   end
   def unify(%Types{constructor: :Tarrow, t: {l1, r1}}, %Types{constructor: :Tarrow, t: {l2, r2}}) do
@@ -514,9 +514,9 @@ defmodule Terp.Types.TypeEvaluator do
   defp substitute_type_var(%Types{constructor: :Tvar, t: t} = type, {old_var, new_var}) do
     if t == old_var.t, do: new_var, else: type
   end
-  defp substitute_type_var(%Types{constructor: :Tlist, t: {:LIST, t}} = type, vars) do
+  defp substitute_type_var(%Types{constructor: :Tlist, t: t} = type, vars) do
     subbed_t = substitute_type_var(t, vars)
-    %{type | t: {:LIST, subbed_t}, str: "[#{subbed_t.str}]"}
+    %{type | t: subbed_t, str: "[#{subbed_t.str}]"}
   end
   defp substitute_type_var(%Types{constructor: :Tarrow, t: {t1, t2}} = type, vars) do
     subbed_t1 = substitute_type_var(t1, vars)

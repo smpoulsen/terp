@@ -42,7 +42,8 @@ defmodule Terp.Types.Types do
 
   @spec list(Types.t) :: Types.t
   def list(%Types{} = x) do
-    %Types{constructor: :Tlist, t: {:LIST, x}, str: "[#{x.str}]"}
+    %Types{constructor: :Tlist, t: x, str: "[#{x.str}]"}
+  end
   end
 
   @spec var(String.t | atom()) :: Types.t
