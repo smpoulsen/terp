@@ -36,7 +36,7 @@ defmodule Terp.Types.Types do
     %Types{
       constructor: :Tarrow,
       t: {t1, t2},
-      str: "(#{t1.str} -> #{t2.str})"
+      str: "(-> #{t1.str} #{t2.str})"
     }
   end
 

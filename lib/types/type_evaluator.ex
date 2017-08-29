@@ -87,21 +87,21 @@ defmodule Terp.Types.TypeEvaluator do
         [operator | operands] = children
         case operator.node do
           :"__+" ->
-            t = Types.function(Types.function(Types.int(), Types.int()), Types.int())
+            t = Types.function(Types.int(), Types.function(Types.int(), Types.int()))
             infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :"__-" ->
-            t = Types.function(Types.function(Types.int(), Types.int()), Types.int())
+            t = Types.function(Types.int(), Types.function(Types.int(), Types.int()))
             infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :"__*" ->
-            t = Types.function(Types.function(Types.int(), Types.int()), Types.int())
+            t = Types.function(Types.int(), Types.function(Types.int(), Types.int()))
             infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :__div ->
-            t = Types.function(Types.function(Types.int(), Types.int()), Types.int())
+            t = Types.function(Types.int(), Types.function(Types.int(), Types.int()))
             infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :__equal? ->
             # Using a single type variable because equality between different types would be ill-typed
             tv = TypeVars.fresh()
-            t = Types.function(Types.function(tv, tv), Types.bool())
+            t = Types.function(tv, Types.function(tv, Types.bool()))
             infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :__car ->
             [lst | []] = operands
@@ -159,7 +159,7 @@ defmodule Terp.Types.TypeEvaluator do
             tv = TypeVars.fresh()
             case infer(lst, type_env) do
               {:ok, {_s1, %Types{t: t} = list_type}} ->
-                cons_type = Types.function(Types.function(t, list_type), list_type)
+                cons_type = Types.function(t, Types.function(list_type, list_type))
                 infer_binary_op(type_env, cons_type, {elem, lst})
               {:error, e} ->
                 {:error, e}
@@ -340,22 +340,8 @@ defmodule Terp.Types.TypeEvaluator do
   end
 
   @spec build_up_arrows([Types.t]) :: Types.t
-  def build_up_arrows([], arrows), do: arrows
-  def build_up_arrows([type | []], %Types{constructor: :Tarrow} = arrows) do
-    Types.function(arrows, type)
-  end
-  def build_up_arrows([type | types], %Types{constructor: :Tarrow} = arrows) do
-    new_arrow = Types.function(arrows, type)
-    build_up_arrows(types, new_arrow)
-  end
   def build_up_arrows([type | []]), do: type
-  def build_up_arrows([type1 | [type2 | types]]) do
-    build_up_arrows(types, Types.function(type1, type2))
-  end
-
-  @spec build_up_right_arrows([Types.t]) :: Types.t
-  def build_up_right_arrows([type | []]), do: type
-  def build_up_right_arrows([type1 | types]) do
+  def build_up_arrows([type1 | types]) do
     Types.function(type1, build_up_arrows(types))
   end
 
@@ -572,7 +558,7 @@ defmodule Terp.Types.TypeEvaluator do
   defp substitute_type_var(%Types{constructor: :Tarrow, t: {t1, t2}} = type, vars) do
     subbed_t1 = substitute_type_var(t1, vars)
     subbed_t2 = substitute_type_var(t2, vars)
-    %{type | t: {subbed_t1, subbed_t2}, str: "(#{subbed_t1.str} -> #{subbed_t2.str})"}
+    %{type | t: {subbed_t1, subbed_t2}, str: "(-> #{subbed_t1.str} #{subbed_t2.str})"}
   end
   defp substitute_type_var(type, _vars), do: type
 end
