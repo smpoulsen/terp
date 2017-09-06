@@ -109,6 +109,11 @@
      (add_five 3)
      ;; 8
    #+END_SRC
+
+   Functions can also be defined using =defn=; this is syntactic sugar for =let/lambda= definition:
+   #+BEGIN_SRC racket
+     (defn add (x y) (+ x y))
+   #+END_SRC
 ** Recursive functions
    Recursive functions are defined with =letrec=.
    The base case(s) and recursive case(s) must be provided or the function will not terminate.

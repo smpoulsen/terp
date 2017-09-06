@@ -33,6 +33,7 @@ defmodule Terp.Parser do
       cond_parser(),
       typedef_parser(),
       type_annotation_parser(),
+      defn_parser(),
       application_parser(),
       ignore(newline()),
     ])
@@ -65,6 +66,9 @@ defmodule Terp.Parser do
     map(l_parser, fn x -> {:__cond, x} end)
   end
 
+  #
+  ## Data type definition
+  #
   defp typedef_parser() do
     l_parser = sequence([
       ignore(char("(")),
@@ -88,6 +92,9 @@ defmodule Terp.Parser do
     map(l_parser, fn x -> {:__data, x} end)
   end
 
+  #
+  ## Type Annotation
+  #
   defp type_annotation_parser() do
     # This is specifically function annotation currently.
     t_parser = sequence([
@@ -126,6 +133,31 @@ defmodule Terp.Parser do
       ]),
       char(")")
     )
+  end
+
+  defp defn_parser() do
+    p = sequence([
+      string("defn"),
+      ignore(space()),
+      word(), # Fn name
+      ignore(space()),
+      between_parens_parser( # Args
+        valid_expr_parser()
+      ),
+      ignore(space()),
+      valid_expr_parser(),
+    ])
+    |> between_parens_parser()
+    # Desugar defn to a let/lambda definition.
+    map(p, fn [_defn, name, args, body] ->
+      b = case body do
+            [__apply: x] ->
+              {:__apply, x}
+            [x] ->
+              x
+          end
+      {:__apply, [:__let, name, {:__apply, [:__lambda, {:__apply, args}, b]}]}
+    end)
   end
 
   defp valid_expr_parser() do
