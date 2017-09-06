@@ -8,6 +8,7 @@ defmodule Terp do
   alias Terp.Arithmetic
   alias Terp.Boolean
   alias Terp.Function
+  alias Terp.Value
   alias RoseTree.Zipper
 
   @debug false
@@ -129,6 +130,11 @@ defmodule Terp do
       IO.inspect({"TREE", tree})
     end
     case node do
+      :__data ->
+        [_type_constructor, value_constructors] = children
+        constructors = value_constructors.node
+        env_prime = Enum.reduce(constructors, env, fn c, env ->  Value.constructor_fn(c, env) end)
+        env_prime
       :__string ->
         str = List.first(children)
         str.node
@@ -182,6 +188,7 @@ defmodule Terp do
             {:error, {:not_a_procedure, operator}}
         end
       x when is_number(x) -> x
+      x when is_function(x) -> x
       x ->
         with true <- is_atom(x),
              s <- Atom.to_string(x),

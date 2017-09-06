@@ -183,7 +183,11 @@ defmodule Terp.Types.Types do
       var_string = ts
       |> Enum.map(&Kernel.to_string/1)
       |> Enum.join(" ")
-      "[#{Kernel.to_string(c)} #{var_string}]"
+      if var_string == "" do
+        "[#{Kernel.to_string(c)}]"
+      else
+        "[#{Kernel.to_string(c)} #{var_string}]"
+      end
     end
   end
 end

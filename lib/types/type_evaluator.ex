@@ -17,7 +17,7 @@ defmodule Terp.Types.TypeEvaluator do
     end
     case infer(expr, %{}) do
       {:ok, {_substitution, type}} ->
-        if expr.node == :__data || expr.node == :__type do
+        if expr.node == :__type do
           :ok
         else
           case Annotation.reconcile_annotation(expr, type) do
@@ -301,7 +301,8 @@ defmodule Terp.Types.TypeEvaluator do
     case Types.constructor_for_type(name) do
       {:error, _e} = error -> error
       {:ok, t} ->
-        vs = for _var <- t.vars, do: TypeVars.fresh()
+        {:ok, value_constructor} = Types.value_constructor(name)
+        vs = for _var <- value_constructor.vars, do: TypeVars.fresh()
         fresh_t = Types.replace_type_vars({t, Enum.map(vs, &(to_string(&1)))})
         {:ok, build_up_arrows(Enum.reverse([fresh_t | vs]))}
     end
