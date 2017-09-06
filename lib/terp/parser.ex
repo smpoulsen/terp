@@ -125,7 +125,7 @@ defmodule Terp.Parser do
     between(
       char("("),
       sequence([
-        map(string("->"), fn x -> :__arrow end),
+        map(string("->"), fn _x -> :__arrow end),
         ignore(space()),
         lazy(fn -> type_parser() end),
         ignore(space()),
@@ -137,7 +137,7 @@ defmodule Terp.Parser do
 
   defp defn_parser() do
     p = sequence([
-      string("defn"),
+      either(string("defn"), string("defrec")),
       ignore(space()),
       word(), # Fn name
       ignore(space()),
@@ -149,14 +149,18 @@ defmodule Terp.Parser do
     ])
     |> between_parens_parser()
     # Desugar defn to a let/lambda definition.
-    map(p, fn [_defn, name, args, body] ->
+    map(p, fn [defn, name, args, body] ->
+      f = case defn do
+            "defn" -> :__let
+            "defrec" -> :__letrec
+          end
       b = case body do
             [__apply: x] ->
               {:__apply, x}
             [x] ->
               x
           end
-      {:__apply, [:__let, name, {:__apply, [:__lambda, {:__apply, args}, b]}]}
+      {:__apply, [f, name, {:__apply, [:__lambda, {:__apply, args}, b]}]}
     end)
   end
 

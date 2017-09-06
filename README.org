@@ -118,13 +118,24 @@
    Recursive functions are defined with =letrec=.
    The base case(s) and recursive case(s) must be provided or the function will not terminate.
     #+BEGIN_SRC racket
-      (letrec :factorial
-        (lambda (:n)
-          (if (:eq :n 0)
+      (letrec factorial
+        (lambda (n)
+          (if (equal? n 0)
               1
-              (* :n (:factorial (- :n 1))))))
+              (* n (factorial (- n 1))))))
 
-      (:factorial 5)
+      (factorial 5)
+      ;; 120
+    #+END_SRC
+
+    Recursive functions can also be defined using =defrec=; this is syntactic sugar for =letrec/lambda=:
+    #+BEGIN_SRC racket
+      (defrec factorial (n)
+          (if (equal? n 0)
+              1
+              (* n (factorial (- n 1)))))
+
+      (factorial 5)
       ;; 120
     #+END_SRC
 ** Module system
