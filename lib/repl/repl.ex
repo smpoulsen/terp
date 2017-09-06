@@ -44,12 +44,14 @@ defmodule Terp.Repl do
     case inference do
       {:error, _} = e ->
         pretty_print_error(e, trimmed)
+      :ok ->
+        {:ok, nil}
       {:ok, {type_vars, type}} ->
         type_str = if Enum.empty?(type_vars) do
-          type.str
+          to_string(type)
         else
-          variables = Enum.map(type_vars, &(&1.str))
-          "∀ #{Enum.join(variables, " ")} => #{type.str}"
+          variables = Enum.map(type_vars, &(to_string(&1)))
+          "∀ #{Enum.join(variables, " ")} => #{to_string(type)}"
         end
         Bunt.puts([:blue, trimmed, :green, " : ", :yellow, type_str])
     end
@@ -77,6 +79,8 @@ defmodule Terp.Repl do
     else
       nil ->
         environment
+      :ok ->
+        environment
       {:error, _} = e ->
         pretty_print_error(e, expr)
     end
@@ -86,8 +90,15 @@ defmodule Terp.Repl do
     Bunt.puts([:red, "--TYPE ERROR--"])
     Bunt.puts(["Unable to unify types in the expression"])
     Bunt.puts([:blue, "\t#{expr}"])
-    Bunt.puts(["Expected: ", :blue, "#{e.str}"])
-    Bunt.puts(["Received: ", :red, "#{r.str}"])
+    Bunt.puts(["Expected: ", :blue, "#{to_string(e)}"])
+    Bunt.puts(["Received: ", :red, "#{to_string(r)}"])
+  end
+  defp pretty_print_error({:error, {:type, {:annotation, %{expected: e, actual: a}}}}, expr) do
+    Bunt.puts([:red, "--TYPE ERROR--"])
+    Bunt.puts(["The expected type does not match the actual type in the expression"])
+    Bunt.puts([:blue, "\t#{expr}"])
+    Bunt.puts(["Expected type: ", :blue, "#{to_string(e)}"])
+    Bunt.puts(["  Actual type: ", :red, "#{to_string(a)}"])
   end
   defp pretty_print_error({:error, {:type, msg}}, expr) do
     Bunt.puts([:red, "--TYPE ERROR--"])

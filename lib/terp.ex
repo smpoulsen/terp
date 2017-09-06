@@ -8,6 +8,7 @@ defmodule Terp do
   alias Terp.Arithmetic
   alias Terp.Boolean
   alias Terp.Function
+  alias RoseTree.Zipper
 
   @debug false
 
@@ -187,8 +188,23 @@ defmodule Terp do
              true <- String.starts_with?(s, "__") do
           x
         else
-          _ -> env.(x)
+          _ ->
+            env.(x)
         end
+    end
+  end
+
+  @spec fn_name(RoseTree.t) :: {:ok, String.t} | {:error, :no_fn_name}
+  def fn_name(expr) do
+    # Check to see if the function has previously been annotated
+    # TODO pull into own function
+    z = Zipper.from_tree(expr)
+    with {:ok, {%RoseTree{node: t}, _history}} = expr_type <- Zipper.first_child(z),
+         true <- Enum.member?([:__let, :__letrec], t),
+         {:ok, {%RoseTree{node: name}, _history}} <- Zipper.lift(expr_type, &Zipper.next_sibling/1) do
+      {:ok, name}
+    else
+      _ -> {:error, :no_fn_name}
     end
   end
 end

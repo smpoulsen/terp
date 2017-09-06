@@ -31,6 +31,8 @@ defmodule Terp.Parser do
       literal_parser(),
       list_parser(),
       cond_parser(),
+      typedef_parser(),
+      type_annotation_parser(),
       application_parser(),
       ignore(newline()),
     ])
@@ -61,6 +63,69 @@ defmodule Terp.Parser do
       char(")")
     )
     map(l_parser, fn x -> {:__cond, x} end)
+  end
+
+  defp typedef_parser() do
+    l_parser = sequence([
+      ignore(char("(")),
+      ignore(string("data")),
+      ignore(space()),
+      between(string("("), valid_expr_parser(), string(")")),
+      ignore(space()),
+      many1(
+        choice([
+          between(
+            string("["),
+            valid_expr_parser(),
+            string("]")
+          ),
+          ignore(space()),
+          ignore(newline())
+        ])
+      ),
+      ignore(char(")"))
+    ])
+    map(l_parser, fn x -> {:__data, x} end)
+  end
+
+  defp type_annotation_parser() do
+    # This is specifically function annotation currently.
+    t_parser = sequence([
+      ignore(char("(")),
+      ignore(string("type")),
+      ignore(space()),
+      word(),
+      ignore(space()),
+      arrow_parser(),
+      ignore(char(")"))
+    ])
+    map(t_parser, fn x -> {:__type, x} end)
+  end
+
+  defp type_parser() do
+    choice([
+      between(
+        char("["),
+        word() |> sep_by(space()),
+        char("]")
+      ),
+      arrow_parser(),
+      word(),
+    ])
+  end
+
+  defp arrow_parser() do
+    between(
+      char("("),
+      sequence([
+        map(string("->"), fn x -> :__arrow end),
+        ignore(space()),
+        lazy(fn -> type_parser() end),
+        ignore(space()),
+        lazy(fn -> type_parser() end),
+      ]),
+      char(")")
+    )
   end
 
   defp valid_expr_parser() do

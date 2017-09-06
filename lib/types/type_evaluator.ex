@@ -1,5 +1,6 @@
 defmodule Terp.Types.TypeEvaluator do
   alias Terp.Types.Types
+  alias Terp.Types.Annotation
   alias Terp.Types.TypeVars
   alias Terp.Types.TypeEnvironment
 
@@ -16,17 +17,44 @@ defmodule Terp.Types.TypeEvaluator do
     end
     case infer(expr, %{}) do
       {:ok, {_substitution, type}} ->
-        type_scheme = generalize(%{}, type)
-        TypeEnvironment.extend_environment(expr, type_scheme)
-        {:ok, substitute_type_vars(type_scheme)}
+        if expr.node == :__data || expr.node == :__type do
+          :ok
+        else
+          case Annotation.reconcile_annotation(expr, type) do
+            {:ok, annotated_type_scheme} ->
+              {:ok, substitute_type_vars(annotated_type_scheme)}
+            {:error, {:type, {:annotation, _map}}} = error ->
+              error
+            _ ->
+              type_scheme = generalize(%{}, type)
+              TypeEnvironment.extend_environment(expr, type)
+              {:ok, substitute_type_vars(type_scheme)}
+          end
+        end
       {:error, _e} = error ->
         error
     end
   end
 
+  defp format_constructor(defn) do
+    [constructor | vars] = defn
+    |> Enum.map(&(&1.node))
+    {constructor, vars}
+  end
+
   @spec infer(RoseTree.t, type_environment) :: {substitution, Type.t}
   def infer(%RoseTree{node: node, children: children}, type_env) do
     case node do
+      :__data ->
+        [type_constructor | [data_constructors | []]] = children
+        {name, vars} = format_constructor(type_constructor.node)
+        data_constructors = Enum.map(data_constructors.node, &format_constructor/1)
+        t = Types.sum_type(name, vars, data_constructors)
+        TypeEnvironment.define_type(name, t)
+        {:ok, {%{}, t}}
+      :__type ->
+        [fn_name | [type_info | []]] = children
+        Annotation.annotate_type(fn_name.node, type_info.node)
       x when is_integer(x) ->
         {:ok, {null_substitution(), Types.int()}}
       x when is_boolean(x) ->
@@ -77,7 +105,7 @@ defmodule Terp.Types.TypeEvaluator do
                 end
             end
           ts ->
-            type_strings = Enum.map(ts, &(&1.str))
+            type_strings = Enum.map(ts, &(to_string(&1)))
             |> Enum.join(", ")
             {:error, {:type, "Unable to unify list types: #{type_strings}"}}
         end
@@ -269,10 +297,15 @@ defmodule Terp.Types.TypeEvaluator do
     end
   end
 
-  def wrap_fn_type_in_parens(%Types{constructor: :Tarrow} = type) do
-    %{type | str: "(#{type.str})"}
+  def type_for_constructor(name) do
+    case Types.constructor_for_type(name) do
+      {:error, _e} = error -> error
+      {:ok, t} ->
+        vs = for _var <- t.vars, do: TypeVars.fresh()
+        fresh_t = Types.replace_type_vars({t, Enum.map(vs, &(to_string(&1)))})
+        {:ok, build_up_arrows(Enum.reverse([fresh_t | vs]))}
+    end
   end
-  def wrap_fn_type_in_parens(type), do: type
 
   def infer_operands(operands, type_env, result_type \\ []) do
     operands
@@ -325,7 +358,7 @@ defmodule Terp.Types.TypeEvaluator do
     case test_t do
       {:error, {:bad_type, x}} ->
         {:error, {:type, {:unification, %{expected: Types.bool(), received: x}}}}
-      %Types{t: :BOOLEAN} ->
+      %Types{t: :Bool} ->
         case res_t do
           {:error, {:bad_type, x}} ->
             {:error, {:type, {:unification, %{expected: Types.bool(), received: x}}}}
@@ -366,13 +399,19 @@ defmodule Terp.Types.TypeEvaluator do
     Map.drop(type_env, var)
   end
 
-  @spec lookup(type_environment, atom() | String.t) :: {:ok, scheme} | {:error, {:unbound, atom() | String.t}}
+  @spec lookup(type_environment, atom() | String.t) ::
+  {:ok, scheme} | {:error, {:unbound, atom() | String.t}}
   def lookup(type_environment, var) do
     case Map.get(type_environment, var) do
       nil ->
-        TypeEnvironment.lookup(var)
+        case type_for_constructor(var) do
+          {:error, _e} ->
+            TypeEnvironment.lookup(var)
+          {:ok, t} ->
+            {:ok, {null_substitution(), t}}
+        end
       x ->
-      {:ok, {null_substitution(), instantiate(x)}}
+        {:ok, {null_substitution(), instantiate(x)}}
     end
   end
 
@@ -425,6 +464,17 @@ defmodule Terp.Types.TypeEvaluator do
   def apply_sub(substitution, %Types{constructor: :Tarrow, t: {t1, t2}}) do
     Types.function(apply_sub(substitution, t1), apply_sub(substitution, t2))
   end
+  def apply_sub(substitution, %Types{t: ts} = type) when is_list(ts) do
+    updated_ts = Enum.map(ts, &apply_sub(substitution, &1))
+    updated_vars = Enum.map(type.vars,
+      fn var ->
+        case Map.get(substitution, var) do
+          nil -> var
+          type -> to_string(type)
+        end
+      end)
+    %{type | t: updated_ts, vars: updated_vars}
+  end
   def apply_sub(substitution, {as, t} = _type_scheme) do
     substitution_prime = as
     |> Enum.reduce(substitution, fn (type_var, new_sub) ->
@@ -454,6 +504,12 @@ defmodule Terp.Types.TypeEvaluator do
   def ftv(%Types{constructor: :Tvar} = type), do: MapSet.new([type])
   def ftv(%Types{constructor: :Tarrow, t: {t1, t2}}) do
     MapSet.union(ftv(t1), ftv(t2))
+  end
+  def ftv(%Types{t: ts}) when is_list(ts) do
+    # ADTs; t consists of a list of constructors.
+    ts
+    |> Enum.map(&ftv/1)
+    |> Enum.reduce(MapSet.new(), fn (t, acc) -> MapSet.union(t, acc) end)
   end
   def ftv({as, type}) do
     MapSet.difference(ftv(type), MapSet.new(as))
@@ -537,9 +593,9 @@ defmodule Terp.Types.TypeEvaluator do
 
   ## Examples
 
-      iex> {[%Types{constructor: :Tvar, t: :b, str: "b"}], %Types{constructor: :Tvar, t: :b, str: "b"}}
+      iex> {[%Types{constructor: :Tvar, t: :b], %Types{constructor: :Tvar, t: :b}
       ...> |> substitute_type_vars()
-      {[%Types{constructor: :Tvar, t: :a, str: "a"}], %Types{constructor: :Tvar, t: :a, str: "a"}}
+      {[%Types{constructor: :Tvar, t: :a}], %Types{constructor: :Tvar, t: :a}}
   """
   def substitute_type_vars({vars, type}) do
     TypeVars.reset()
@@ -553,17 +609,20 @@ defmodule Terp.Types.TypeEvaluator do
   end
   defp substitute_type_var(%Types{constructor: :Tlist, t: t} = type, vars) do
     subbed_t = substitute_type_var(t, vars)
-    %{type | t: subbed_t, str: "[#{subbed_t.str}]"}
+    %{type | t: subbed_t}
   end
   defp substitute_type_var(%Types{constructor: :Ttuple, t: {t1, t2}} = type, vars) do
     subbed_t1 = substitute_type_var(t1, vars)
     subbed_t2 = substitute_type_var(t2, vars)
-    %{type | t: {subbed_t1, subbed_t2}, str: "{#{subbed_t1.str}, #{subbed_t2.str}}"}
+    %{type | t: {subbed_t1, subbed_t2}}
   end
   defp substitute_type_var(%Types{constructor: :Tarrow, t: {t1, t2}} = type, vars) do
     subbed_t1 = substitute_type_var(t1, vars)
     subbed_t2 = substitute_type_var(t2, vars)
-    %{type | t: {subbed_t1, subbed_t2}, str: "(-> #{subbed_t1.str} #{subbed_t2.str})"}
+    %{type | t: {subbed_t1, subbed_t2}}
+  end
+  defp substitute_type_var(%Types{t: ts} = type, vars) when is_list(ts) do
+    Types.replace_type_var(type, {to_string(elem(vars, 0)), to_string(elem(vars, 1))})
   end
   defp substitute_type_var(type, _vars), do: type
 end
