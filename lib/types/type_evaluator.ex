@@ -302,9 +302,7 @@ defmodule Terp.Types.TypeEvaluator do
       {:error, _e} = error -> error
       {:ok, t} ->
         {:ok, value_constructor} = Types.value_constructor(name)
-        vs = for _var <- value_constructor.vars, do: TypeVars.fresh()
-        fresh_t = Types.replace_type_vars({t, Enum.map(vs, &(to_string(&1)))})
-        {:ok, build_up_arrows(Enum.reverse([fresh_t | vs]))}
+        {:ok, build_up_arrows(Enum.reverse([t | value_constructor.t]))}
     end
   end
 

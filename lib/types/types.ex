@@ -123,7 +123,7 @@ defmodule Terp.Types.Types do
   def to_type("Tuple", x, y), do: tuple(to_type(x), to_type(y))
   def to_type("Arrow", x, y), do: function(to_type(x), to_type(y))
   def to_type(:__arrow, x, y), do: function(to_type(x), to_type(y))
-  def to_type([constructor, vars]) do
+  def to_type([constructor | vars]) do
     case TypeEnvironment.lookup_def(constructor) do
       {:error, e} ->
         {:error, e}
