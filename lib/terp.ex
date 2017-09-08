@@ -9,6 +9,7 @@ defmodule Terp do
   alias Terp.Boolean
   alias Terp.Function
   alias Terp.Value
+  alias Terp.Match
   alias RoseTree.Zipper
 
   @debug false
@@ -142,6 +143,8 @@ defmodule Terp do
         Environment.quote(children)
       :__cond ->
         Boolean.cond(children, env)
+      :__match ->
+        Match.match(children, env)
       :"__#t" ->
         Boolean.t()
       :"__#f" ->

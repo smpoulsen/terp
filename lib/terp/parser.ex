@@ -48,22 +48,27 @@ defmodule Terp.Parser do
 
   # Parse a cond expression: (cond [c r] [c r])
   defp cond_parser() do
-    l_parser = between(
-      string("(cond"),
+    l_parser = sequence([
+      either(string("cond"), string("match")),
       many(
         choice([
-          between(
-            either(string("["), string("(")),
-            valid_expr_parser(),
-            either(string("]"), string(")"))
+          between_parens_parser(
+            valid_expr_parser()
           ),
           ignore(space()),
           ignore(newline()),
         ])
-      ),
-      char(")")
-    )
-    map(l_parser, fn x -> {:__cond, x} end)
+      )
+      ])
+    |> between_parens_parser()
+
+    map(l_parser, fn [f_name, rest] ->
+      f = case f_name do
+            "cond" -> :__cond
+            "match" -> :__match
+          end
+      {f, rest}
+    end)
   end
 
   #

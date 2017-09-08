@@ -4,6 +4,7 @@ defmodule Terp.Types.TypeEnvironment do
   use GenServer
   alias __MODULE__
   alias RoseTree.Zipper
+  alias Terp.Types.TypeVars
 
   defstruct [inferred_types: %{}, annotated_types: %{}, type_defs: %{}]
 
@@ -83,7 +84,7 @@ defmodule Terp.Types.TypeEnvironment do
   def handle_call({:lookup, name}, _from, %TypeEnvironment{inferred_types: types} = state) do
     res = case Map.get(types, name) do
             nil ->
-              {:error, {:unbound, name}}
+              {:ok, {%{}, TypeVars.fresh()}}
             x ->
               {:ok, {%{}, TypeEvaluator.instantiate(TypeEvaluator.generalize(%{}, x))}}
           end
@@ -93,6 +94,28 @@ defmodule Terp.Types.TypeEnvironment do
   @doc false
   def handle_call(:contents, _from, %TypeEnvironment{} = state) do
     {:reply, state, state}
+  end
+
+  @doc false
+  def handle_call({:lookup_def, name}, _from, %TypeEnvironment{type_defs: types} = state) do
+    res = case Map.get(types, name) do
+            nil ->
+              {:error, {:type_def, "Data constructor not in scope: #{name}"}}
+            x ->
+              {:ok, x}
+          end
+    {:reply, res, state}
+  end
+
+  @doc false
+  def handle_call({:lookup_annotation, fn_name}, _from, %TypeEnvironment{inferred_types: types} = state) do
+    res = case Map.get(types, fn_name) do
+            nil ->
+              {:error, {:type_annotation, "No annotation for: #{fn_name}"}}
+            x ->
+              {:ok, x}
+          end
+    {:reply, res, state}
   end
 
   @doc false
@@ -118,32 +141,10 @@ defmodule Terp.Types.TypeEnvironment do
     {:noreply, %{state | type_defs: updated_types}}
   end
 
-  @doc false
-  def handle_call({:lookup_def, name}, _from, %TypeEnvironment{type_defs: types} = state) do
-    res = case Map.get(types, name) do
-            nil ->
-              {:error, {:type_def, "Data constructor not in scope: #{name}"}}
-            x ->
-              {:ok, x}
-          end
-    {:reply, res, state}
-  end
-
   # Type annotations
   @doc false
   def handle_cast({:annotate, fn_name, type}, %TypeEnvironment{inferred_types: types} = state) do
     updated_types = Map.put_new(types, fn_name, type)
     {:noreply, %{state | inferred_types: updated_types}}
-  end
-
-  @doc false
-  def handle_call({:lookup_annotation, fn_name}, _from, %TypeEnvironment{inferred_types: types} = state) do
-    res = case Map.get(types, fn_name) do
-            nil ->
-              {:error, {:type_annotation, "No annotation for: #{fn_name}"}}
-            x ->
-              {:ok, x}
-          end
-    {:reply, res, state}
   end
 end

@@ -182,7 +182,22 @@
    
    /Binding and using a recursive, higher-order function:/
    [[file:media/repl_type_env.png]]
+** Pattern matching
+   #+BEGIN_SRC racket
+     (data (Maybe a) [Just a] [Nothing])
 
+     (type maybePlusFive (-> [Just Int] [Just Int]))
+     (defn maybePlusFive
+       (x)
+       (match (x)
+               [(Just y) (Just (+ 5 y))]
+               [(Nothing) (Nothing)]))
+
+     (maybePlusFive (Just 5))
+     ;; Just 10
+     (maybePlusFive (Nothing))
+     ;; Nothing
+   #+END_SRC
 ** Evaluating a file:
    There's a mix task (=mix terp.run $FILENAME=) to evaluate a file:
 

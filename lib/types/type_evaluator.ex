@@ -3,6 +3,7 @@ defmodule Terp.Types.TypeEvaluator do
   alias Terp.Types.Annotation
   alias Terp.Types.TypeVars
   alias Terp.Types.TypeEnvironment
+  alias Terp.Types.Match
 
   @type scheme :: {[Types.t], Types.t}
   @type type_environment :: map()
@@ -111,6 +112,8 @@ defmodule Terp.Types.TypeEvaluator do
         end
       :__cond ->
         infer_cond(type_env, children)
+      :__match ->
+        infer_match(type_env, children)
       :__apply ->
         [operator | operands] = children
         case operator.node do
@@ -368,6 +371,17 @@ defmodule Terp.Types.TypeEvaluator do
               {:ok, {composed_substitution, apply_sub(s3, tv)}}
             end
         end
+    end
+  end
+
+  def infer_match(type_env, expr) do
+    [match_var | match_exprs] = expr
+    exhaustive = Match.exhaustive_matches?(match_exprs)
+    case exhaustive do
+      :ok ->
+        Match.match_type(match_var, match_exprs, type_env)
+      error ->
+        error
     end
   end
 
