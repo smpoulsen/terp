@@ -58,8 +58,7 @@ defmodule Terp.Types.Match do
                             x -> x
                           end
         subbed_t1 = TypeEvaluator.apply_sub(subs, t1)
-        res_type = if res_types == nil || subbed_t1 == res_types, do: subbed_t1, else: {:error, {:bad_type, t1}}
-        {TypeEvaluator.compose(s1, subs), res_type}
+        {TypeEvaluator.compose(s1, subs), subbed_t1}
     end)
   end
 end
