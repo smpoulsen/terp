@@ -7,7 +7,9 @@ defmodule Terp.Value do
     f = constructor_helper(args, c.node, env)
     Terp.Environment.let([c, RoseTree.new(f)], env)
   end
-  defp constructor_helper([], c, _env), do: fn -> to_value(c, []) end
+  defp constructor_helper([], c, _env) do
+    fn -> to_value(c, []) end
+  end
   defp constructor_helper([_argument | []], c, _env) do
     fn arg -> to_value(c, arg) end
   end

@@ -83,6 +83,7 @@ defmodule Terp.Repl do
         environment
       {:error, _} = e ->
         pretty_print_error(e, expr)
+        environment
     end
   end
 

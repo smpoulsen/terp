@@ -1,7 +1,6 @@
 defmodule Terp.Types.Match do
   alias Terp.Types.Types
   alias Terp.Types.TypeEvaluator
-  alias Terp.Types.TypeVars
 
   @doc """
   Checks to see if all constructors for a type are present in the match.

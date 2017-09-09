@@ -204,7 +204,6 @@ defmodule Terp.Types.TypeEvaluator do
             type_env = extend(type_env, {name.node, t1_prime})
             infer(bound, type_env)
           :__letrec ->
-            # TODO not inferring the specific type
             [name | [bound | []]] = operands
             tv = TypeVars.fresh()
             {s1, t1} = {null_substitution(), tv}
@@ -564,7 +563,23 @@ defmodule Terp.Types.TypeEvaluator do
         {:error, e}
     end
   end
-  def unify(t1, t2), do: {:error, {:type, {:unification, %{expected: t1, received: t2}}}}
+  def unify(%Types{type_constructor: c, vars: v1}, %Types{type_constructor: c, vars: v2})
+    when is_list(v1) and is_list(v2) do
+    v1_types = Enum.map(v1, &Types.to_type/1)
+    v2_types = Enum.map(v2, &Types.to_type/1)
+    Enum.reduce(Enum.zip(v1_types, v2_types), {:ok, %{}},
+      fn (_, {:error, _e} = error) -> error
+        ({t1, t2}, {:ok, subs}) ->
+          case unify(t1, t2) do
+            {:ok, s} ->
+              {:ok, compose(s, subs)}
+            e -> e
+          end
+      end)
+  end
+  def unify(t1, t2) do
+    {:error, {:type, {:unification, %{expected: t1, received: t2}}}}
+  end
 
   @spec bind(Types.t, Types.t) :: {:ok, substitution} | {:error, {:type, String.t}}
   def bind(a, type) do
