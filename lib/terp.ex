@@ -3,6 +3,7 @@ defmodule Terp do
   A toy interpreter.
   """
   alias RoseTree.Zipper
+  alias Terp.AST
   alias Terp.Arithmetic
   alias Terp.Boolean
   alias Terp.Environment
@@ -41,7 +42,7 @@ defmodule Terp do
   def to_ast(str) do
     str
     |> Parser.parse()
-    |> Enum.flat_map(&Parser.to_tree/1)
+    |> Enum.flat_map(&AST.to_tree/1)
     |> filter_nodes(:__comment)
   end
 
@@ -85,7 +86,8 @@ defmodule Terp do
       {{:ok, {_res, _msg}}, env} ->
         eval_trees(trees, env)
       {:error, e} ->
-        e
+        IO.inspect(tree)
+        {{:error, e}, env}
       _ ->
         eval_trees(trees, env)
     end
@@ -108,21 +110,21 @@ defmodule Terp do
       # (+ 5 3)
       iex> "(+ 5 3)"
       ...> |> Terp.Parser.parse()
-      ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
+      ...> |> Enum.flat_map(&Terp.AST.to_tree/1)
       ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [8]
 
       # (* 2 4 5)
       iex> "(* 2 4 5)"
       ...> |> Terp.Parser.parse()
-      ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
+      ...> |> Enum.flat_map(&Terp.AST.to_tree/1)
       ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [40]
 
       # (* 2 4 (+ 4 1))
       iex> "(* 2 4 (+ 4 1))"
       ...> |> Terp.Parser.parse()
-      ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
+      ...> |> Enum.flat_map(&Terp.AST.to_tree/1)
       ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [40]
   """

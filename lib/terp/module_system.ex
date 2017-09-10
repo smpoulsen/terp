@@ -3,6 +3,7 @@ defmodule Terp.ModuleSystem do
   Functionality supporting a basic module system, e.g. export functions from a
   module and import them in another.
   """
+  alias Terp.AST
   alias Terp.Parser
   alias RoseTree.Zipper
 
@@ -34,7 +35,7 @@ defmodule Terp.ModuleSystem do
         ast =
           module
           |> Parser.parse()
-          |> Enum.flat_map(&Parser.to_tree/1)
+          |> Enum.flat_map(&AST.to_tree/1)
 
         {_res, environment} = ast
         |> Terp.run_eval(env)
