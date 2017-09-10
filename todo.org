@@ -1,5 +1,25 @@
 #+TODO: TODO(t) INPROGRESS(i!) | DONE(d@/!) ICEBOX(x@)
 
+* NOTES
+** <2017-09-05 Tue> Fixing HKT substitutions :ARCHIVE:
+*** DONE Not propagating up the type substitutions.
+    CLOSED: [2017-09-10 Sun 09:22]
+    - State "DONE"       from "INPROGRESS" [2017-09-10 Sun 09:22]
+    - State "INPROGRESS" from "TODO"       [2017-09-10 Sun 09:22]
+*** DONE Need to rethink how I'm stringifying the type.
+    CLOSED: [2017-09-10 Sun 09:22]
+    - State "DONE"       from "INPROGRESS" [2017-09-10 Sun 09:22]
+    - State "INPROGRESS" from "TODO"       [2017-09-10 Sun 09:22]
+*** DONE Look into replacing the current tuple setup of type vars with a map.
+    CLOSED: [2017-09-10 Sun 09:23]
+    - State "DONE"       from "INPROGRESS" [2017-09-10 Sun 09:23] \\
+      Stuck with a list, just subbing out when substitution occurs.
+    - State "INPROGRESS" from "TODO"       [2017-09-10 Sun 09:23]
+*** DONE Should I just use the to string protocol instead of putting =str= in the Type struct?
+    CLOSED: [2017-09-10 Sun 09:23]
+    - State "DONE"       from "INPROGRESS" [2017-09-10 Sun 09:23] \\
+      Switched to protocol for types.
+    - State "INPROGRESS" from "TODO"       [2017-09-10 Sun 09:23]
 * TODOs
 ** INPROGRESS [#A] prelude
    - State "INPROGRESS" from "TODO"       [2017-08-04 Fri 10:22]
@@ -8,12 +28,6 @@
      - [ ] map, filter, fold, etc...
      - [ ] length, etc...
    - [ ] Rewrite some of the built-in functions that are currently in elixir in terp.
-** INPROGRESS Type system
-   HM type inference
-   + need to pass in the environment so that let definitions can be type checked?
-   + bubble errors up in a meaningful way
-   + =if=, =cond=
-   + list type, and handlers for associated functions
 ** INPROGRESS [#A] clean up parser and terp implementations
    - State "INPROGRESS" from "TODO"       [2017-08-06 Sun 13:32]
    There's duplication and stuff that can likely be removed now that more functionality is built out.
@@ -24,59 +38,120 @@
    + [X] Improve documentation
    + [ ] Rename some poorly named functions
    + [ ] Add typespecs
+** TODO Product Types
+** TODO Type classes
+** TODO Pattern match things other than value constructors
 ** INPROGRESS [#B] improve error handling
    - State "INPROGRESS" from "TODO"       [2017-09-01 Fri 13:16]
    Propagate error messages instead of ending in crashes
-** TODO Remove circular dependencies
-   Many of the functions that were split out of the eval function still reference it to evaluate their internals.
-** TODO [#B] variable/defined function hoisting
-** TODO Separate terp data structures from elixir data structures
-   Particularly noticeable in the return of =cdr=; should be returning a terp list instead of an elixir list.
-** TODO [#B] pattern matching
-   =pmatch= or equivalent, a list of possible cases and evaluate the first that's true
-    <2017-08-03 Thu> - Added =cond= for multi-possibility conditionals. Pattern matching still to come.
 ** TODO Convert to AST before type checking and eval
    Currently converting a raw string in both steps. Should just do it once.:w
-** DONE [#C] repl
-   CLOSED: [2017-08-09 Wed 21:08]
-   - State "DONE"       from "INPROGRESS" [2017-08-09 Wed 21:08] \\
-     Initial implementation merged today. Doesn't have scrollback, tab completion, etc... might have to actually hijack the erlang shell to get those.
-   - State "INPROGRESS" from "TODO"       [2017-08-09 Wed 21:08]
-   An elixir shell that just waits for input and runs terp eval on it?
-** DONE [#A] module system
-   CLOSED: [2017-08-05 Sat 14:09]
-   - State "DONE"       from "INPROGRESS" [2017-08-05 Sat 14:09] \\
-     Export with =provide=, import with =require=.
-   - State "INPROGRESS" from "TODO"       [2017-08-04 Fri 10:22]
-*** Example syntax:
-    =module= followed by the module's name and a list of the functions it exports:
-    #+BEGIN_SRC scheme
-      (module Prelude.List
-              '(length
-               reverse
-               ...])
-    #+END_SRC
+** TODO [#B] variable/defined function hoisting
+** INPROGRESS Separate terp data structures from elixir data structures
+   - State "INPROGRESS" from "TODO"       [2017-09-10 Sun 09:19]
+   Particularly noticeable in the return of =cdr=; should be returning a terp list instead of an elixir list.
+*** =Terp.Value= 
+    This is underway; =Terp.Value= is currently used when constructing values using HKTs.
+** TODO Remove circular dependencies
+   Many of the functions that were split out of the eval function still reference it to evaluate their internals.
+** Archive :ARCHIVE:
+*** DONE [#B] pattern matching
+    CLOSED: [2017-09-10 Sun 09:17]
+    :PROPERTIES:
+    :ARCHIVE_TIME: 2017-09-10 Sun 09:25
+    :END:
+    - State "DONE"       from "INPROGRESS" [2017-09-10 Sun 09:17] \\
+      Basic pattern matching is implemented using the =match= function.
+      Caveat is that matching is only currently done against value constructors for HKTs, and there is no wildcard yet either.
+    - State "INPROGRESS" from "TODO"       [2017-09-10 Sun 09:17]
+    =pmatch= or equivalent, a list of possible cases and evaluate the first that's true
+     <2017-08-03 Thu> - Added =cond= for multi-possibility conditionals. Pattern matching still to come.
+*** DONE Type system
+    CLOSED: [2017-09-10 Sun 09:14]
+    :PROPERTIES:
+    :ARCHIVE_TIME: 2017-09-10 Sun 09:25
+    :END:
+    - State "DONE"       from "INPROGRESS" [2017-09-10 Sun 09:14] \\
+      Calling the basic type system done. There are improvements that can be made (not least of which is a pass through to clean stuff up, but type inference generally works.
+     
+      This includes inference for higher-kinded types (granted, I have only experimented with one and two variable HKTs, I'm assuming it should work further as well).
+     
+      Defining new types works. Annotating types of functions works, which although it isn't necessary, makes for nice documentation.
+     
+      Sum types are implemented. Still need products.
+    HM type inference
+**** DONE need to pass in the environment so that let definitions can be type checked?
+     CLOSED: [2017-09-10 Sun 09:13]
+     - State "DONE"       from "INPROGRESS" [2017-09-10 Sun 09:13] \\
+       Type checking works for defined functions/variables.
+     - State "INPROGRESS" from "TODO"       [2017-09-10 Sun 09:12]
+**** DONE bubble errors up in a meaningful way
+     CLOSED: [2017-09-10 Sun 09:13]
+     - State "DONE"       from "INPROGRESS" [2017-09-10 Sun 09:13] \\
+       Most type errors (e.g. unification, annotation) pass errors back up for pretty printing.
+     - State "INPROGRESS" from "TODO"       [2017-09-10 Sun 09:13]
+**** DONE =if=, =cond=
+     CLOSED: [2017-09-10 Sun 09:14]
+     - State "DONE"       from "INPROGRESS" [2017-09-10 Sun 09:14] \\
+       These statements now type check
+     - State "INPROGRESS" from "TODO"       [2017-09-10 Sun 09:14]
+**** DONE list type, and handlers for associated functions
+     CLOSED: [2017-09-10 Sun 09:14]
+     - State "DONE"       from "INPROGRESS" [2017-09-10 Sun 09:14] \\
+       Have type checking for lists. A future refactor is to make lists HKTs and not rely on Elixir's lists.
+     - State "INPROGRESS" from "TODO"       [2017-09-10 Sun 09:14]
+*** DONE [#C] repl
+    CLOSED: [2017-08-09 Wed 21:08]
+    :PROPERTIES:
+    :ARCHIVE_TIME: 2017-09-10 Sun 09:25
+    :END:
+    - State "DONE"       from "INPROGRESS" [2017-08-09 Wed 21:08] \\
+      Initial implementation merged today. Doesn't have scrollback, tab completion, etc... might have to actually hijack the erlang shell to get those.
+    - State "INPROGRESS" from "TODO"       [2017-08-09 Wed 21:08]
+    An elixir shell that just waits for input and runs terp eval on it?
+*** DONE [#A] module system
+    CLOSED: [2017-08-05 Sat 14:09]
+    :PROPERTIES:
+    :ARCHIVE_TIME: 2017-09-10 Sun 09:25
+    :END:
+    - State "DONE"       from "INPROGRESS" [2017-08-05 Sat 14:09] \\
+      Export with =provide=, import with =require=.
+    - State "INPROGRESS" from "TODO"       [2017-08-04 Fri 10:22]
+**** Example syntax:
+     =module= followed by the module's name and a list of the functions it exports:
+     #+BEGIN_SRC scheme
+       (module Prelude.List
+               '(length
+                reverse
+                ...])
+     #+END_SRC
 
-    To import:
-    #+BEGIN_SRC scheme
-      (import Prelude.List) ;; import all functions from the module
+     To import:
+     #+BEGIN_SRC scheme
+       (import Prelude.List) ;; import all functions from the module
 
-      (import Prelude.List
-              '(length))    ;; import just a given function
-    #+END_SRC
-    <2017-08-04 Fri 16:45> Scrapping the above idea and going with something more akin to Racket's module system.
-    <2017-08-05 Sat 14:05> Gave up yesterday on figuring out how to only export certain functions without having to worry about what might happen if only the exported function was imported but it depended on something that wasn't exported.
-    Decided to just import everything and have nothing be private. This morning, realized I could load everything, then unbind the hidden functions by updating the environment.
-** DONE recursive functions
-   CLOSED: [2017-08-02 Wed 18:26]
-   =letrec= to define a recursive function
-   This was a huge headache to actually get working, but so exciting when it did finally work.
+       (import Prelude.List
+               '(length))    ;; import just a given function
+     #+END_SRC
+     <2017-08-04 Fri 16:45> Scrapping the above idea and going with something more akin to Racket's module system.
+     <2017-08-05 Sat 14:05> Gave up yesterday on figuring out how to only export certain functions without having to worry about what might happen if only the exported function was imported but it depended on something that wasn't exported.
+     Decided to just import everything and have nothing be private. This morning, realized I could load everything, then unbind the hidden functions by updating the environment.
+*** DONE recursive functions
+    CLOSED: [2017-08-02 Wed 18:26]
+    :PROPERTIES:
+    :ARCHIVE_TIME: 2017-09-10 Sun 09:25
+    :END:
+    =letrec= to define a recursive function
+    This was a huge headache to actually get working, but so exciting when it did finally work.
 
-   My naive attempt was to set up a dummy environment record for the function name so that the name wouldn't be unbound in the function body.
-   This didn't end up working very well.
+    My naive attempt was to set up a dummy environment record for the function name so that the name wouldn't be unbound in the function body.
+    This didn't end up working very well.
 
-   Opted instead to pull out the free variable (e.g. function's name) from the function body, wrap the definition in an anonymous function, and use the Y-combinator to get the function's fixpoint.
-   Then set the fixpoint function to the name in the environment.
-** DONE add strings
-   CLOSED: [2017-08-03 Thu 21:10]
-   Strings are now valid.
+    Opted instead to pull out the free variable (e.g. function's name) from the function body, wrap the definition in an anonymous function, and use the Y-combinator to get the function's fixpoint.
+    Then set the fixpoint function to the name in the environment.
+*** DONE add strings
+    CLOSED: [2017-08-03 Thu 21:10]
+    :PROPERTIES:
+    :ARCHIVE_TIME: 2017-09-10 Sun 09:25
+    :END:
+    Strings are now valid.
