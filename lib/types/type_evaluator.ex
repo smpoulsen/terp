@@ -275,7 +275,7 @@ defmodule Terp.Types.TypeEvaluator do
             end
           :__provide ->
             # TODO filter our provide nodes
-            {:ok, {null_substitution(), nil}}
+            {:ok, {null_substitution(), TypeVars.fresh()}}
           _ ->
             {s1, t1} = case lookup(type_env, operator.node) do
                          {:ok, {s, t}} ->

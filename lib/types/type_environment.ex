@@ -19,6 +19,17 @@ defmodule Terp.Types.TypeEnvironment do
   end
 
   @doc """
+  If the type environment hasn't been started, it starts.
+  If it has, nothing happens.
+  """
+  def start_if_unstarted() do
+    case start_link() do
+      {:ok, _} -> :ok
+      {:error, _} = error -> :ok
+    end
+  end
+
+  @doc """
   """
   def extend(name, scheme) do
     GenServer.cast(:type_env, {:extend, name, scheme})

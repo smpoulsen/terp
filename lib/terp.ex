@@ -2,15 +2,18 @@ defmodule Terp do
   @moduledoc """
   A toy interpreter.
   """
-  alias Terp.Parser
-  alias Terp.Environment
-  alias Terp.ModuleSystem
+  alias RoseTree.Zipper
   alias Terp.Arithmetic
   alias Terp.Boolean
+  alias Terp.Environment
+  alias Terp.Error
   alias Terp.Function
-  alias Terp.Value
   alias Terp.Match
-  alias RoseTree.Zipper
+  alias Terp.ModuleSystem
+  alias Terp.Parser
+  alias Terp.Types.Types
+  alias Terp.Types.TypeEnvironment
+  alias Terp.Value
 
   @debug false
 

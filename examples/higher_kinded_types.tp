@@ -1,0 +1,16 @@
+;; Defining a new type, Maybe
+(data (Maybe a) [Just a] [Nothing])
+
+;; Defining a function that pattern matches
+;;   on the type constructors for Maybe to
+;;   evaluate the expression for the matching case
+(defn maybePlusFive (x)
+  (match (x)
+    [(Just z) (Just (+ z 5))]
+    [(Nothing) (Nothing)]))
+
+;; Calling the function with a `Just` value
+(maybePlusFive (Just 4))
+
+;; Calling the function with a `Nothing` value
+(maybePlusFive (Nothing))

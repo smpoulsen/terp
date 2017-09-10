@@ -78,9 +78,9 @@ defmodule Terp.Parser do
     l_parser = sequence([
       ignore(char("(")),
       ignore(string("data")),
-      ignore(space()),
+      ignore(either(newline(), space())),
       between(string("("), valid_expr_parser(), string(")")),
-      ignore(space()),
+      ignore(either(newline(), space())),
       many1(
         choice([
           between(
@@ -88,8 +88,7 @@ defmodule Terp.Parser do
             valid_expr_parser(),
             string("]")
           ),
-          ignore(space()),
-          ignore(newline())
+          ignore(either(newline(), space())),
         ])
       ),
       ignore(char(")"))
@@ -105,9 +104,9 @@ defmodule Terp.Parser do
     t_parser = sequence([
       ignore(char("(")),
       ignore(string("type")),
-      ignore(space()),
+      ignore(either(newline(), space())),
       word(),
-      ignore(space()),
+      ignore(either(newline(), space())),
       arrow_parser(),
       ignore(char(")"))
     ])
@@ -143,13 +142,13 @@ defmodule Terp.Parser do
   defp defn_parser() do
     p = sequence([
       either(string("defn"), string("defrec")),
-      ignore(space()),
+      ignore(either(newline(), space())),
       word(), # Fn name
-      ignore(space()),
+      ignore(either(newline(), space())),
       between_parens_parser( # Args
         valid_expr_parser()
       ),
-      ignore(space()),
+      ignore(either(newline(), space())),
       valid_expr_parser(),
     ])
     |> between_parens_parser()

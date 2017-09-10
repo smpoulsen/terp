@@ -60,6 +60,8 @@ defmodule Terp.Types.Types do
   """
   @spec type_check(String.t) :: [Types.t]
   def type_check(src) do
+    # TODO Should reduce this instead of map to just the :ok/type
+    TypeEnvironment.start_if_unstarted()
     src
     |> Terp.to_ast()
     |> Enum.map(fn x ->
