@@ -62,11 +62,22 @@ defmodule Terp.Types.Types do
   def type_check(src) do
     # TODO Should reduce this instead of map to just the :ok/type
     TypeEnvironment.start_if_unstarted()
-    src
+    res = src
     |> Terp.to_ast()
-    |> Enum.map(fn x ->
-      TypeEvaluator.run_infer(x)
+    |> Enum.reduce({:ok, []},
+    fn tree, {:ok, types} ->
+      case TypeEvaluator.run_infer(tree) do
+        {:error, _} = e ->
+          e
+        {:ok, type} ->
+          {:ok, [type | types]}
+      end
+    (_tree, {:error, e}) -> {:error, e}
     end)
+    case res do
+      {:ok, types} -> {:ok, Enum.reverse(types)}
+      error -> error
+    end
   end
 
   @doc """

@@ -17,20 +17,20 @@ defmodule Terp.Types.MatchTest do
       {:ok, %{maybe: maybe}}
     end
     test "Matching a (Just Int) value", %{maybe: maybe} do
-      {:ok, {_vars, type}} = maybe <> """
+      {:ok, types} = maybe <> """
       (maybePlusFive (Just 4))
       """
       |> Types.type_check()
-      |> List.last()
+      {_vars, type} = List.last(types)
       assert to_string(type) == "[Maybe Int]"
     end
 
     test "Matching a (Nothing) value", %{maybe: maybe} do
-      {:ok, {_vars, type}} = maybe <> """
+      {:ok, types} = maybe <> """
       (maybePlusFive (Nothing))
       """
       |> Types.type_check()
-      |> List.last()
+      {_vars, type} = List.last(types)
       assert to_string(type) == "[Maybe Int]"
     end
   end

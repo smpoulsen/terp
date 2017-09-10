@@ -13,7 +13,7 @@ defmodule Terp.IO do
   def run_terp(file) do
     with true <- is_terp_file(file),
          {:ok, src} <- File.read(file),
-         {:ok, _type} <- List.first(Types.type_check(src)) do
+         {:ok, _type} <- Types.type_check(src) do
       Terp.eval(src)
     else
       false ->

@@ -40,14 +40,14 @@ defmodule Terp.Repl do
 
     inference = trimmed
     |> Types.type_check()
-    |> List.first() #TODO
 
     case inference do
       {:error, _} = e ->
         Error.pretty_print_error(e, trimmed)
       :ok ->
         {:ok, nil}
-      {:ok, {type_vars, type}} ->
+      {:ok, types} ->
+        {type_vars, type} = List.first(types)
         type_str = if Enum.empty?(type_vars) do
           to_string(type)
         else
@@ -60,7 +60,7 @@ defmodule Terp.Repl do
 
   # Evaluate the expression and return the updated environment.
   defp eval(expr, environment) do
-    with {:ok, _type} <- List.first(Types.type_check(expr)),
+    with {:ok, _type} <- Types.type_check(expr),
          {res, env} <- Terp.evaluate_source(expr, environment) do
       case res do
         {:error, _} = e ->
