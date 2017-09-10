@@ -51,7 +51,7 @@ defmodule Terp.Types.Match do
     exprs
     |> Enum.reduce({%{}, nil},
     fn (_expr, {:error, _} = e) -> e
-      (expr, {subs, res_types}) ->
+      (expr, {subs, _res_types}) ->
         {:ok, {s1, t1}} = case TypeEvaluator.infer(expr, type_env) do
                             {:error, _} = error ->
                               error

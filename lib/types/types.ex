@@ -105,7 +105,7 @@ defmodule Terp.Types.Types do
 
   def value_constructor(name) do
     case (constructor_for_type(name)) do
-      {:error, e} = error->
+      {:error, _e} = error->
         error
       {:ok, t} ->
         c = t.t
@@ -121,10 +121,6 @@ defmodule Terp.Types.Types do
   def to_type("Int"), do: int()
   def to_type("Bool"), do: bool()
   def to_type("String"), do: string()
-  def to_type("List", x), do: list(to_type(x))
-  def to_type("Tuple", x, y), do: tuple(to_type(x), to_type(y))
-  def to_type("Arrow", x, y), do: function(to_type(x), to_type(y))
-  def to_type(:__arrow, x, y), do: function(to_type(x), to_type(y))
   def to_type([constructor | vars]) do
     case TypeEnvironment.lookup_def(constructor) do
       {:error, e} ->
@@ -134,6 +130,10 @@ defmodule Terp.Types.Types do
     end
   end
   def to_type(x), do: var(x)
+  def to_type("List", x), do: list(to_type(x))
+  def to_type("Tuple", x, y), do: tuple(to_type(x), to_type(y))
+  def to_type("Arrow", x, y), do: function(to_type(x), to_type(y))
+  def to_type(:__arrow, x, y), do: function(to_type(x), to_type(y))
 
   def replace_type_vars({type, new_vars}) do
     zipped = Enum.zip(type.vars, List.wrap(new_vars))
@@ -162,7 +162,7 @@ defmodule Terp.Types.Types do
     updated_vars = Enum.map(type.vars, &(if &1 == elem(vars, 0), do: elem(vars, 1), else: &1))
     %{type | t: updated, vars: updated_vars}
   end
-  def replace_type_var(%Types{type_constructor: t, t: ts} = type, vars) when is_list(ts) do
+  def replace_type_var(%Types{type_constructor: _t, t: ts} = type, vars) when is_list(ts) do
     updated_data_constructors = Enum.map(ts, &replace_type_var(&1, vars))
     # TODO can only handle 1 type variable currently
     updated_vars = Enum.map(type.vars, &(if &1 == elem(vars, 0), do: elem(vars, 1), else: &1))

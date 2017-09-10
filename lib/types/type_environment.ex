@@ -25,7 +25,7 @@ defmodule Terp.Types.TypeEnvironment do
   def start_if_unstarted() do
     case start_link() do
       {:ok, _} -> :ok
-      {:error, _} = error -> :ok
+      {:error, _} = _error -> :ok
     end
   end
 

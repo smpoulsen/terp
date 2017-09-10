@@ -6,13 +6,10 @@ defmodule Terp do
   alias Terp.Arithmetic
   alias Terp.Boolean
   alias Terp.Environment
-  alias Terp.Error
   alias Terp.Function
   alias Terp.Match
   alias Terp.ModuleSystem
   alias Terp.Parser
-  alias Terp.Types.Types
-  alias Terp.Types.TypeEnvironment
   alias Terp.Value
 
   @debug false
