@@ -49,8 +49,8 @@ defmodule Terp do
   Loads a terp module's code and returns both the result of evaluation and
   the resulting environment.
   """
-  def evaluate_source(str, env \\ fn (z) -> {:error, {:unbound, z}} end) do
-    str
+  def evaluate_source(src, env \\ fn (z) -> {:error, {:unbound, z}} end) do
+    src
     |> to_ast()
     |> run_eval(env)
   end

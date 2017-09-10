@@ -2,6 +2,7 @@ defmodule Terp.Match do
   @moduledoc """
   Pattern matching functionality.
   """
+  alias Terp.Value
 
   def match(expr, env) do
     [var | match_exprs] = expr
@@ -25,7 +26,7 @@ defmodule Terp.Match do
     case match.node do
       :__apply ->
         [constructor | vars] = match.children
-        with true <- constructor.node == evald_var.constructor,
+        with true <- matches?(evald_var, constructor),
              true <- length(evald_var.args) == length(vars) do
           updated_consequent = vars
           |> Stream.map(&(&1.node))
@@ -39,4 +40,9 @@ defmodule Terp.Match do
         end
     end
   end
+
+  # Does the evaluated var match the thing in the pattern match
+  defp matches?(%Value{constructor: c}, %RoseTree{node: c}), do: true
+  defp matches?(x, %RoseTree{node: x}), do: true
+  defp matches?(_evald_var, _comparison), do: false
 end
