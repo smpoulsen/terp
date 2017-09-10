@@ -627,7 +627,7 @@ defmodule Terp.Types.TypeEvaluator do
   """
   def substitute_type_vars({vars, type}) do
     TypeVars.reset()
-    fresh_vars = for _var <- vars, do: TypeVars.fresh()
+    fresh_vars = for _var <- vars, do: TypeVars.finalize()
     zipped = Enum.zip(vars, fresh_vars)
     updated_type = Enum.reduce(zipped, type, fn (var, type) -> substitute_type_var(type, var) end)
     {fresh_vars, updated_type}
