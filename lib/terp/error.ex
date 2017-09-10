@@ -1,4 +1,10 @@
 defmodule Terp.Error do
+  @moduledoc """
+  Errors and functions to pretty print them.
+  """
+  defstruct [:kind, :type, :message, :evaluating, :in_expression]
+  alias __MODULE__
+  alias Terp.AST
 
   def pretty_print_error({:error, {:type, {:unification, %{expected: e, received: r}}}}, expr) do
     Bunt.puts([:red, "--TYPE ERROR--"])
@@ -38,5 +44,13 @@ defmodule Terp.Error do
   def pretty_print_error({:error, {module, reason}}) do
     Bunt.puts([:red, "--#{String.upcase(to_string(module))} ERROR--"])
     Bunt.puts(["#{reason} when evaluating the expression"])
+  end
+
+  def pretty_print_error(%Error{kind: k, type: _t, message: m, evaluating: v, in_expression: expr}) do
+    Bunt.puts([:red, "--#{String.upcase(to_string(k))} ERROR--"])
+    Bunt.puts(["#{m} when evaluating"])
+    Bunt.puts([:yellow, :bright, "\t#{v}"])
+    Bunt.puts(["in the expression"])
+    Bunt.puts([:blue, "\t#{AST.stringify(expr)}"])
   end
 end

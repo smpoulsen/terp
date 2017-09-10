@@ -7,6 +7,7 @@ defmodule Terp do
   alias Terp.Arithmetic
   alias Terp.Boolean
   alias Terp.Environment
+  alias Terp.Error
   alias Terp.Function
   alias Terp.Match
   alias Terp.ModuleSystem
@@ -75,6 +76,8 @@ defmodule Terp do
         res
       {:error, e} ->
         {{:error, e}, env}
+      %Error{} = e ->
+        {e, env}
       x ->
         {x, env}
     end
@@ -86,8 +89,9 @@ defmodule Terp do
       {{:ok, {_res, _msg}}, env} ->
         eval_trees(trees, env)
       {:error, e} ->
-        IO.inspect(tree)
         {{:error, e}, env}
+      %Error{} = e ->
+        {e, env}
       _ ->
         eval_trees(trees, env)
     end
@@ -146,7 +150,12 @@ defmodule Terp do
       :__cond ->
         Boolean.cond(children, env)
       :__match ->
-        Match.match(children, env)
+        case Match.match(children, env) do
+          %Error{} = e ->
+            %{e | in_expression: tree}
+          res ->
+            res
+        end
       :"__#t" ->
         Boolean.t()
       :"__#f" ->

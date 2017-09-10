@@ -12,6 +12,8 @@ defmodule Mix.Tasks.Terp.Run do
       case res do
         {:error, _e} ->
           Error.pretty_print_error(res, file)
+        %Error{} ->
+          Error.pretty_print_error(res)
         _ ->
           if @debug do
             IO.inspect(res, charlists: :as_lists)

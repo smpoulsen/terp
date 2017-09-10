@@ -66,6 +66,9 @@ defmodule Terp.Repl do
         {:error, _} = e ->
           Error.pretty_print_error(e, expr)
           environment
+        %Error{} ->
+          Error.pretty_print_error(res)
+          environment
         {:ok, {_type, msg}} ->
           Bunt.puts([:green, "Success!"])
           Bunt.puts([:blue, "#{msg}"])
@@ -85,6 +88,9 @@ defmodule Terp.Repl do
       {:error, _} = e ->
         Error.pretty_print_error(e, expr)
         environment
+      %Error{} = error->
+        Error.pretty_print_error(error)
+      environment
     end
   end
 end
