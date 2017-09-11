@@ -4,7 +4,9 @@ defmodule Terp.ModuleSystem do
   module and import them in another.
   """
   alias Terp.AST
+  alias Terp.Error
   alias Terp.Parser
+  alias Terp.Types.Types
   alias RoseTree.Zipper
 
   @doc """
@@ -30,24 +32,22 @@ defmodule Terp.ModuleSystem do
     {{:ok, {:imported, Enum.join(stringified_imports, "\n")}}, env}
   end
   def require_modules([filename | filenames], env, imports) do
-    case File.read(filename) do
-      {:ok, module} ->
-        ast =
-          module
-          |> Parser.parse()
-          |> Enum.flat_map(&AST.to_tree/1)
+    with {:ok, module} <- File.read(filename),
+         {:ok, _types} = Types.type_check(module),
+         ast = module |> Parser.parse() |> Enum.flat_map(&AST.to_tree/1),
+         {_res, environment} = Terp.run_eval(ast, env) do
 
-        {_res, environment} = ast
-        |> Terp.run_eval(env)
+      provides = find_exported_definitions(ast)
+      defined = find_node_values_of_type(ast, [:__let, :__letrec])
+      cleaned_environment = hide_private_fns({provides, defined}, environment)
+      updated_imports = [{filename, provides} | imports]
 
-        provides = find_exported_definitions(ast)
-        defined = find_node_values_of_type(ast, [:__let, :__letrec])
-        cleaned_environment = hide_private_fns({provides, defined}, environment)
-        updated_imports = [{filename, provides} | imports]
-
-        require_modules(filenames, cleaned_environment, updated_imports)
+      require_modules(filenames, cleaned_environment, updated_imports)
+    else
       {:error, :enoent} ->
         {:error, {:module_doesnt_exist, filename}}
+      %Error{} = error ->
+        error
     end
   end
 
