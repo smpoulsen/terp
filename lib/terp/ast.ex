@@ -93,6 +93,8 @@ defmodule Terp.AST do
         "(data #{type_string} #{value_strings})"
       :__match ->
         "(match #{stringify(children)})"
+      :__string ->
+        ~w("#{stringify(children)}")
       x when is_list(x) ->
         res = x
         |> Enum.map(&stringify/1)

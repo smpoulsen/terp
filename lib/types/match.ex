@@ -1,4 +1,5 @@
 defmodule Terp.Types.Match do
+  alias Terp.Error
   alias Terp.Types.Types
   alias Terp.Types.TypeEvaluator
 
@@ -25,7 +26,10 @@ defmodule Terp.Types.Match do
           true ->
             :ok
           false ->
-            {:error, {:type, :non_exhaustive_match}}
+            %Error{kind: :type,
+                   type: :inconclusive,
+                   message: "Non exhaustive match",
+                   evaluating: t}
         end
     end
   end

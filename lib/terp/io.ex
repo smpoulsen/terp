@@ -18,8 +18,10 @@ defmodule Terp.IO do
     else
       false ->
         "#{file} is not a valid terp file"
-      {:error, _} ->
-        Error.pretty_print_error({:error, {:file, "not found"}}, file)
+      %Error{} = error ->
+        Error.pretty_print_error(error)
+      {:error, _} = error ->
+        Error.pretty_print_error(error)
     end
   end
 

@@ -178,15 +178,13 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
     end
 
     test "infer cons consing a string to [Int]" do
-      {:error, e} = "(cons \"asdf\" '(3 2 5 9))"
+      error = "(cons \"asdf\" '(3 2 5 9))"
       |> Types.type_check()
-      assert e == {
-        :type, {
-          :unification,
-          %{expected: %Terp.Types.Types{constructor: :Tconst, t: :Int},
-            received: %Terp.Types.Types{constructor: :Tconst, t: :String}}
-        }
-      }
+
+      assert error.kind == :type
+      assert error.type == :unification
+      assert error.evaluating == %{expected: %Terp.Types.Types{constructor: :Tconst, t: :Int},
+                                   actual: %Terp.Types.Types{constructor: :Tconst, t: :String}}
     end
 
     test "infer empty? for a list of integers" do

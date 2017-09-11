@@ -9,6 +9,7 @@ defmodule Terp.Types.Types do
     - Tlist  -> list
 
   """
+  alias Terp.Error
   alias Terp.Types.Types
   alias Terp.Types.TypeEvaluator
   alias Terp.Types.TypeEnvironment
@@ -69,10 +70,13 @@ defmodule Terp.Types.Types do
       case TypeEvaluator.run_infer(tree) do
         {:error, _} = e ->
           e
+        %Error{} = e ->
+          e
         {:ok, type} ->
           {:ok, [type | types]}
       end
-    (_tree, {:error, e}) -> {:error, e}
+      (_tree, {:error, e}) -> {:error, e}
+      (_tree, %Error{} = e) -> e
     end)
     case res do
       {:ok, types} -> {:ok, Enum.reverse(types)}

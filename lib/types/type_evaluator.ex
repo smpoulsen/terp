@@ -1,4 +1,5 @@
 defmodule Terp.Types.TypeEvaluator do
+  alias Terp.Error
   alias Terp.Types.Types
   alias Terp.Types.Annotation
   alias Terp.Types.TypeVars
@@ -26,6 +27,8 @@ defmodule Terp.Types.TypeEvaluator do
               {:ok, substitute_type_vars(annotated_type_scheme)}
             {:error, {:type, {:annotation, _map}}} = error ->
               error
+            %Error{} = error ->
+              error
             _ ->
               type_scheme = generalize(%{}, type)
               TypeEnvironment.extend_environment(expr, type)
@@ -34,6 +37,8 @@ defmodule Terp.Types.TypeEvaluator do
         end
       {:error, _e} = error ->
         error
+      %Error{} = error ->
+        %{error | in_expression: expr}
     end
   end
 
@@ -44,7 +49,7 @@ defmodule Terp.Types.TypeEvaluator do
   end
 
   @spec infer(RoseTree.t, type_environment) :: {substitution, Type.t}
-  def infer(%RoseTree{node: node, children: children}, type_env) do
+  def infer(%RoseTree{node: node, children: children} = expr, type_env) do
     case node do
       :__data ->
         [type_constructor | [data_constructors | []]] = children
@@ -74,8 +79,8 @@ defmodule Terp.Types.TypeEvaluator do
               case infer(expr, type_env) do
                 {:ok, {sub2, type}} ->
                   {type_env, compose(sub1, sub2), [type | types]}
-                {:error, e} ->
-                  {:error, e}
+                error ->
+                  error
               end
           end
         )
@@ -101,8 +106,8 @@ defmodule Terp.Types.TypeEvaluator do
                 case unify_list_types(Enum.map(vars, &{&1, t})) do
                   {:ok, sub} ->
                     {:ok, {sub, Types.list(t)}}
-                  {:error, e} ->
-                    {:error, e}
+                  error ->
+                    error
                 end
             end
           ts ->
@@ -113,7 +118,12 @@ defmodule Terp.Types.TypeEvaluator do
       :__cond ->
         infer_cond(type_env, children)
       :__match ->
-        infer_match(type_env, children)
+        case infer_match(type_env, children) do
+          %Error{} = error ->
+            %{error | in_expression: expr}
+          res ->
+            res
+        end
       :__apply ->
         [operator | operands] = children
         case operator.node do
@@ -148,8 +158,8 @@ defmodule Terp.Types.TypeEvaluator do
                   _ ->
                     {:error, {:type, "Cannot unify #{list_type.str} with [a]"}}
                 end
-              {:error, e} ->
-                {:error, e}
+              error ->
+                error
             end
           :__cdr ->
             [lst | []] = operands
@@ -165,8 +175,8 @@ defmodule Terp.Types.TypeEvaluator do
                   _ ->
                     {:error, {:type, "Cannot unify #{list_type.str} with [a]"}}
                 end
-              {:error, e} ->
-                {:error, e}
+              error ->
+                error
             end
           :__empty? ->
             [lst | []] = operands
@@ -182,8 +192,8 @@ defmodule Terp.Types.TypeEvaluator do
                   _ ->
                     {:error, {:type, "Cannot unify #{list_type.str} with [a]"}}
                 end
-              {:error, e} ->
-                {:error, e}
+              error ->
+                error
             end
           :__cons ->
             [elem | [lst | []]] = operands
@@ -192,8 +202,8 @@ defmodule Terp.Types.TypeEvaluator do
               {:ok, {_s1, %Types{t: t} = list_type}} ->
                 cons_type = Types.function(t, Types.function(list_type, list_type))
                 infer_binary_op(type_env, cons_type, {elem, lst})
-              {:error, e} ->
-                {:error, e}
+              error ->
+                error
             end
           :__let ->
             [name | [bound | []]] = operands
@@ -231,7 +241,7 @@ defmodule Terp.Types.TypeEvaluator do
               |> compose(s1)
               {:ok, {composed_substitution, apply_sub(s5, t2)}}
             else
-              {:error, e} -> {:error, e}
+              error -> error
             end
           :__lambda ->
             [%RoseTree{node: :__apply, children: args} | [body | []]] = operands
@@ -259,6 +269,8 @@ defmodule Terp.Types.TypeEvaluator do
                 {:ok, {s, arrows}}
               {:error, e} ->
                 {:error, e}
+              %Error{} = error ->
+                error
             end
           :__apply ->
             # applying a lambda
@@ -272,6 +284,8 @@ defmodule Terp.Types.TypeEvaluator do
             else
               {:error, e} ->
                 {:error, e}
+              %Error{} = error ->
+                error
             end
           :__provide ->
             # TODO filter our provide nodes
@@ -292,6 +306,9 @@ defmodule Terp.Types.TypeEvaluator do
             else
               {:error, e} ->
                 {:error, e}
+              %Error{} = error ->
+                Error.evaluating_lens
+                |> Focus.over(error, fn x -> Map.put(x, :expr, operands) end)
             end
         end
       _ ->
@@ -302,6 +319,7 @@ defmodule Terp.Types.TypeEvaluator do
   def type_for_constructor(name) do
     case Types.constructor_for_type(name) do
       {:error, _e} = error -> error
+      %Error{} = error -> error
       {:ok, t} ->
         {:ok, value_constructor} = Types.value_constructor(name)
         {:ok, build_up_arrows(Enum.reverse([t | value_constructor.t]))}
@@ -312,6 +330,7 @@ defmodule Terp.Types.TypeEvaluator do
     operands
     |> Enum.reduce({:ok, {type_env, {%{}, result_type}}},
       fn (_expr, {:error, _} = error)  -> error
+        (_expr, %Error{} = error)  -> error
         (expr, {:ok, {t_env, {s1, types}}}) ->
         case infer(expr, t_env) do
           {:ok, {s2, type}} ->
@@ -334,8 +353,8 @@ defmodule Terp.Types.TypeEvaluator do
       composed_substitution = compose(s1, compose(s2, s3))
       {:ok, {composed_substitution, apply_sub(s3, tv)}}
     else
-      {:error, e} ->
-        {:error, e}
+      error ->
+        error
     end
   end
 
@@ -559,8 +578,8 @@ defmodule Terp.Types.TypeEvaluator do
          {:ok, s2} <- unify(apply_sub(s1, r1), apply_sub(s1, r2)) do
       {:ok, compose(s2, s1)}
     else
-      {:error, e} ->
-        {:error, e}
+      error ->
+        error
     end
   end
   def unify(%Types{type_constructor: c, vars: v1}, %Types{type_constructor: c, vars: v2})
@@ -578,7 +597,10 @@ defmodule Terp.Types.TypeEvaluator do
       end)
   end
   def unify(t1, t2) do
-    {:error, {:type, {:unification, %{expected: t1, received: t2}}}}
+      %Error{kind: :type,
+             type: :unification,
+             message: "Unable to unify types",
+             evaluating: %{expected: t1, actual: t2}}
   end
 
   @spec bind(Types.t, Types.t) :: {:ok, substitution} | {:error, {:type, String.t}}
