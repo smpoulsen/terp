@@ -213,6 +213,7 @@ defmodule Terp.Parser do
     choice([
       built_ins_parser(),
       bool_parser(),
+      float(),
       integer(),
       punctuation_parser(),
       string_to_atom(ignore(char(":")) |> word()),

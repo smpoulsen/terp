@@ -63,6 +63,8 @@ defmodule Terp.Types.TypeEvaluator do
         Annotation.annotate_type(fn_name.node, type_info.node)
       x when is_integer(x) ->
         {:ok, {null_substitution(), Types.int()}}
+      x when is_float(x) ->
+        {:ok, {null_substitution(), Types.float()}}
       x when is_boolean(x) ->
         {:ok, {null_substitution(), Types.bool()}}
       :__string ->
