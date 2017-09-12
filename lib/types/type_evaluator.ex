@@ -48,7 +48,7 @@ defmodule Terp.Types.TypeEvaluator do
     {constructor, vars}
   end
 
-  @spec infer(RoseTree.t, type_environment) :: {substitution, Type.t}
+  @spec infer(RoseTree.t, type_environment) :: {substitution, Types.t}
   def infer(%RoseTree{node: node, children: children} = expr, type_env) do
     case node do
       :__data ->
@@ -326,6 +326,7 @@ defmodule Terp.Types.TypeEvaluator do
     end
   end
 
+  @spec infer_operands([RoseTree.t], type_environment, [RoseTree.t]) :: {:ok, {type_environment, [Types.t]}} | {:error, any()}
   def infer_operands(operands, type_env, result_type \\ []) do
     operands
     |> Enum.reduce({:ok, {type_env, {%{}, result_type}}},

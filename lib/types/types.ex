@@ -10,13 +10,13 @@ defmodule Terp.Types.Types do
 
   """
   alias Terp.Error
-  alias Terp.Types.Types
+  alias __MODULE__
   alias Terp.Types.TypeEvaluator
   alias Terp.Types.TypeEnvironment
 
   defstruct [:constructor, :t, :vars, :type_constructor]
 
-  @type t :: %Types{constructor: atom(), t: atom()}
+  @type t :: %__MODULE__{}
 
   @spec bool() :: Types.t
   def bool() do
@@ -89,15 +89,21 @@ defmodule Terp.Types.Types do
   Expects the type name, a list of type variables (as atoms),
   and a list of tuples containing {type, type vars}.
   """
+  @spec sum_type(String.t, [String.t], [{String.t, [String.t]}]) :: Types.t
   def sum_type(name, type_vars, constructors) do
     ts = for {name, args} <- constructors do
-      if Enum.all?(args, fn arg -> Enum.member?(type_vars, arg) end) do
-        constructor = to_string(name)
-        # This to_type won't work for HKTs
+      constructor = to_string(name)
+      # This to_type won't work for HKTs
+      types = Enum.map(args, &to_type/1)
+      all_args_in_type_vars = types
+      |> Enum.all?(fn type ->
+        Enum.member?(type_vars, type.t) || type.constructor !== :Tvar
+      end)
+
+      if all_args_in_type_vars do
         %Types{constructor: constructor,
-               t: Enum.map(args, &to_type/1),
-               vars: args
-        }
+               t: types,
+               vars: args}
       else
         {:error, :invalid_type_var}
       end
@@ -193,8 +199,9 @@ defmodule Terp.Types.Types do
     def to_string(%Types{constructor: :Tarrow, t: {x, y}}), do: "(-> #{Kernel.to_string(x)} #{Kernel.to_string(y)})"
     def to_string(%Types{constructor: nil, type_constructor: t, vars: vars}) do
       var_string = vars
-      |> Enum.map(&Kernel.to_string/1) |> Enum.join(" ")
-      "[#{Kernel.to_string(t)} #{var_string}]"
+      |> Enum.map(&Kernel.to_string/1)
+      |> Enum.join(" ")
+      "[#{Enum.join([Kernel.to_string(t), var_string], " ")}]"
     end
     def to_string(%Types{constructor: c, t: ts}) do
       var_string = ts
