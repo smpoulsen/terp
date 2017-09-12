@@ -26,6 +26,11 @@ defmodule Terp.TypeSystem.Type do
     %Type{constructor: :Tconst, t: :Int}
   end
 
+  @spec float() :: Type.t
+  def float() do
+    %Type{constructor: :Tconst, t: :Float}
+  end
+
   @spec string() :: Type.t
   def string() do
     %Type{constructor: :Tconst, t: :String}
@@ -111,6 +116,7 @@ defmodule Terp.TypeSystem.Type do
   # to_type/1
   def to_type(%Type{} = x), do: x
   def to_type("Int"), do: int()
+  def to_type("Float"), do: float()
   def to_type("Bool"), do: bool()
   def to_type("String"), do: string()
   def to_type(x), do: var(x)

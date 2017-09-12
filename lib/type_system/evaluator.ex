@@ -79,6 +79,8 @@ defmodule Terp.TypeSystem.Evaluator do
         TypeClass.define_instance(class_name, definitions)
       x when is_integer(x) ->
         {:ok, {null_substitution(), Type.int()}}
+      x when is_float(x) ->
+        {:ok, {null_substitution(), Type.float()}}
       x when is_boolean(x) ->
         {:ok, {null_substitution(), Type.bool()}}
       :__string ->

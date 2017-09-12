@@ -291,6 +291,7 @@ defmodule Terp.Parser do
       beam_term_parser(),
       built_ins_parser(),
       bool_parser(),
+      float(),
       integer(),
       punctuation_parser(),
       string_to_atom(ignore(char(":")) |> word()),
