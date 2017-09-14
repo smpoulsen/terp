@@ -2,6 +2,8 @@ defmodule Terp.IO do
   @moduledoc """
   Read and evaluate a file containing terp code.
   """
+  alias Terp.Error
+  alias Terp.Types.Types
 
   @doc """
   Given a filepath, reads the file and evaluates its contents.
@@ -9,12 +11,17 @@ defmodule Terp.IO do
   Valid terp files end in `.tp`.
   """
   def run_terp(file) do
-    if is_terp_file(file) do
-      {:ok, src} = File.read(file)
-      src
-      |> Terp.eval()
+    with true <- is_terp_file(file),
+         {:ok, src} <- File.read(file),
+         {:ok, _type} <- Types.type_check(src) do
+      Terp.eval(src)
     else
-      "#{file} is not a valid terp file"
+      false ->
+        "#{file} is not a valid terp file"
+      %Error{} = error ->
+        Error.pretty_print_error(error)
+      {:error, _} = error ->
+        Error.pretty_print_error(error)
     end
   end
 

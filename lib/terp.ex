@@ -2,12 +2,17 @@ defmodule Terp do
   @moduledoc """
   A toy interpreter.
   """
-  alias Terp.Parser
-  alias Terp.Environment
-  alias Terp.ModuleSystem
+  alias RoseTree.Zipper
+  alias Terp.AST
   alias Terp.Arithmetic
   alias Terp.Boolean
+  alias Terp.Environment
+  alias Terp.Error
   alias Terp.Function
+  alias Terp.Match
+  alias Terp.ModuleSystem
+  alias Terp.Parser
+  alias Terp.Value
 
   @debug false
 
@@ -38,7 +43,7 @@ defmodule Terp do
   def to_ast(str) do
     str
     |> Parser.parse()
-    |> Enum.flat_map(&Parser.to_tree/1)
+    |> Enum.flat_map(&AST.to_tree/1)
     |> filter_nodes(:__comment)
   end
 
@@ -46,8 +51,8 @@ defmodule Terp do
   Loads a terp module's code and returns both the result of evaluation and
   the resulting environment.
   """
-  def evaluate_source(str, env \\ fn (z) -> {:error, {:unbound, z}} end) do
-    str
+  def evaluate_source(src, env \\ fn (z) -> {:error, {:unbound, z}} end) do
+    src
     |> to_ast()
     |> run_eval(env)
   end
@@ -71,6 +76,8 @@ defmodule Terp do
         res
       {:error, e} ->
         {{:error, e}, env}
+      %Error{} = e ->
+        {e, env}
       x ->
         {x, env}
     end
@@ -82,7 +89,9 @@ defmodule Terp do
       {{:ok, {_res, _msg}}, env} ->
         eval_trees(trees, env)
       {:error, e} ->
-        e
+        {{:error, e}, env}
+      %Error{} = e ->
+        {e, env}
       _ ->
         eval_trees(trees, env)
     end
@@ -105,21 +114,21 @@ defmodule Terp do
       # (+ 5 3)
       iex> "(+ 5 3)"
       ...> |> Terp.Parser.parse()
-      ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
+      ...> |> Enum.flat_map(&Terp.AST.to_tree/1)
       ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [8]
 
       # (* 2 4 5)
       iex> "(* 2 4 5)"
       ...> |> Terp.Parser.parse()
-      ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
+      ...> |> Enum.flat_map(&Terp.AST.to_tree/1)
       ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [40]
 
       # (* 2 4 (+ 4 1))
       iex> "(* 2 4 (+ 4 1))"
       ...> |> Terp.Parser.parse()
-      ...> |> Enum.flat_map(&Terp.Parser.to_tree/1)
+      ...> |> Enum.flat_map(&Terp.AST.to_tree/1)
       ...> |> Enum.map(fn tree -> Terp.eval_expr(tree, fn (z) -> {:error, {:unbound, z}} end) end)
       [40]
   """
@@ -128,6 +137,11 @@ defmodule Terp do
       IO.inspect({"TREE", tree})
     end
     case node do
+      :__data ->
+        [_type_constructor, value_constructors] = children
+        constructors = value_constructors.node
+        env_prime = Enum.reduce(constructors, env, fn c, env ->  Value.constructor_fn(c, env) end)
+        env_prime
       :__string ->
         str = List.first(children)
         str.node
@@ -135,6 +149,13 @@ defmodule Terp do
         Environment.quote(children)
       :__cond ->
         Boolean.cond(children, env)
+      :__match ->
+        case Match.match(children, env) do
+          %Error{} = e ->
+            %{e | in_expression: tree}
+          res ->
+            res
+        end
       :"__#t" ->
         Boolean.t()
       :"__#f" ->
@@ -181,14 +202,30 @@ defmodule Terp do
             {:error, {:not_a_procedure, operator}}
         end
       x when is_number(x) -> x
+      x when is_function(x) -> x
       x ->
         with true <- is_atom(x),
              s <- Atom.to_string(x),
              true <- String.starts_with?(s, "__") do
           x
         else
-          _ -> env.(x)
+          _ ->
+            env.(x)
         end
+    end
+  end
+
+  @spec fn_name(RoseTree.t) :: {:ok, String.t} | {:error, :no_fn_name}
+  def fn_name(expr) do
+    # Check to see if the function has previously been annotated
+    # TODO pull into own function
+    z = Zipper.from_tree(expr)
+    with {:ok, {%RoseTree{node: t}, _history}} = expr_type <- Zipper.first_child(z),
+         true <- Enum.member?([:__let, :__letrec], t),
+         {:ok, {%RoseTree{node: name}, _history}} <- Zipper.lift(expr_type, &Zipper.next_sibling/1) do
+      {:ok, name}
+    else
+      _ -> {:error, :no_fn_name}
     end
   end
 end

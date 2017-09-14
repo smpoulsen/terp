@@ -31,6 +31,9 @@ defmodule Terp.Parser do
       literal_parser(),
       list_parser(),
       cond_parser(),
+      typedef_parser(),
+      type_annotation_parser(),
+      defn_parser(),
       application_parser(),
       ignore(newline()),
     ])
@@ -45,22 +48,124 @@ defmodule Terp.Parser do
 
   # Parse a cond expression: (cond [c r] [c r])
   defp cond_parser() do
-    l_parser = between(
-      string("(cond"),
+    l_parser = sequence([
+      either(string("cond"), string("match")),
       many(
         choice([
-          between(
-            either(string("["), string("(")),
-            valid_expr_parser(),
-            either(string("]"), string(")"))
+          between_parens_parser(
+            valid_expr_parser()
           ),
           ignore(space()),
           ignore(newline()),
         ])
+      )
+      ])
+    |> between_parens_parser()
+
+    map(l_parser, fn [f_name, rest] ->
+      f = case f_name do
+            "cond" -> :__cond
+            "match" -> :__match
+          end
+      {f, rest}
+    end)
+  end
+
+  #
+  ## Data type definition
+  #
+  defp typedef_parser() do
+    l_parser = sequence([
+      ignore(char("(")),
+      ignore(string("data")),
+      ignore(either(newline(), space())),
+      between(string("("), valid_expr_parser(), string(")")),
+      ignore(either(newline(), space())),
+      many1(
+        choice([
+          between(
+            string("["),
+            valid_expr_parser(),
+            string("]")
+          ),
+          ignore(either(newline(), space())),
+        ])
       ),
+      ignore(char(")"))
+    ])
+    map(l_parser, fn x -> {:__data, x} end)
+  end
+
+  #
+  ## Type Annotation
+  #
+  defp type_annotation_parser() do
+    # This is specifically function annotation currently.
+    t_parser = sequence([
+      ignore(char("(")),
+      ignore(string("type")),
+      ignore(either(newline(), space())),
+      word(),
+      ignore(either(newline(), space())),
+      arrow_parser(),
+      ignore(char(")"))
+    ])
+    map(t_parser, fn x -> {:__type, x} end)
+  end
+
+  defp type_parser() do
+    choice([
+      between(
+        char("["),
+        word() |> sep_by(space()),
+        char("]")
+      ),
+      arrow_parser(),
+      word(),
+    ])
+  end
+
+  defp arrow_parser() do
+    between(
+      char("("),
+      sequence([
+        map(string("->"), fn _x -> :__arrow end),
+        ignore(space()),
+        lazy(fn -> type_parser() end),
+        ignore(space()),
+        lazy(fn -> type_parser() end),
+      ]),
       char(")")
     )
-    map(l_parser, fn x -> {:__cond, x} end)
+  end
+
+  defp defn_parser() do
+    p = sequence([
+      either(string("defn"), string("defrec")),
+      ignore(either(newline(), space())),
+      word(), # Fn name
+      ignore(either(newline(), space())),
+      between_parens_parser( # Args
+        valid_expr_parser()
+      ),
+      ignore(either(newline(), space())),
+      valid_expr_parser(),
+    ])
+    |> between_parens_parser()
+    # Desugar defn to a let/lambda definition.
+    map(p, fn [defn, name, args, body] ->
+      f = case defn do
+            "defn" -> :__let
+            "defrec" -> :__letrec
+          end
+      b = case body do
+            [__apply: x] ->
+              {:__apply, x}
+            [x] ->
+              x
+          end
+      {:__apply, [f, name, {:__apply, [:__lambda, {:__apply, args}, b]}]}
+    end)
   end
 
   defp valid_expr_parser() do
@@ -184,50 +289,6 @@ defmodule Terp.Parser do
       fn x -> {:__comment, x} end
     )
   end
-
-  @doc """
-  `to_tree/1` takes a tokenized expression and builds a parse tree.
-
-  ## Examples
-
-      iex> [:__apply, [:+, 1, 2, 3]]
-      ...> |> Terp.Parser.to_tree()
-      [
-      %RoseTree{node: :__apply, children: []},
-        [
-          %RoseTree{node: :+, children: []},
-          %RoseTree{node: 1, children: []},
-          %RoseTree{node: 2, children: []},
-          %RoseTree{node: 3, children: []},
-        ]
-      ]
-
-      iex> [:+, 1, 2, [:*, 2, 3]]
-      ...> |> Terp.Parser.to_tree()
-      [
-        %RoseTree{node: :+, children: []},
-        %RoseTree{node: 1, children: []},
-        %RoseTree{node: 2, children: []},
-        [
-          %RoseTree{node: :*, children: []},
-          %RoseTree{node: 2, children: []},
-          %RoseTree{node: 3, children: []},
-        ]
-      ]
-  """
-  def to_tree([]), do: []
-  def to_tree(expr) when is_list(expr) do
-    for v <- expr do
-      case v do
-        {s, x} when is_atom(s) ->
-          RoseTree.new(s, to_tree(x))
-        val when is_list(val) ->
-          to_tree(val)
-        _ -> RoseTree.new(v)
-      end
-    end
-  end
-  def to_tree(x), do: RoseTree.new(x)
 
   # lazy parser implementation from
   # https://github.com/bitwalker/combine/issues/12#issuecomment-222539479

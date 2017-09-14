@@ -1,10 +1,10 @@
 ;; Example showing variable binding
-(provide :identity)
+(provide identity)
 
-(let :identity
-    (lambda (:x) :x))
+(let identity
+    (lambda (x) x))
 
-(let :double_identity
-    ((:identity :identity) 5))
+(let double_identity
+    ((identity identity) 5))
 
-(+ 2 :double_identity)
+(+ 2 double_identity)

@@ -40,6 +40,7 @@ defmodule Terp.Function do
   @doc """
   Apply a list of arguments to a lambda function one at a time.
   """
+  def apply_lambda(func, [], _env), do: func.()
   def apply_lambda(func, [arg | []], _env), do: func.(arg)
   def apply_lambda(func, [arg | args], env) do
     apply_lambda(func.(arg), args, env)

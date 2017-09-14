@@ -109,17 +109,33 @@
      (add_five 3)
      ;; 8
    #+END_SRC
+
+   Functions can also be defined using =defn=; this is syntactic sugar for =let/lambda= definition:
+   #+BEGIN_SRC racket
+     (defn add (x y) (+ x y))
+   #+END_SRC
 ** Recursive functions
    Recursive functions are defined with =letrec=.
    The base case(s) and recursive case(s) must be provided or the function will not terminate.
     #+BEGIN_SRC racket
-      (letrec :factorial
-        (lambda (:n)
-          (if (:eq :n 0)
+      (letrec factorial
+        (lambda (n)
+          (if (equal? n 0)
               1
-              (* :n (:factorial (- :n 1))))))
+              (* n (factorial (- n 1))))))
 
-      (:factorial 5)
+      (factorial 5)
+      ;; 120
+    #+END_SRC
+
+    Recursive functions can also be defined using =defrec=; this is syntactic sugar for =letrec/lambda=:
+    #+BEGIN_SRC racket
+      (defrec factorial (n)
+          (if (equal? n 0)
+              1
+              (* n (factorial (- n 1)))))
+
+      (factorial 5)
       ;; 120
     #+END_SRC
 ** Module system
@@ -166,7 +182,22 @@
    
    /Binding and using a recursive, higher-order function:/
    [[file:media/repl_type_env.png]]
+** Pattern matching
+   #+BEGIN_SRC racket
+     (data (Maybe a) [Just a] [Nothing])
 
+     (type maybePlusFive (-> [Just Int] [Just Int]))
+     (defn maybePlusFive
+       (x)
+       (match (x)
+               [(Just y) (Just (+ 5 y))]
+               [(Nothing) (Nothing)]))
+
+     (maybePlusFive (Just 5))
+     ;; Just 10
+     (maybePlusFive (Nothing))
+     ;; Nothing
+   #+END_SRC
 ** Evaluating a file:
    There's a mix task (=mix terp.run $FILENAME=) to evaluate a file:
 

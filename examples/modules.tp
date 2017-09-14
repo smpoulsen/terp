@@ -1,4 +1,4 @@
 (require "examples/factorial.tp"
          "examples/identity.tp")
 
-(factorial (:identity 10))
+(factorial (identity 10))

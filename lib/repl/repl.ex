@@ -4,6 +4,7 @@ defmodule Terp.Repl do
   """
   alias Terp.Types.Types
   alias Terp.Types.TypeEnvironment
+  alias Terp.Error
 
   def init() do
     # Starts a persisted type environment for the current session.
@@ -39,17 +40,19 @@ defmodule Terp.Repl do
 
     inference = trimmed
     |> Types.type_check()
-    |> List.first() #TODO
 
     case inference do
       {:error, _} = e ->
-        pretty_print_error(e, trimmed)
-      {:ok, {type_vars, type}} ->
+        Error.pretty_print_error(e, trimmed)
+      :ok ->
+        {:ok, nil}
+      {:ok, types} ->
+        {type_vars, type} = List.first(types)
         type_str = if Enum.empty?(type_vars) do
-          type.str
+          to_string(type)
         else
-          variables = Enum.map(type_vars, &(&1.str))
-          "∀ #{Enum.join(variables, " ")} => #{type.str}"
+          variables = Enum.map(type_vars, &(to_string(&1)))
+          "∀ #{Enum.join(variables, " ")} => #{to_string(type)}"
         end
         Bunt.puts([:blue, trimmed, :green, " : ", :yellow, type_str])
     end
@@ -57,11 +60,14 @@ defmodule Terp.Repl do
 
   # Evaluate the expression and return the updated environment.
   defp eval(expr, environment) do
-    with {:ok, _type} <- List.first(Types.type_check(expr)),
+    with {:ok, _type} <- Types.type_check(expr),
          {res, env} <- Terp.evaluate_source(expr, environment) do
       case res do
         {:error, _} = e ->
-          pretty_print_error(e, expr)
+          Error.pretty_print_error(e, expr)
+          environment
+        %Error{} ->
+          Error.pretty_print_error(res)
           environment
         {:ok, {_type, msg}} ->
           Bunt.puts([:green, "Success!"])
@@ -77,31 +83,14 @@ defmodule Terp.Repl do
     else
       nil ->
         environment
+      :ok ->
+        environment
       {:error, _} = e ->
-        pretty_print_error(e, expr)
+        Error.pretty_print_error(e, expr)
+        environment
+      %Error{} = error->
+        Error.pretty_print_error(error)
+      environment
     end
-  end
-
-  defp pretty_print_error({:error, {:type, {:unification, %{expected: e, received: r}}}}, expr) do
-    Bunt.puts([:red, "--TYPE ERROR--"])
-    Bunt.puts(["Unable to unify types in the expression"])
-    Bunt.puts([:blue, "\t#{expr}"])
-    Bunt.puts(["Expected: ", :blue, "#{e.str}"])
-    Bunt.puts(["Received: ", :red, "#{r.str}"])
-  end
-  defp pretty_print_error({:error, {:type, msg}}, expr) do
-    Bunt.puts([:red, "--TYPE ERROR--"])
-    Bunt.puts(["#{msg} when evaluating the expression"])
-    Bunt.puts([:blue, "\t#{expr}"])
-  end
-  defp pretty_print_error({:error, {:unbound, name}}, expr) do
-    Bunt.puts([:red, "--UNBOUND VARIABLE ERROR--"])
-    Bunt.puts([:yellow, :bright,  name, :lightgray, " is not in scope when evaluating the expression"])
-    Bunt.puts([:blue, "\t#{expr}"])
-  end
-  defp pretty_print_error({:error, {module, reason}}, expr) do
-    Bunt.puts([:red, "--#{String.upcase(to_string(module))} ERROR--"])
-    Bunt.puts(["#{reason} when evaluating the expression"])
-    Bunt.puts([:blue, "\t#{expr}"])
   end
 end
