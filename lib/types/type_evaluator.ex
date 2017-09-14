@@ -115,6 +115,22 @@ defmodule Terp.Types.TypeEvaluator do
             |> Enum.join(", ")
             {:error, {:type, "Unable to unify list types: #{type_strings}"}}
         end
+      :__empty? ->
+        tv = TypeVars.fresh()
+        t = build_up_arrows([Types.list(tv), Types.bool()])
+        {:ok, {null_substitution(), t}}
+      :__cons ->
+        tv = TypeVars.fresh()
+        t = build_up_arrows([tv, Types.list(tv), Types.list(tv)])
+        {:ok, {null_substitution(), t}}
+      :__car ->
+        tv = TypeVars.fresh()
+        t = build_up_arrows([Types.list(tv), tv])
+        {:ok, {null_substitution(), t}}
+      :__cdr ->
+        tv = TypeVars.fresh()
+        t = build_up_arrows([Types.list(tv), Types.list(tv)])
+        {:ok, {null_substitution(), t}}
       :__cond ->
         infer_cond(type_env, children)
       :__match ->
@@ -146,65 +162,40 @@ defmodule Terp.Types.TypeEvaluator do
             infer_binary_op(type_env, t, {Enum.at(operands, 0), Enum.at(operands, 1)})
           :__car ->
             [lst | []] = operands
-            case infer(lst, type_env) do
-              {:ok, {_s1, list_type}} ->
-                case list_type do
-                  %Types{constructor: :Tlist, t: t} ->
-                    {:ok, {null_substitution(), t}}
-                  %Types{constructor: :Tvar} ->
-                    tv = TypeVars.fresh()
-                    {:ok, sub} = unify(list_type, Types.list(tv))
-                    {:ok, {sub, tv}}
-                  _ ->
-                    {:error, {:type, "Cannot unify #{list_type.str} with [a]"}}
-                end
+            with {:ok, {s1, car_type}} <- infer(operator, type_env),
+                 {:ok, {s2, list_type}} <- infer(lst, type_env),
+                   %Types{constructor: :Tlist, t: t} = list_type do
+              {:ok, s3} = unify(car_type, build_up_arrows([list_type, t]))
+              {:ok, {compose(s3, compose(s2, s1)), t}}
+            else
               error ->
                 error
             end
           :__cdr ->
             [lst | []] = operands
-            case infer(lst, type_env) do
-              {:ok, {_s1, list_type}} ->
-                case list_type do
-                  %Types{constructor: :Tlist} ->
-                    {:ok, {null_substitution(), list_type}}
-                  %Types{constructor: :Tvar} ->
-                    tv = TypeVars.fresh()
-                    {:ok, sub} = unify(list_type, Types.list(tv))
-                    {:ok, {sub, Types.list(tv)}}
-                  _ ->
-                    {:error, {:type, "Cannot unify #{list_type.str} with [a]"}}
-                end
+            with {:ok, {s1, cdr_type}} <- infer(operator, type_env),
+                 {:ok, {s2, list_type}} <- infer(lst, type_env) do
+              {:ok, s3} = unify(cdr_type, build_up_arrows([list_type, list_type]))
+              {:ok, {compose(s3, compose(s2, s1)), list_type}}
+            else
               error ->
                 error
             end
           :__empty? ->
             [lst | []] = operands
-            case infer(lst, type_env) do
-              {:ok, {_s1, list_type}} ->
-                case list_type do
-                  %Types{constructor: :Tlist} ->
-                    {:ok, {null_substitution(), Types.bool()}}
-                  %Types{constructor: :Tvar} ->
-                    t = Types.list(TypeVars.fresh())
-                    {:ok, sub} = unify(list_type, t)
-                    {:ok, {sub, Types.bool()}}
-                  _ ->
-                    {:error, {:type, "Cannot unify #{list_type.str} with [a]"}}
-                end
+            with {:ok, {s1, empty_type}} <- infer(operator, type_env),
+                 {:ok, {s2, list_type}} <- infer(lst, type_env) do
+              {:ok, s3} = unify(empty_type, build_up_arrows([list_type, Types.bool()]))
+              {:ok, {compose(s3, compose(s2, s1)), Types.bool()}}
+            else
               error ->
                 error
             end
           :__cons ->
             [elem | [lst | []]] = operands
             tv = TypeVars.fresh()
-            case infer(lst, type_env) do
-              {:ok, {_s1, %Types{t: t} = list_type}} ->
-                cons_type = Types.function(t, Types.function(list_type, list_type))
-                infer_binary_op(type_env, cons_type, {elem, lst})
-              error ->
-                error
-            end
+            {:ok, {s1, cons_type}} = infer(operator, type_env)
+            infer_binary_op(type_env, cons_type, {elem, lst})
           :__let ->
             [name | [bound | []]] = operands
             tv = TypeVars.fresh()
@@ -350,7 +341,7 @@ defmodule Terp.Types.TypeEvaluator do
     with {:ok, {s1, t1}} <- infer(arg1, type_env),
          {:ok, {s2, t2}} <- infer(arg2, type_env),
          inferred_op_type <- build_up_arrows([t1, t2, tv]),
-         {:ok, s3} <- unify(binary_type, inferred_op_type) do
+         {:ok, s3} <- unify(inferred_op_type, binary_type) do
       composed_substitution = compose(s1, compose(s2, s3))
       {:ok, {composed_substitution, apply_sub(s3, tv)}}
     else
@@ -486,7 +477,14 @@ defmodule Terp.Types.TypeEvaluator do
 
   @spec apply_sub(substitution, Types.t) :: Types.t
   def apply_sub(_, %Types{constructor: :Tconst} = type), do: type
-  def apply_sub(_, %Types{constructor: :Tlist} = type), do: type
+  def apply_sub(substitution, %Types{constructor: :Tlist, t: %Types{constructor: :Tlist, t: t}}) do
+    # Not sure why/where the super nested lists are coming from.
+    # cons, I think, but haven't yet investigated.
+    Types.list(apply_sub(substitution, t))
+  end
+  def apply_sub(substitution, %Types{constructor: :Tlist, t: t}) do
+    Types.list(apply_sub(substitution, t))
+  end
   def apply_sub(substitution, %Types{constructor: :Tvar, t: t} = type) do
     Map.get(substitution, t, type)
   end

@@ -39,8 +39,11 @@
    + [ ] Rename some poorly named functions
    + [ ] Add typespecs
 ** TODO Product Types
+** TODO Recursive types
+   Need to y-combinate them as well
 ** TODO Type classes
 ** TODO Pattern match things other than value constructors
+** TODO Documentation extraction and hosting
 ** INPROGRESS [#B] improve error handling
    - State "INPROGRESS" from "TODO"       [2017-09-01 Fri 13:16]
    Propagate error messages instead of ending in crashes
