@@ -20,7 +20,7 @@ defmodule Terp.Types.TypeEvaluator do
     case infer(expr, %{}) do
       {:ok, {_substitution, type}} ->
         if expr.node == :__type do
-          :ok
+          {:ok, {null_substitution(), type}}
         else
           case Annotation.reconcile_annotation(expr, type) do
             {:ok, annotated_type_scheme} ->
@@ -331,6 +331,8 @@ defmodule Terp.Types.TypeEvaluator do
             {:ok, {subbed_env, {composed_sub, apply_sub(s2, [type | List.wrap(types)])}}}
           {:error, e} ->
             {:error, e}
+          %Error{} = error ->
+            error
         end
       end)
   end
