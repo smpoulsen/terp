@@ -30,6 +30,7 @@ defmodule Terp.Parser do
       comment_parser(),
       literal_parser(),
       list_parser(),
+      let_values_parser(),
       cond_parser(),
       typedef_parser(),
       type_annotation_parser(),
@@ -69,6 +70,30 @@ defmodule Terp.Parser do
           end
       {f, rest}
     end)
+  end
+
+  # local bindings
+  defp let_values_parser() do
+    parser = between_parens_parser(
+      sequence([
+        string("let-values"),
+        either(ignore(space()), ignore(newline())),
+        between_parens_parser(
+          many1(
+            choice([
+              between_parens_parser(
+                valid_expr_parser()
+              ),
+              ignore(space()),
+              ignore(newline()),
+            ])
+          )
+        ),
+        either(ignore(space()), ignore(newline())),
+        application_parser(),
+      ])
+    )
+    map(parser, fn ["let-values" | rest] -> {:__let_values, rest} end)
   end
 
   #
@@ -173,6 +198,7 @@ defmodule Terp.Parser do
       choice([
         literal_parser(),
         list_parser(),
+        lazy(fn -> let_values_parser() end),
         lazy(fn -> cond_parser() end),
         lazy(fn -> application_parser() end),
         ignore(space()),

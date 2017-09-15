@@ -36,6 +36,22 @@
       (:identity :x)
       ;; 5
     #+END_SRC
+
+    Local variables can be bound with =let-values=:
+    #+BEGIN_SRC racket
+      (let-values
+          ([x 5]
+           [y 3])
+        (+ x y))
+      ;; 8
+
+      (defn plusOne (x)
+        (let-values
+            ([y 1])
+          (+ x y)))
+      (plusOne 5)
+      ;; 6
+    #+END_SRC
 ** Conditionals
    =if= expressions must include a value for both the true and false case (an =if= and an =else=).
    #+BEGIN_SRC racket

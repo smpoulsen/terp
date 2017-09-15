@@ -171,6 +171,12 @@ defmodule Terp do
         Boolean.t()
       :"__#f" ->
         Boolean.f()
+      :__let_values ->
+        [%RoseTree{node: bindings} | [expr | []]] = children
+        local_env = Enum.reduce(bindings, env, fn (binding, env) ->
+          Environment.let(binding, env)
+        end)
+        eval_expr(expr, local_env)
       :__apply ->
         [operator | operands] = children
         operator = eval_expr(operator, env)

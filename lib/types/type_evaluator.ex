@@ -140,6 +140,17 @@ defmodule Terp.Types.TypeEvaluator do
           res ->
             res
         end
+      :__let_values ->
+        [%RoseTree{node: bindings} | [expr | []]] = children
+        {type_env, _subs} = Enum.reduce(bindings, {type_env, null_substitution()},
+          fn ([var | [val | []]], {type_env, subs}) ->
+            {:ok, {s, t}} = infer(val, type_env)
+            t_prime = generalize(type_env, t)
+            type_env = extend(type_env, {var.node, t_prime})
+            {type_env, compose(s, subs)}
+          end
+        )
+        infer(expr, type_env)
       :__apply ->
         [operator | operands] = children
         case operator.node do
