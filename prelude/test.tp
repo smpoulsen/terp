@@ -1,0 +1,6 @@
+;; (module prelude.test)
+;; Provides utilities for writing tests.
+(require "prelude/test/assertions.tp")
+
+(provide assert
+         refute)

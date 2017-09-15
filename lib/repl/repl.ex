@@ -73,6 +73,10 @@ defmodule Terp.Repl do
           Bunt.puts([:green, "Success!"])
           Bunt.puts([:blue, "#{msg}"])
           env
+        {:imported, functions} ->
+          Bunt.puts([:green, "Success! Imported the following:"])
+          Bunt.puts([:blue, "#{functions}"])
+          env
         nil ->
           env
         _ ->

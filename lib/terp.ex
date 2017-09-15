@@ -78,7 +78,6 @@ defmodule Terp do
       (_expr, {:error, error, environment}) ->
         {{:error, error}, environment}
     end)
-
     case res do
       {:ok, {:environment, environment}} ->
         {nil, environment}
@@ -93,8 +92,10 @@ defmodule Terp do
     end
   end
 
-  # Evaluates a single expression.
-  defp eval_tree(expr, env) do
+  @doc """
+  Evaluate a single AST.
+  """
+  def eval_tree(expr, env) do
     case eval_expr(expr, env) do
       x when is_function(x) ->
         {:ok, {:environment, x}}
