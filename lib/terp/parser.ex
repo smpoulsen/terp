@@ -130,7 +130,7 @@ defmodule Terp.Parser do
       ignore(char("(")),
       ignore(string("type")),
       ignore(either(newline(), space())),
-      word(),
+      hyphenated_word(),
       ignore(either(newline(), space())),
       arrow_parser(),
       ignore(char(")"))
@@ -168,7 +168,7 @@ defmodule Terp.Parser do
     p = sequence([
       either(string("defn"), string("defrec")),
       ignore(either(newline(), space())),
-      word(), # Fn name
+      hyphenated_word(), # fn_name
       ignore(either(newline(), space())),
       between_parens_parser( # Args
         valid_expr_parser()
@@ -242,10 +242,10 @@ defmodule Terp.Parser do
       integer(),
       punctuation_parser(),
       string_to_atom(ignore(char(":")) |> word()),
-      both(word(), char("?"), &(&1 <> &2)),
-      both(word(), char("!"), &(&1 <> &2)),
+      both(hyphenated_word(), char("?"), &(&1 <> &2)),
+      both(hyphenated_word(), char("!"), &(&1 <> &2)),
       string_parser(),
-      word(),
+      hyphenated_word(),
       lazy(fn -> list_parser() end),
     ])
   end
@@ -314,6 +314,12 @@ defmodule Terp.Parser do
                 _ -> true end),
       fn x -> {:__comment, x} end
     )
+  end
+
+  def hyphenated_word() do
+    word()
+    |> sep_by1(char("-"))
+    |> map(&Enum.join(&1, "-"))
   end
 
   # lazy parser implementation from
