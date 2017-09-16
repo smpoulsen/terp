@@ -77,9 +77,9 @@ defmodule Terp.Parser do
     parser = between_parens_parser(
       sequence([
         string("let-values"),
-        either(ignore(space()), ignore(newline())),
+        ignore(many(either(space(), newline()))),
         between_parens_parser(
-          many1(
+          many(
             choice([
               between_parens_parser(
                 valid_expr_parser()
@@ -89,7 +89,7 @@ defmodule Terp.Parser do
             ])
           )
         ),
-        either(ignore(space()), ignore(newline())),
+        ignore(many(either(space(), newline()))),
         application_parser(),
       ])
     )
@@ -201,6 +201,7 @@ defmodule Terp.Parser do
         lazy(fn -> let_values_parser() end),
         lazy(fn -> cond_parser() end),
         lazy(fn -> application_parser() end),
+        string_parser(),
         ignore(space()),
         ignore(newline()),
       ])
@@ -244,8 +245,8 @@ defmodule Terp.Parser do
       string_to_atom(ignore(char(":")) |> word()),
       both(hyphenated_word(), char("?"), &(&1 <> &2)),
       both(hyphenated_word(), char("!"), &(&1 <> &2)),
-      string_parser(),
       hyphenated_word(),
+      string_parser(),
       lazy(fn -> list_parser() end),
     ])
   end
@@ -254,7 +255,14 @@ defmodule Terp.Parser do
     map(
       between(
         char("\""),
-        lazy(fn -> many(literal_parser()) end),
+        lazy(fn ->
+          many(
+            choice([
+              literal_parser(),
+              space(),
+            ])
+          )
+        end),
         char("\"")
       ),
       &({:__string, Enum.join(&1)})
@@ -316,7 +324,7 @@ defmodule Terp.Parser do
     )
   end
 
-  def hyphenated_word() do
+  defp hyphenated_word() do
     word()
     |> sep_by1(char("-"))
     |> map(&Enum.join(&1, "-"))

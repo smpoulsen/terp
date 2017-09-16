@@ -240,6 +240,27 @@
    [[file:media/repl_demo.gif]] 
 
    As a workaround for history/scrollback in the repl, start it as =iex -S mix terp.repl=. The IEx shell provides those features while still running the terp repl.
+** Tests
+   There's a mix task (=mix terp.test [$FILENAME | $DIRECTORY]=) to find and run tests in the given file(s)/directories.
+
+   Test files *must* end in =_test.tp= or they will not be run.
+
+   =prelude/test.tp= exports the functions =test=, =assert=, and =refute=. See the documentation in =prelude/test.tp= for more information.
+   #+BEGIN_SRC racket
+     (type test (-> String (-> a a)))
+
+     (type assert (-> Bool Bool))
+
+     (type refute (-> Bool Bool))
+   #+END_SRC
+
+**** Running tests
+     A symbol [✓ | x] and the name provided to =test= are printed to the console; they are color coded green/red based on pass/fail respectively.
+
+     The time spend running tests and a count of total tests and total failures are also printed.
+
+     [[file:media/test_run.png]]
+
 ** Error Messages
    To help with debugging, error messages try to be as informative as possible:
    [[file:media/error_messages.png]]

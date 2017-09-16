@@ -13,7 +13,7 @@ defmodule Terp.Test do
       Enum.reduce(files, %{tests: 0, failures: 0}, fn
         (file, %{tests: t1, failures: f1} = state) ->
         if String.ends_with?(file, "_test.tp") do
-          {%{tests: t2, failures: f2}, _env} = run_tests("#{path}/#{file}")
+          %{tests: t2, failures: f2} = run_tests("#{path}/#{file}")
           %{tests: t1 + t2, failures: f1 + f2}
         else
           state
@@ -26,17 +26,22 @@ defmodule Terp.Test do
     Bunt.puts([file])
     with true <- Terp.IO.is_terp_file(file),
          {:ok, src} <- File.read(file),
-         {:ok, _type} <- Types.type_check(src),
-           ast = src |> Parser.parse() |> Enum.flat_map(&AST.to_tree/1) do
+           ast = src |> Parser.parse() |> Enum.flat_map(&AST.to_tree/1),
+         {:ok, _type} <- Types.type_check_ast(ast) do
       initial_environment = fn x -> {:error, {:unbound, x}} end
-      ast
+      {stats, _env} = ast
       |> Enum.reduce({%{tests: 0, failures: 0}, initial_environment}, fn
-        (tree, {state, env}) -> run_test(tree, {state, env}) end)
+        (tree, {state, env}) ->
+          run_test(tree, {state, env})
+      end)
+      stats
     else
       false ->
-        "#{file} is not a valid terp file"
+        {:error, "#{file} is not a valid terp file"}
       %Error{} = error ->
         Error.pretty_print_error(error)
+      {:error, :enoent} ->
+        {:error, "#{file} not found"}
       {:error, _} = error ->
         Error.pretty_print_error(error)
     end
@@ -68,8 +73,8 @@ defmodule Terp.Test do
   end
 
   defp passed(expr, %{tests: tests} = state) do
-    message = [:green, "\t. ", AST.stringify(expr)]
     if is_test?(expr) do
+      message = [:green, "✓ ", test_name(expr)]
       Bunt.puts(message)
       %{state | tests: tests + 1}
     else
@@ -77,8 +82,8 @@ defmodule Terp.Test do
     end
   end
   defp failed(expr, %{tests: tests, failures: failures} = state) do
-    message = [:red, "\tx ", AST.stringify(expr)]
     if is_test?(expr) do
+      message = [:red, "x ", test_name(expr)]
       Bunt.puts(message)
       %{tests: tests + 1, failures: failures + 1}
     else
@@ -87,8 +92,19 @@ defmodule Terp.Test do
   end
 
   defp is_test?(expr) do
-    z = Zipper.from_tree(expr)
-    {:ok, {%RoseTree{node: t}, _history}} = Zipper.first_child(z)
-    Enum.member?(["assert", "refute"], t)
+    {:ok, {%RoseTree{node: t}, _history}} = expr
+    |> Zipper.from_tree()
+    |> Zipper.first_child()
+    t == "test"
+  end
+
+  defp test_name(expr) do
+    %RoseTree{node: name} = expr
+    |> Zipper.from_tree()
+    |> Zipper.first_child()
+    |> Zipper.lift(&Zipper.next_sibling/1)
+    |> Zipper.lift(&Zipper.first_child/1)
+    |> Zipper.lift(&Zipper.to_tree/1)
+    name
   end
 end

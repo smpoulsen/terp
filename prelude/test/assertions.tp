@@ -5,21 +5,29 @@
 ;; Assertions for testing terp functions in terp itself.
 
 ;; Checks whether the provided condition evaluates to true.
+;;
 ;; Arguments:
 ;;     test -> An expression that should evaluate to a boolean value.
 ;; Usage:
-;;     (assert (equal? 5 5))  -> true
-;;     (assert (equal? 5 10)) -> false
+;;     (assert (equal? 5 5))
+;;     -> true
+;;     (assert (equal? 5 10))
+;;     -> false
+;;
 (type assert (-> Bool Bool))
 (defn assert (test)
   (equal? test #t))
 
 ;; Checks whether the provided condition evaluates to false.
+;;
 ;; Arguments:
 ;;     test -> An expression that should evaluate to a boolean value.
 ;; Usage:
-;;     (refute (equal? 5 5))  -> false
-;;     (refute (equal? 5 10)) -> true
+;;     (refute (equal? 5 5))
+;;     -> false
+;;     (refute (equal? 5 10))
+;;     -> true
+;;
 (type refute (-> Bool Bool))
 (defn refute (test)
   (equal? test #f))

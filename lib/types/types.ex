@@ -61,10 +61,13 @@ defmodule Terp.Types.Types do
   """
   @spec type_check(String.t) :: [Types.t]
   def type_check(src) do
-    # TODO Should reduce this instead of map to just the :ok/type
-    TypeEnvironment.start_if_unstarted()
-    res = src
+    src
     |> Terp.to_ast()
+    |> type_check_ast()
+  end
+  def type_check_ast(ast) do
+    TypeEnvironment.start_if_unstarted()
+    res = ast
     |> Enum.reduce({:ok, []},
     fn tree, {:ok, types} ->
       case TypeEvaluator.run_infer(tree) do
@@ -154,7 +157,14 @@ defmodule Terp.Types.Types do
   def to_type("List", x), do: list(to_type(x))
   def to_type("Tuple", x, y), do: tuple(to_type(x), to_type(y))
   def to_type("Arrow", x, y), do: function(to_type(x), to_type(y))
-  def to_type(:__arrow, x, y), do: function(to_type(x), to_type(y))
+  def to_type(:__arrow, x, y) do
+    right = if is_list(y) do
+      apply(Types, :to_type, y)
+    else
+      to_type(y)
+    end
+    function(to_type(x), right)
+  end
 
   def replace_type_vars({type, new_vars}) do
     zipped = Enum.zip(type.vars, List.wrap(new_vars))

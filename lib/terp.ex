@@ -145,7 +145,6 @@ defmodule Terp do
   """
   def eval_expr(%RoseTree{node: node, children: children} = tree, env \\ fn (y) -> {:error, {:unbound, y}} end) do
     if @debug do
-      IO.inspect({"TREE", tree})
     end
     case node do
       :__data ->
@@ -215,11 +214,15 @@ defmodule Terp do
             Function.apply_lambda(operator, Enum.map(operands, &eval_expr(&1, env)), env)
           {:error, reason} ->
             {:error, reason}
+          x when is_boolean(x) ->
+            require IEx; IEx.pry
+            {x, env}
           _ ->
             {:error, {:not_a_procedure, operator}}
         end
       x when is_number(x) -> x
       x when is_function(x) -> x
+      x when is_boolean(x) -> x
       x ->
         with true <- is_atom(x),
              s <- Atom.to_string(x),

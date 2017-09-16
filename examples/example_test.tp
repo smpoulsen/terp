@@ -5,16 +5,29 @@
 (require "prelude/list.tp")
 
 ;; Some basic example assertions/refutations:
-(assert (equal? #t #t))
-(assert (equal? 5 5))
-(refute (equal? #f #t))
+(test "true is true"
+  (assert (equal? #t #t)))
 
-;; Testing something that actually does something:
+(test "5 is 5"
+  (assert (equal? 5 5)))
+
+(test "false is not true"
+  (refute (equal? #f #t)))
+
+;; Testing something that actually does something;
+;; uses functions/variables bound in the global scope.
 (defn plus2 (x)
   (+ 2 x))
-
 (let ls '(1 2 3 4 5))
+(test "mapping plus2 with external variables"
+  (assert (equal?
+          (map plus2 ls)
+          '(3 4 5 6 7))))
 
-(assert (equal?
-         (map plus2 ls)
-         '(3 4 5 6 7)))
+;; A test that locally binds variables for test setup.
+(test "plus2 adds 2 with local vars"
+      (let-values
+          ([plus2 (lambda (x) (+ 2 x))]
+           [ls '(2 3 4 5 6)]
+           [mapped-values (map plus2 ls)])
+        (assert (equal? mapped-values '(3 4 5 6 7)))))
