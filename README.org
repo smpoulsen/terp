@@ -3,19 +3,28 @@
    =terp= is a toy language that falls somewhere between an ML and a lisp.
 
    Currently implemented:
-     + integers
-     + strings
-     + atoms
-     + basic arithmetic (=+=, =-=, =*=, =/=)
-     + booleans (=#t=, =#f=)
-     + conditionals
-       + =if then else=
-       + =cond=
-     + Lambda functions (=lambda=)
-     + variable binding (=let=)
-     + recursive functions (=letrec=)
-     + module imports
-     + HM type inference
+     + Core language features
+      + integers
+      + strings
+      + atoms
+      + basic arithmetic (=+=, =-=, =*=, =/=)
+      + booleans (=#t=, =#f=)
+      + conditionals
+        + =if then else=
+        + =cond=
+      + Lambda functions (=lambda=)
+      + variable binding (=let=)
+      + locally scoped variable binding (=let-values=)
+      + recursive functions (=letrec=)
+     + Module System
+      + Module imports
+     + Types
+       + HM type inference
+       + Higher-kinded types
+       + Type definition/annotation
+       + Pattern matching (currently limited to type constructors)
+     + Tooling
+       + Testing utilities
 
    Additional examples can be found in the [[https://github.com/tpoulsen/terp/tree/master/examples][examples]] directory.
 * Usage
@@ -29,12 +38,28 @@
 ** Variable binding
    Variables are bound using =let=:
     #+BEGIN_SRC racket
-      (let :x 5)
+      (let x 5)
 
-      (let :identity (lambda (:x) :x))
+      (let identity (lambda (x) x))
 
-      (:identity :x)
+      (identity x)
       ;; 5
+    #+END_SRC
+
+    Local variables can be bound with =let-values=:
+    #+BEGIN_SRC racket
+      (let-values
+          ([x 5]
+           [y 3])
+        (+ x y))
+      ;; 8
+
+      (defn plusOne (x)
+        (let-values
+            ([y 1])
+          (+ x y)))
+      (plusOne 5)
+      ;; 6
     #+END_SRC
 ** Conditionals
    =if= expressions must include a value for both the true and false case (an =if= and an =else=).
@@ -81,13 +106,13 @@
 
    Multi-argument functions:
    #+BEGIN_SRC racket
-     (((lambda (:x)
-         (lambda (:y)
-           (+ :x :y))) 5 ) 3)
+     (((lambda (x)
+         (lambda (y)
+           (+ x y))) 5 ) 3)
      ;; 8
 
-     ((lambda (:x :y)
-        (+ :x :y)) 5 3)
+     ((lambda (x y)
+        (+ x y)) 5 3)
      ;; 8
    #+END_SRC
 
@@ -147,7 +172,7 @@
      (require "examples/factorial.tp"
               "examples/identity.tp")
 
-     (factorial (:identity 10))
+     (factorial (identity 10))
    #+END_SRC
    
    With [[https://github.com/tpoulsen/terp/blob/master/examples/factorial.tp]["examples/factorial.tp"]] and [[https://github.com/tpoulsen/terp/blob/master/examples/identity.tp]["examples/identity.tp"]] defined as in the examples directory.
@@ -203,13 +228,13 @@
 
    Filename =test.tp= (=terp= files must end in =.tp=):
    #+BEGIN_SRC racket
-     (let :identity
-         (lambda '(:x) :x))
+     (let identity
+         (lambda '(x) x))
 
-     (let :double_identity
-         ((:identity :identity) 5))
+     (let double_identity
+         ((identity identity) 5))
 
-     (+ 2 :double_identity)
+     (+ 2 double_identity)
    #+END_SRC
 
    #+BEGIN_SRC sh
@@ -224,6 +249,27 @@
    [[file:media/repl_demo.gif]] 
 
    As a workaround for history/scrollback in the repl, start it as =iex -S mix terp.repl=. The IEx shell provides those features while still running the terp repl.
+** Tests
+   There's a mix task (=mix terp.test [$FILENAME | $DIRECTORY]=) to find and run tests in the given file(s)/directories.
+
+   Test files *must* end in =_test.tp= or they will not be run.
+
+   =prelude/test.tp= exports the functions =test=, =assert=, and =refute=. See the documentation in [[https://github.com/tpoulsen/terp/blob/add-testing-features/prelude/test/runner.tp][prelude/test/runner.tp]] for more information.
+   #+BEGIN_SRC racket
+     (type test (-> String (-> a a)))
+
+     (type assert (-> Bool Bool))
+
+     (type refute (-> Bool Bool))
+   #+END_SRC
+
+**** Running tests
+     A symbol [✓ | x] and the name provided to =test= are printed to the console; they are color coded green/red based on pass/fail respectively.
+
+     The time spent running tests and a count of total tests and total failures are also printed.
+
+     [[file:media/test_run.png]]
+
 ** Error Messages
    To help with debugging, error messages try to be as informative as possible:
    [[file:media/error_messages.png]]

@@ -67,14 +67,23 @@ defmodule Terp do
 
   # Given a list of trees and an environment, evaluates the trees in
   # the context of the environment.
-  defp eval_trees([tree | []], env) do
-    res = eval_expr(tree, env)
+  def eval_trees(x, env) when is_bitstring(x), do: {x, env}
+  def eval_trees(exprs, env) do
+    res = exprs
+    |> Enum.reduce({:ok, {:environment, env}}, fn
+      (expr, {:ok, {:environment, environment}}) ->
+        eval_tree(expr, environment)
+      (expr, {:ok, {:evaluated, _result, environment}}) ->
+        eval_tree(expr, environment)
+      (_expr, {:error, error, environment}) ->
+        {{:error, error}, environment}
+    end)
     case res do
-      x when is_function(x) ->
-        {nil, res}
-      {{:ok, _msg}, _env} ->
-        res
-      {:error, e} ->
+      {:ok, {:environment, environment}} ->
+        {nil, environment}
+      {:ok, {:evaluated, result, env}} ->
+        {result, env}
+      {:error, e, _environment} ->
         {{:error, e}, env}
       %Error{} = e ->
         {e, env}
@@ -82,22 +91,24 @@ defmodule Terp do
         {x, env}
     end
   end
-  defp eval_trees([tree | trees], env) do
-    case eval_expr(tree, env) do
+
+  @doc """
+  Evaluate a single AST.
+  """
+  def eval_tree(expr, env) do
+    case eval_expr(expr, env) do
       x when is_function(x) ->
-        eval_trees(trees, x)
-      {{:ok, {_res, _msg}}, env} ->
-        eval_trees(trees, env)
-      {:error, e} ->
-        {{:error, e}, env}
-      %Error{} = e ->
-        {e, env}
-      _ ->
-        eval_trees(trees, env)
+        {:ok, {:environment, x}}
+      {{:ok, msg}, env} ->
+        {:ok, {:evaluated, msg, env}}
+      {:error, error} ->
+        {:error, error, env}
+      %Error{} = error ->
+        {:error, error, env}
+      result ->
+        {:ok, {:evaluated, result, env}}
     end
   end
-  defp eval_trees(x, env) when is_bitstring(x), do: {x, env}
-  defp eval_trees(x, env), do: {{:error, {:unable_to_evaluate, x}}, env}
 
   @doc """
   Filters nodes out of the AST.
@@ -134,7 +145,6 @@ defmodule Terp do
   """
   def eval_expr(%RoseTree{node: node, children: children} = tree, env \\ fn (y) -> {:error, {:unbound, y}} end) do
     if @debug do
-      IO.inspect({"TREE", tree})
     end
     case node do
       :__data ->
@@ -160,6 +170,12 @@ defmodule Terp do
         Boolean.t()
       :"__#f" ->
         Boolean.f()
+      :__let_values ->
+        [%RoseTree{node: bindings} | [expr | []]] = children
+        local_env = Enum.reduce(bindings, env, fn (binding, env) ->
+          Environment.let(binding, env)
+        end)
+        eval_expr(expr, local_env)
       :__apply ->
         [operator | operands] = children
         operator = eval_expr(operator, env)
@@ -198,11 +214,15 @@ defmodule Terp do
             Function.apply_lambda(operator, Enum.map(operands, &eval_expr(&1, env)), env)
           {:error, reason} ->
             {:error, reason}
+          x when is_boolean(x) ->
+            require IEx; IEx.pry
+            {x, env}
           _ ->
             {:error, {:not_a_procedure, operator}}
         end
       x when is_number(x) -> x
       x when is_function(x) -> x
+      x when is_boolean(x) -> x
       x ->
         with true <- is_atom(x),
              s <- Atom.to_string(x),

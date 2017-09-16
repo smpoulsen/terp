@@ -94,7 +94,16 @@ defmodule Terp.AST do
       :__match ->
         "(match #{stringify(children)})"
       :__string ->
-        ~w("#{stringify(children)}")
+        raw_string = children
+        |> List.wrap()
+        |> Enum.map(&stringify/1)
+        |> Enum.join()
+        "\"#{raw_string}\""
+      :__quote ->
+        raw_string = children
+        |> Enum.map(&stringify/1)
+        |> Enum.join(", ")
+        "'(#{raw_string})"
       x when is_list(x) ->
         res = x
         |> Enum.map(&stringify/1)

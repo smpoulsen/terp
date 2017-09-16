@@ -20,7 +20,7 @@ defmodule Terp.Types.TypeEvaluator do
     case infer(expr, %{}) do
       {:ok, {_substitution, type}} ->
         if expr.node == :__type do
-          :ok
+          {:ok, {null_substitution(), type}}
         else
           case Annotation.reconcile_annotation(expr, type) do
             {:ok, annotated_type_scheme} ->
@@ -140,6 +140,17 @@ defmodule Terp.Types.TypeEvaluator do
           res ->
             res
         end
+      :__let_values ->
+        [%RoseTree{node: bindings} | [expr | []]] = children
+        {type_env, _subs} = Enum.reduce(bindings, {type_env, null_substitution()},
+          fn ([var | [val | []]], {type_env, subs}) ->
+            {:ok, {s, t}} = infer(val, type_env)
+            t_prime = generalize(type_env, t)
+            type_env = extend(type_env, {var.node, t_prime})
+            {type_env, compose(s, subs)}
+          end
+        )
+        infer(expr, type_env)
       :__apply ->
         [operator | operands] = children
         case operator.node do
@@ -331,6 +342,8 @@ defmodule Terp.Types.TypeEvaluator do
             {:ok, {subbed_env, {composed_sub, apply_sub(s2, [type | List.wrap(types)])}}}
           {:error, e} ->
             {:error, e}
+          %Error{} = error ->
+            error
         end
       end)
   end

@@ -25,7 +25,10 @@ defmodule Terp.IO do
     end
   end
 
-  defp is_terp_file(filename) do
+  @doc """
+  Checks that the file extension is valid for terp, e.g. '.tp'.
+  """
+  def is_terp_file(filename) do
     ".tp" == Path.extname(filename)
   end
 end

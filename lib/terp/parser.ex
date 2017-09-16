@@ -30,6 +30,7 @@ defmodule Terp.Parser do
       comment_parser(),
       literal_parser(),
       list_parser(),
+      let_values_parser(),
       cond_parser(),
       typedef_parser(),
       type_annotation_parser(),
@@ -71,6 +72,30 @@ defmodule Terp.Parser do
     end)
   end
 
+  # local bindings
+  defp let_values_parser() do
+    parser = between_parens_parser(
+      sequence([
+        string("let-values"),
+        ignore(many(either(space(), newline()))),
+        between_parens_parser(
+          many(
+            choice([
+              between_parens_parser(
+                valid_expr_parser()
+              ),
+              ignore(space()),
+              ignore(newline()),
+            ])
+          )
+        ),
+        ignore(many(either(space(), newline()))),
+        application_parser(),
+      ])
+    )
+    map(parser, fn ["let-values" | rest] -> {:__let_values, rest} end)
+  end
+
   #
   ## Data type definition
   #
@@ -105,7 +130,7 @@ defmodule Terp.Parser do
       ignore(char("(")),
       ignore(string("type")),
       ignore(either(newline(), space())),
-      word(),
+      hyphenated_word(),
       ignore(either(newline(), space())),
       arrow_parser(),
       ignore(char(")"))
@@ -143,7 +168,7 @@ defmodule Terp.Parser do
     p = sequence([
       either(string("defn"), string("defrec")),
       ignore(either(newline(), space())),
-      word(), # Fn name
+      hyphenated_word(), # fn_name
       ignore(either(newline(), space())),
       between_parens_parser( # Args
         valid_expr_parser()
@@ -173,8 +198,10 @@ defmodule Terp.Parser do
       choice([
         literal_parser(),
         list_parser(),
+        lazy(fn -> let_values_parser() end),
         lazy(fn -> cond_parser() end),
         lazy(fn -> application_parser() end),
+        string_parser(),
         ignore(space()),
         ignore(newline()),
       ])
@@ -216,10 +243,10 @@ defmodule Terp.Parser do
       integer(),
       punctuation_parser(),
       string_to_atom(ignore(char(":")) |> word()),
-      both(word(), char("?"), &(&1 <> &2)),
-      both(word(), char("!"), &(&1 <> &2)),
+      both(hyphenated_word(), char("?"), &(&1 <> &2)),
+      both(hyphenated_word(), char("!"), &(&1 <> &2)),
+      hyphenated_word(),
       string_parser(),
-      word(),
       lazy(fn -> list_parser() end),
     ])
   end
@@ -228,7 +255,14 @@ defmodule Terp.Parser do
     map(
       between(
         char("\""),
-        lazy(fn -> many(literal_parser()) end),
+        lazy(fn ->
+          many(
+            choice([
+              literal_parser(),
+              space(),
+            ])
+          )
+        end),
         char("\"")
       ),
       &({:__string, Enum.join(&1)})
@@ -288,6 +322,12 @@ defmodule Terp.Parser do
                 _ -> true end),
       fn x -> {:__comment, x} end
     )
+  end
+
+  defp hyphenated_word() do
+    word()
+    |> sep_by1(char("-"))
+    |> map(&Enum.join(&1, "-"))
   end
 
   # lazy parser implementation from
