@@ -4,7 +4,6 @@
 
 ;; Gives a way to name a test and perform test setup before
 ;; testing the assertion. Should be used with test/assertions.
-;;
 ;; Arguments:
 ;;     name  : String -> An identifier for the test.
 ;;                         used in the test output.
@@ -12,7 +11,6 @@
 ;; Usage:
 ;;     (test "2 plus 2 is 4" (equal? #t (equal? (+ 2 2) 4)))
 ;;     -> true
-;;
 (type test (-> String (-> a a)))
 (defn test (name block)
   block)
