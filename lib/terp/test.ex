@@ -8,13 +8,13 @@ defmodule Terp.Test do
   alias Terp.Types.Types
   alias RoseTree.Zipper
 
-  def test_dir(path) do
+  def test_dir(path, state \\ %{tests: 0, failures: 0}) do
     with {:ok, files} <- File.ls(path) do
-      Enum.reduce(files, %{tests: 0, failures: 0}, fn
+      Enum.reduce(files, state, fn
         (file, %{tests: t1, failures: f1} = state) ->
         full_path = "#{path}/#{file}"
         if File.dir?(full_path) do
-          test_dir(full_path)
+          test_dir(full_path, state)
         else
           if String.ends_with?(file, "_test.tp") do
             %{tests: t2, failures: f2} = run_tests(full_path)
