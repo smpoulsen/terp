@@ -95,7 +95,8 @@ defmodule Terp do
   @doc """
   Evaluate a single AST.
   """
-  def eval_tree(expr, env) do
+  def eval_tree(expr, env), do: eval_tree(expr, env, verbose: false)
+  def eval_tree(expr, env, verbose: verbose) do
     case eval_expr(expr, env) do
       x when is_function(x) ->
         {:ok, {:environment, x}}
@@ -106,7 +107,11 @@ defmodule Terp do
       %Error{} = error ->
         {:error, error, env}
       result ->
-        {:ok, {:evaluated, result, env}}
+        if verbose do
+          {:ok, {:evaluated, result, env, expr}}
+        else
+          {:ok, {:evaluated, result, env}}
+        end
     end
   end
 
