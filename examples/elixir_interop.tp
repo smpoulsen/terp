@@ -1,0 +1,18 @@
+;; Terp can use Elixir and Erlang functions.
+;; To use them, prefix the fully qualified name
+;; of the function (e.g. module.function) with a `:`
+(provide square
+         reverse-squares)
+
+;; Set up types for the Elixir functions that are used.
+;; Type inference cannot correctly infer their types out of the box.
+;; To actually have useful type inference, must specify types
+;; for Elixir/Erlang functions.
+(type :Enum.reverse (-> [List a] [List a]))
+(type :Stream.map (-> [List a] (-> (-> a b) [List b])))
+
+;; Squares a list and reverses it.
+(type reverse-squares (-> [List Int] [List Int]))
+(defn reverse-squares (xs)
+  (:Enum.reverse
+   (:Stream.map xs (lambda (x) (* x x)))))

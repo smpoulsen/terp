@@ -141,11 +141,16 @@ defmodule Terp.Types.Types do
     end
   end
 
+  # to_type/1
   def to_type(%Types{} = x), do: x
   def to_type("Int"), do: int()
   def to_type("Bool"), do: bool()
   def to_type("String"), do: string()
-  def to_type([constructor | vars]) do
+  def to_type(x), do: var(x)
+
+  # to_type/2
+  def to_type("List", x), do: list(to_type(x))
+  def to_type(constructor, vars) do
     case TypeEnvironment.lookup_def(constructor) do
       {:error, e} ->
         {:error, e}
@@ -153,17 +158,22 @@ defmodule Terp.Types.Types do
         replace_type_vars({t, vars})
     end
   end
-  def to_type(x), do: var(x)
-  def to_type("List", x), do: list(to_type(x))
+
+  # to_type/3
   def to_type("Tuple", x, y), do: tuple(to_type(x), to_type(y))
   def to_type("Arrow", x, y), do: function(to_type(x), to_type(y))
   def to_type(:__arrow, x, y) do
+    left = if is_list(x) do
+      apply(Types, :to_type, x)
+    else
+      to_type(x)
+    end
     right = if is_list(y) do
       apply(Types, :to_type, y)
     else
       to_type(y)
     end
-    function(to_type(x), right)
+    function(left, right)
   end
 
   def replace_type_vars({type, new_vars}) do

@@ -95,7 +95,8 @@ defmodule Terp do
   @doc """
   Evaluate a single AST.
   """
-  def eval_tree(expr, env) do
+  def eval_tree(expr, env), do: eval_tree(expr, env, verbose: false)
+  def eval_tree(expr, env, verbose: verbose) do
     case eval_expr(expr, env) do
       x when is_function(x) ->
         {:ok, {:environment, x}}
@@ -106,7 +107,11 @@ defmodule Terp do
       %Error{} = error ->
         {:error, error, env}
       result ->
-        {:ok, {:evaluated, result, env}}
+        if verbose do
+          {:ok, {:evaluated, result, env, expr}}
+        else
+          {:ok, {:evaluated, result, env}}
+        end
     end
   end
 
@@ -145,6 +150,7 @@ defmodule Terp do
   """
   def eval_expr(%RoseTree{node: node, children: children} = tree, env \\ fn (y) -> {:error, {:unbound, y}} end) do
     if @debug do
+      IO.inspect(tree, label: "EVAL TREE :")
     end
     case node do
       :__data ->
@@ -176,6 +182,13 @@ defmodule Terp do
           Environment.let(binding, env)
         end)
         eval_expr(expr, local_env)
+      :__beam ->
+        [%RoseTree{node: module} | [%RoseTree{node: function} | []]] = children
+        module_first_char = String.first(module)
+        is_capitalized? = String.upcase(module_first_char) == module_first_char
+        fully_qualified_module = (if is_capitalized?, do: ("Elixir." <> module), else: module)
+        |> String.to_existing_atom
+        {:__beam, fn (args) -> apply(fully_qualified_module, function, args) end}
       :__apply ->
         [operator | operands] = children
         operator = eval_expr(operator, env)
@@ -214,8 +227,10 @@ defmodule Terp do
             Function.apply_lambda(operator, Enum.map(operands, &eval_expr(&1, env)), env)
           {:error, reason} ->
             {:error, reason}
+          {:__beam, function} ->
+            evald_operands = Enum.map(operands, &eval_expr(&1, env))
+            function.(evald_operands)
           x when is_boolean(x) ->
-            require IEx; IEx.pry
             {x, env}
           _ ->
             {:error, {:not_a_procedure, operator}}

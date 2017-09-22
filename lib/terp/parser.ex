@@ -130,7 +130,7 @@ defmodule Terp.Parser do
       ignore(char("(")),
       ignore(string("type")),
       ignore(either(newline(), space())),
-      hyphenated_word(),
+      either(hyphenated_word(), beam_term_parser()),
       ignore(either(newline(), space())),
       arrow_parser(),
       ignore(char(")"))
@@ -242,6 +242,7 @@ defmodule Terp.Parser do
       bool_parser(),
       integer(),
       punctuation_parser(),
+      beam_term_parser(),
       string_to_atom(ignore(char(":")) |> word()),
       both(hyphenated_word(), char("?"), &(&1 <> &2)),
       both(hyphenated_word(), char("!"), &(&1 <> &2)),
@@ -249,6 +250,19 @@ defmodule Terp.Parser do
       string_parser(),
       lazy(fn -> list_parser() end),
     ])
+  end
+
+  # BEAM terms, Elixir and Erlang expressions, should
+  # be prefixed with a `:`.
+  defp beam_term_parser() do
+    sequence([
+      ignore(
+        char(":")),
+      hyphenated_word(),
+      ignore(char(".")),
+      string_to_atom(hyphenated_word()),
+    ])
+    |> map(&{:__beam, &1})
   end
 
   defp string_parser() do
@@ -277,8 +291,16 @@ defmodule Terp.Parser do
   end
 
   # Converts the result of a parser to an atom
+  # Tries to use an existing atom if one exists
   defp string_to_atom(parser) do
-    map(parser, fn atom -> String.to_atom(atom) end)
+    map(parser, fn atom ->
+      try do
+        String.to_existing_atom(atom)
+      rescue
+        _e in ArgumentError ->
+          String.to_atom(atom)
+      end
+    end)
   end
 
   # Parses true/false booleans

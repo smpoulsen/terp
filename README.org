@@ -4,27 +4,32 @@
 
    Currently implemented:
      + Core language features
-      + integers
-      + strings
-      + atoms
-      + basic arithmetic (=+=, =-=, =*=, =/=)
-      + booleans (=#t=, =#f=)
-      + conditionals
-        + =if then else=
-        + =cond=
-      + Lambda functions (=lambda=)
-      + variable binding (=let=)
-      + locally scoped variable binding (=let-values=)
-      + recursive functions (=letrec=)
-     + Module System
-      + Module imports
-     + Types
+       + Integers
+       + Strings
+       + Atoms
+       + Booleans (=#t=, =#f=)
+       + [[#comments][Comments]]
+       + [[#conditionals][Conditionals]]
+         + =if then else=
+         + =cond=
+       + [[#function-definition][Function definition]] (=lambda=, =defn=)
+       + [[#recursive-functions][Recursive functions]] (=letrec=, =defrec=)
+       + [[#variable-binding][Variable binding]] (=let=)
+         + locally scoped variable binding (=let-values=)
+     + [[#module-system][Module system]]
+       + Module imports
+       + Function exports
+     + [[#type-system][Type system]]
        + HM type inference
-       + Higher-kinded types
+       + [[#higher-kinded-types][Higher-kinded types]]
        + Type definition/annotation
-       + Pattern matching (currently limited to type constructors)
+       + [[#pattern-matching][Pattern matching]] (currently limited to type constructors)
+     + [[#elixirerlang-interop][Elixir/Erlang interop]]
+     + [[#file-evaluation][File evaluation]]
+     + [[#repl][REPL]]
      + Tooling
-       + Testing utilities
+       + [[#test-utilities][Test utilities]]
+     + [[#error-messages][Error messages]]
 
    Additional examples can be found in the [[https://github.com/tpoulsen/terp/tree/master/examples][examples]] directory.
 * Usage
@@ -194,12 +199,12 @@
          (lambda (x) x))
    #+END_SRC
 ** Type system
-   Terp implements Hindley-Milner type inference. Currently, type checking is performed only on code run in the REPL; this is a work in progress and will change in the future.
+   Terp implements Hindley-Milner type inference.
 
-   Expressions in the REPL are type checked prior to evaluation. If an expression fails the type check, it won't be evaluated.
-   To see the inferred type for an expressions, prefix it with =:t= or =:type=. 
+   Expressions are type checked prior to evaluation. If an expression fails the type check, it won't be evaluated.
+   To see the inferred type for an expression in the REPL, prefix it with =:t= or =:type=. 
 
-   The REPL maintains a type environment that includes functions and variables defined with =let= or =letrec=:
+   A type environment is maintained during evaluation and REPL sessions; this environment remembers the types for functions and variables.
 
    /Binding a simple variable:/
 
@@ -207,23 +212,56 @@
    
    /Binding and using a recursive, higher-order function:/
    [[file:media/repl_type_env.png]]
+*** Higher kinded types
+    Higher kinded types (types parameterized by another type) are defined using =data=:
+    #+BEGIN_SRC racket
+     (data (Maybe a) [Just a] [Nothing])
+    #+END_SRC
+    This defines a type, =Maybe=, that is parameterized by another type (represented by the type variable =a=). Concrete examples could be =Maybe Int= or =Maybe String=.
+    Using =Maybe Int= as an example, values of the =Maybe Int= type can be either =Just Int= or =Nothing=. This can be used to work with values that can potentially be non-existent. 
+
+    Defining a type with =data= also defines constructor functions for the value constructors of the type (=Just= and =Nothing= in this example).
 ** Pattern matching
    #+BEGIN_SRC racket
      (data (Maybe a) [Just a] [Nothing])
 
-     (type maybePlusFive (-> [Just Int] [Just Int]))
-     (defn maybePlusFive
-       (x)
-       (match (x)
-               [(Just y) (Just (+ 5 y))]
-               [(Nothing) (Nothing)]))
+     (type maybePlusFive (-> [Maybe Int] [Maybe Int]))
+     (defn maybePlusFive (x) (match (x) [(Just y) (Just (+ 5 y))] [(Nothing) (Nothing)]))
 
      (maybePlusFive (Just 5))
      ;; Just 10
      (maybePlusFive (Nothing))
      ;; Nothing
    #+END_SRC
-** Evaluating a file:
+** Elixir/Erlang interop
+   Elixir and Erlang functions can be used by prefixing them with a =:=, e.g:
+   #+BEGIN_SRC racket
+     ;; Using Elixir functions directly:
+     (:Enum.map '(1 2 3 4 5) (lambda (x) (* x x)))
+     ;; '(1 4 9 16 25)
+
+     ;; Calling Elixir's uppercase function:
+     (:String.upcase "asdf")
+     ;; "ASDF"
+
+     ;; Calling Erlang's uppercase function:
+     (:string.uppercase "asdf")
+     ;; "ASDF"
+
+     ;; Writing and using a function that uses an Elixir function:
+     (defn square (xs)
+       (:Enum.map xs (lambda (x) (* x x))))
+     (square '(1 2 3 4 5))
+     ;; '(1 4 9 16 25)
+   #+END_SRC
+   *Caveats*
+
+   There are currently a few important things to keep in mind:
+   1) This is not yet thoroughly tested. There's a large surface area to test to make sure everything works as expected.
+   2) Type inference does not work for Elixir/Erlang functions. When writing functions that use Elixir/Erlang functions, type annotations should be provided for used functions. See [[./examples/elixir_interop.tp][./examples/elixir_interop.tp]] for examples/details.
+   3) The full module and function names must be provided.
+   4) Elixir and Erlang functions aren't curried.
+** File evaluation
    There's a mix task (=mix terp.run $FILENAME=) to evaluate a file:
 
    Filename =test.tp= (=terp= files must end in =.tp=):
@@ -241,7 +279,6 @@
      $ mix terp.run test.tp
      7
    #+END_SRC
-   * With =@debug= set to =true=, the results of the file evaluation are printed to stdout.
 ** REPL
    There's a basic repl using the mix task =mix terp.repl=.
 
@@ -249,14 +286,16 @@
    [[file:media/repl_demo.gif]] 
 
    As a workaround for history/scrollback in the repl, start it as =iex -S mix terp.repl=. The IEx shell provides those features while still running the terp repl.
-** Tests
+** Test utilities
    There's a mix task (=mix terp.test [$FILENAME | $DIRECTORY]=) to find and run tests in the given file(s)/directories.
 
    Test files *must* end in =_test.tp= or they will not be run.
 
+   If a directory is provided to =mix terp.test=, its subdirectories are recursively checked for files to test.
+
    =prelude/test.tp= exports the functions =test=, =assert=, and =refute=. See the documentation in [[https://github.com/tpoulsen/terp/blob/add-testing-features/prelude/test/runner.tp][prelude/test/runner.tp]] for more information.
    #+BEGIN_SRC racket
-     (type test (-> String (-> a a)))
+     (type test (-> String (-> Bool Bool)))
 
      (type assert (-> Bool Bool))
 
@@ -270,6 +309,6 @@
 
      [[file:media/test_run.png]]
 
-** Error Messages
+** Error messages
    To help with debugging, error messages try to be as informative as possible:
    [[file:media/error_messages.png]]

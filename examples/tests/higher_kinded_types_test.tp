@@ -1,0 +1,12 @@
+(require "examples/higher_kinded_types.tp")
+(require "prelude/test.tp")
+
+(test "pattern matching Just"
+      (assert (equal?
+               (maybePlusFive (Just 10))
+               (Just 15))))
+
+(test "pattern matching Nothing"
+      (assert (equal?
+               (maybePlusFive (Nothing))
+               (Nothing))))
