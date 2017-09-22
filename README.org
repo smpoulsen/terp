@@ -21,7 +21,7 @@
        + Function exports
      + [[#type-system][Type system]]
        + HM type inference
-       + Higher-kinded types
+       + [[#higher-kinded-types][Higher-kinded types]]
        + Type definition/annotation
        + [[#pattern-matching][Pattern matching]] (currently limited to type constructors)
      + [[#elixirerlang-interop][Elixir/Erlang interop]]
@@ -213,7 +213,7 @@
    /Binding and using a recursive, higher-order function:/
    [[file:media/repl_type_env.png]]
 *** Higher kinded types
-    Higher kinded types (a type parameterized by another type) can be defined using =data=:
+    Higher kinded types (types parameterized by another type) are defined using =data=:
     #+BEGIN_SRC racket
      (data (Maybe a) [Just a] [Nothing])
     #+END_SRC
@@ -279,7 +279,6 @@
      $ mix terp.run test.tp
      7
    #+END_SRC
-   * With =@debug= set to =true=, the results of the file evaluation are printed to stdout.
 ** REPL
    There's a basic repl using the mix task =mix terp.repl=.
 
