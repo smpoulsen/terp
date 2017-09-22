@@ -258,7 +258,7 @@
 
    There are currently a few important things to keep in mind:
    1) This is not yet thoroughly tested. There's a large surface area to test to make sure everything works as expected.
-   2) Type inference does not work for Elixir/Erlang functions. When writing functions that use Elixir/Erlang functions, type annotations should be provided for used functions. See =./examples/elixir_interop.tp= for examples/details.
+   2) Type inference does not work for Elixir/Erlang functions. When writing functions that use Elixir/Erlang functions, type annotations should be provided for used functions. See [[./examples/elixir_interop.tp][./examples/elixir_interop.tp]] for examples/details.
    3) The full module and function names must be provided.
    4) Elixir and Erlang functions aren't curried.
 ** File evaluation
@@ -296,7 +296,7 @@
 
    =prelude/test.tp= exports the functions =test=, =assert=, and =refute=. See the documentation in [[https://github.com/tpoulsen/terp/blob/add-testing-features/prelude/test/runner.tp][prelude/test/runner.tp]] for more information.
    #+BEGIN_SRC racket
-     (type test (-> String (-> a a)))
+     (type test (-> String (-> Bool Bool)))
 
      (type assert (-> Bool Bool))
 
