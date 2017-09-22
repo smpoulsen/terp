@@ -25,6 +25,7 @@
        + Pattern matching (currently limited to type constructors)
      + Tooling
        + Testing utilities
+     + Elixir/Erlang interop
 
    Additional examples can be found in the [[https://github.com/tpoulsen/terp/tree/master/examples][examples]] directory.
 * Usage
@@ -223,6 +224,32 @@
      (maybePlusFive (Nothing))
      ;; Nothing
    #+END_SRC
+** Using Elixir/Erlang functions
+   Elixir and Erlang functions can be used by prefixing them with a =:=, e.g:
+   #+BEGIN_SRC racket
+     ;; Using Elixir functions directly:
+     (:Enum.map '(1 2 3 4 5) (lambda (x) (* x x)))
+     ;; '(1 4 9 16 25)
+
+     ;; Calling Elixir's uppercase function:
+     (:String.upcase "asdf")
+     ;; "ASDF"
+
+     ;; Calling Erlang's uppercase function:
+     (:string.uppercase "asdf")
+     ;; "ASDF"
+
+     ;; Writing and using a function that uses an Elixir function:
+     (defn square (xs)
+       (:Enum.map xs (lambda (x) (* x x))))
+     (square '(1 2 3 4 5))
+     ;; '(1 4 9 16 25)
+   #+END_SRC
+   There are currently a few important things to keep in mind:
+   1) This is not yet thoroughly tested. There's a large surface area to test to make sure everything works as expected.
+   2) Type inference does not work for Elixir/Erlang functions.
+      2a) When writing functions using them, type annotations should be provided for them. See =./examples/elixir_interop.tp= for examples/details.
+   3) The full module and function names must be provided.
 ** Evaluating a file:
    There's a mix task (=mix terp.run $FILENAME=) to evaluate a file:
 

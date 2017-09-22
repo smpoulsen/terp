@@ -60,7 +60,7 @@ defmodule Terp.Types.TypeEvaluator do
         {:ok, {%{}, t}}
       :__type ->
         [fn_name | [type_info | []]] = children
-        Annotation.annotate_type(fn_name.node, type_info.node)
+        Annotation.annotate_type(fn_name, type_info.node)
       x when is_integer(x) ->
         {:ok, {null_substitution(), Types.int()}}
       x when is_boolean(x) ->
@@ -276,6 +276,7 @@ defmodule Terp.Types.TypeEvaluator do
             end
           :__apply ->
             # applying a lambda
+            # why does this not work with infer_application/3?
             tv = TypeVars.fresh()
             with {:ok, {s1, t1}} <- infer(operator, type_env),
                  {:ok, {_type_env, {s2, ts}}} <- infer_operands(operands, apply_sub(s1, type_env)),
@@ -292,29 +293,37 @@ defmodule Terp.Types.TypeEvaluator do
           :__provide ->
             # TODO filter our provide nodes
             {:ok, {null_substitution(), TypeVars.fresh()}}
+          :__beam ->
+            fn_name = operator.children
+            |> Enum.map(&(&1.node))
+            |> Enum.join()
+
+            infer_application(fn_name, operands, type_env)
           _ ->
-            {s1, t1} = case lookup(type_env, operator.node) do
-                         {:ok, {s, t}} ->
-                           {s, t}
-                         {:error, _} ->
-                           {null_substitution(), TypeVars.fresh()}
-                       end
-            tv = TypeVars.fresh()
-            with {:ok, {_type_env, {s2, ts}}} <- infer_operands(operands, apply_sub(s1, type_env)),
-                 arrows = build_up_arrows(Enum.reverse([tv | ts])),
-                 {:ok, s3} <- unify(apply_sub(s2, t1), arrows) do
-              composed_substitution = compose(s3, compose(s2, s1))
-              {:ok, {composed_substitution, apply_sub(s3, tv)}}
-            else
-              {:error, e} ->
-                {:error, e}
-              %Error{} = error ->
-                Error.evaluating_lens
-                |> Focus.over(error, fn x -> Map.put(x, :expr, operands) end)
-            end
+            infer_application(operator.node, operands, type_env)
         end
       _ ->
         lookup(type_env, node)
+    end
+  end
+
+  @doc """
+  Infers function application.
+  """
+  def infer_application(operator, operands, type_env) do
+    tv = TypeVars.fresh()
+    with {:ok, {s1, t1}} <- lookup(type_env, operator),
+         {:ok, {_type_env, {s2, ts}}} <- infer_operands(operands, apply_sub(s1, type_env)),
+           arrows = build_up_arrows(Enum.reverse([tv | ts])),
+         {:ok, s3} <- unify(apply_sub(s2, t1), arrows) do
+      composed_substitution = compose(s3, compose(s2, s1))
+      {:ok, {composed_substitution, apply_sub(s3, tv)}}
+    else
+      {:error, e} ->
+        {:error, e}
+      %Error{} = error ->
+        Error.evaluating_lens
+        |> Focus.over(error, fn x -> Map.put(x, :expr, operands) end)
     end
   end
 

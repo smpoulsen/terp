@@ -1,0 +1,8 @@
+(require "examples/elixir_interop.tp")
+(require "prelude/test.tp")
+
+;; Tests Elixir interop.
+(test "reverse-squares"
+      (assert (equal?
+               (reverse-squares '(1 2 3 4 5))
+               '(25 16 9 4 1))))
