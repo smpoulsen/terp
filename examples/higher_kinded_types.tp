@@ -1,3 +1,5 @@
+(provide Maybe
+         maybePlusFive)
 ;; Defining a new type, Maybe
 (data (Maybe a) [Just a] [Nothing])
 

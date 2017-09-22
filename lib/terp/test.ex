@@ -12,11 +12,16 @@ defmodule Terp.Test do
     with {:ok, files} <- File.ls(path) do
       Enum.reduce(files, %{tests: 0, failures: 0}, fn
         (file, %{tests: t1, failures: f1} = state) ->
-        if String.ends_with?(file, "_test.tp") do
-          %{tests: t2, failures: f2} = run_tests("#{path}/#{file}")
-          %{tests: t1 + t2, failures: f1 + f2}
+        full_path = "#{path}/#{file}"
+        if File.dir?(full_path) do
+          test_dir(full_path)
         else
-          state
+          if String.ends_with?(file, "_test.tp") do
+            %{tests: t2, failures: f2} = run_tests(full_path)
+            %{tests: t1 + t2, failures: f1 + f2}
+          else
+            state
+          end
         end
       end)
     end
@@ -48,26 +53,35 @@ defmodule Terp.Test do
   end
 
   def run_test(expr, {state, env}) do
-    res = Terp.eval_tree(expr, env)
-    case res do
-      {:ok, {:environment, environment}} ->
-        # Environment was updated
-        {state, environment}
-      {:ok, {:evaluated, false, environment}} ->
-        # Assertion made and evaluated false
+    with {:ok, _type} <- Types.type_check_ast(List.wrap(expr)),
+         res <- Terp.eval_tree(expr, env) do
+      case res do
+        {:ok, {:environment, environment}} ->
+          # Environment was updated
+          {state, environment}
+        {:ok, {:evaluated, false, environment}} ->
+          # Assertion made and evaluated false
+          new_state = failed(expr, state)
+          {new_state, environment}
+        {:ok, {:evaluated, _res, environment}} ->
+          # Some evaluation occurred, but did not make an assertion
+          new_state = passed(expr, state)
+          {new_state, environment}
+        {:error, _e, environment} ->
+          # An error occurred, e.g. a type error.
+          Error.pretty_print_error(res)
+          new_state = failed(expr, state)
+          {new_state, environment}
+        %Error{} ->
+          # An error occurred, e.g. a type error.
+          Error.pretty_print_error(res)
+          new_state = failed(expr, state)
+          {new_state, env}
+      end
+    else
+      %Error{} = error ->
         new_state = failed(expr, state)
-        {new_state, environment}
-      {:ok, {:evaluated, _res, environment}} ->
-        # Some evaluation occurred, but did not make an assertion
-        new_state = passed(expr, state)
-        {new_state, environment}
-      {:error, _e, environment} ->
-        # An error occurred, e.g. a type error.
-        new_state = failed(expr, state)
-        {new_state, environment}
-      %Error{} ->
-        # An error occurred, e.g. a type error.
-        new_state = failed(expr, state)
+        Error.pretty_print_error(error)
         {new_state, env}
     end
   end

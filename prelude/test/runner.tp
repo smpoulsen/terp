@@ -11,6 +11,6 @@
 ;; Usage:
 ;;     (test "2 plus 2 is 4" (equal? #t (equal? (+ 2 2) 4)))
 ;;     -> true
-(type test (-> String (-> a a)))
+(type test (-> String (-> Bool Bool)))
 (defn test (name block)
   block)
