@@ -1,21 +1,21 @@
 * Terp
 
-   =terp= is a toy language that falls somewhere between an ML and a lisp.
+   ~terp~ is a toy language that falls somewhere between an ML and a lisp.
 
    Currently implemented:
      + Core language features
        + Integers
        + Strings
        + Atoms
-       + Booleans (=#t=, =#f=)
+       + Booleans (~#t~, ~#f~)
        + [[#comments][Comments]]
        + [[#conditionals][Conditionals]]
-         + =if then else=
-         + =cond=
-       + [[#function-definition][Function definition]] (=lambda=, =defn=)
-       + [[#recursive-functions][Recursive functions]] (=letrec=, =defrec=)
-       + [[#variable-binding][Variable binding]] (=let=)
-         + locally scoped variable binding (=let-values=)
+         + ~if then else~
+         + ~cond~
+       + [[#function-definition][Function definition]] (~lambda~, ~defn~)
+       + [[#recursive-functions][Recursive functions]] (~letrec~, ~defrec~)
+       + [[#variable-binding][Variable binding]] (~let~)
+         + locally scoped variable binding (~let-values~)
      + [[#module-system][Module system]]
        + Module imports
        + Function exports
@@ -34,14 +34,14 @@
    Additional examples can be found in the [[https://github.com/tpoulsen/terp/tree/master/examples][examples]] directory.
 * Usage
 ** Comments
-   Comments are single-line and begin with =;;=:
+   Comments are single-line and begin with ~;;~:
    #+BEGIN_SRC racket
      ;; A comment
      (+ 5 1)
    #+END_SRC
 
 ** Variable binding
-   Variables are bound using =let=:
+   Variables are bound using ~let~:
     #+BEGIN_SRC racket
       (let x 5)
 
@@ -51,7 +51,7 @@
       ;; 5
     #+END_SRC
 
-    Local variables can be bound with =let-values=:
+    Local variables can be bound with ~let-values~:
     #+BEGIN_SRC racket
       (let-values
           ([x 5]
@@ -67,7 +67,7 @@
       ;; 6
     #+END_SRC
 ** Conditionals
-   =if= expressions must include a value for both the true and false case (an =if= and an =else=).
+   ~if~ expressions must include a value for both the true and false case (an ~if~ and an ~else~).
    #+BEGIN_SRC racket
      (if #t 5 10)
      ;; 5
@@ -77,8 +77,8 @@
      ;; 25
    #+END_SRC
 
-   =cond= can be used to test multiple possible conditions without chaining if/elses:
-   =cond= takes conditions and their outcomes should their case be true; the last condition should be a default.
+   ~cond~ can be used to test multiple possible conditions without chaining if/elses:
+   ~cond~ takes conditions and their outcomes should their case be true; the last condition should be a default.
    #+BEGIN_SRC racket
      (let sound
          (lambda (animal)
@@ -93,7 +93,7 @@
      ;; "bark"
    #+END_SRC
 ** Function definition
-   Functions are defined using =lambda=; they can be bound to a name with =let=.
+   Functions are defined using ~lambda~; they can be bound to a name with ~let~.
 
    The arguments must be wrapped in parens. The body of the function can be bare if it does not have to be evaluated (e.g. returns a single value). Otherwise, the body must be parenthesized as well.
    #+BEGIN_SRC racket
@@ -140,12 +140,12 @@
      ;; 8
    #+END_SRC
 
-   Functions can also be defined using =defn=; this is syntactic sugar for =let/lambda= definition:
+   Functions can also be defined using ~defn~; this is syntactic sugar for ~let/lambda~ definition:
    #+BEGIN_SRC racket
      (defn add (x y) (+ x y))
    #+END_SRC
 ** Recursive functions
-   Recursive functions are defined with =letrec=.
+   Recursive functions are defined with ~letrec~.
    The base case(s) and recursive case(s) must be provided or the function will not terminate.
     #+BEGIN_SRC racket
       (letrec factorial
@@ -158,7 +158,7 @@
       ;; 120
     #+END_SRC
 
-    Recursive functions can also be defined using =defrec=; this is syntactic sugar for =letrec/lambda=:
+    Recursive functions can also be defined using ~defrec~; this is syntactic sugar for ~letrec/lambda~:
     #+BEGIN_SRC racket
       (defrec factorial (n)
           (if (equal? n 0)
@@ -170,20 +170,22 @@
     #+END_SRC
 ** Module system
    Modules can be imported in to other modules to make their functions/defined expressions available.
-   Modules must specify the functions that they export or they cannot be used in other modules.
+   Modules must specify the functions that they export (via ~provide~) or they cannot be used in other modules.
 
-   Syntax is =(require ...)=, where =...= is a sequence of relative filepaths to the imported module.
+   To import a module use ~(require ...)~, where ~...~ is a sequence of module names, at the top of the file.
+   Module names are derived from their file-path relative to the project root directory (e.g. a file at ".examples/factorial.tp" has the module name ~examples/factorial~).
+
    #+BEGIN_SRC racket
-     (require "examples/factorial.tp"
-              "examples/identity.tp")
+     (require examples/factorial
+              examples/identity)
 
      (factorial (identity 10))
    #+END_SRC
    
-   With [[https://github.com/tpoulsen/terp/blob/master/examples/factorial.tp]["examples/factorial.tp"]] and [[https://github.com/tpoulsen/terp/blob/master/examples/identity.tp]["examples/identity.tp"]] defined as in the examples directory.
+   With [[./examples/factorial.tp][examples/factorial]] and [[./examples/identity.tp][examples/identity]] defined as in the examples directory.
 
    To use functions from an imported module, the module that is imported must explicitly export functions it wants to make available externally.
-   The syntax is =(provide ...)= where =...= is a sequence of function names.
+   The syntax is ~(provide ...)~ where ~...~ is a sequence of function names.
    #+BEGIN_SRC racket
      ;; Module only exports factorial; identity is private.
 
@@ -202,7 +204,7 @@
    Terp implements Hindley-Milner type inference.
 
    Expressions are type checked prior to evaluation. If an expression fails the type check, it won't be evaluated.
-   To see the inferred type for an expression in the REPL, prefix it with =:t= or =:type=. 
+   To see the inferred type for an expression in the REPL, prefix it with ~:t~ or ~:type~. 
 
    A type environment is maintained during evaluation and REPL sessions; this environment remembers the types for functions and variables.
 
@@ -213,20 +215,24 @@
    /Binding and using a recursive, higher-order function:/
    [[file:media/repl_type_env.png]]
 *** Higher kinded types
-    Higher kinded types (types parameterized by another type) are defined using =data=:
+    Higher kinded types (types parameterized by another type) are defined using ~data~:
     #+BEGIN_SRC racket
      (data (Maybe a) [Just a] [Nothing])
     #+END_SRC
-    This defines a type, =Maybe=, that is parameterized by another type (represented by the type variable =a=). Concrete examples could be =Maybe Int= or =Maybe String=.
-    Using =Maybe Int= as an example, values of the =Maybe Int= type can be either =Just Int= or =Nothing=. This can be used to work with values that can potentially be non-existent. 
+    This defines a type, ~Maybe~, that is parameterized by another type (represented by the type variable ~a~). Concrete examples could be ~Maybe Int~ or ~Maybe String~.
+    Using ~Maybe Int~ as an example, values of the ~Maybe Int~ type can be either ~Just Int~ or ~Nothing~. This can be used to work with values that can potentially be non-existent. 
 
-    Defining a type with =data= also defines constructor functions for the value constructors of the type (=Just= and =Nothing= in this example).
+    Defining a type with ~data~ also defines constructor functions for the value constructors of the type (~Just~ and ~Nothing~ in this example).
 ** Pattern matching
+   ~match~ allows you to pattern match against the value constructors for a type. In this example, ~Maybe~ is a type with the value constructors ~Just~ and ~Nothing~. With ~match~, you can write a function that takes a value of type ~Maybe~ and nicely handles values that are either ~Just~ or ~Nothing~:
    #+BEGIN_SRC racket
      (data (Maybe a) [Just a] [Nothing])
 
      (type maybePlusFive (-> [Maybe Int] [Maybe Int]))
-     (defn maybePlusFive (x) (match (x) [(Just y) (Just (+ 5 y))] [(Nothing) (Nothing)]))
+     (defn maybePlusFive (x)
+       (match (x)
+         [(Just y) (Just (+ 5 y))]
+         [(Nothing) (Nothing)]))
 
      (maybePlusFive (Just 5))
      ;; Just 10
@@ -234,7 +240,7 @@
      ;; Nothing
    #+END_SRC
 ** Elixir/Erlang interop
-   Elixir and Erlang functions can be used by prefixing them with a =:=, e.g:
+   Elixir and Erlang functions can be used by prefixing them with a ~:~, e.g:
    #+BEGIN_SRC racket
      ;; Using Elixir functions directly:
      (:Enum.map '(1 2 3 4 5) (lambda (x) (* x x)))
@@ -262,9 +268,9 @@
    3) The full module and function names must be provided.
    4) Elixir and Erlang functions aren't curried.
 ** File evaluation
-   There's a mix task (=mix terp.run $FILENAME=) to evaluate a file:
+   There's a mix task (~mix terp.run $FILENAME~) to evaluate a file:
 
-   Filename =test.tp= (=terp= files must end in =.tp=):
+   Filename ~test.tp~ (~terp~ files must end in ~.tp~):
    #+BEGIN_SRC racket
      (let identity
          (lambda '(x) x))
@@ -280,20 +286,20 @@
      7
    #+END_SRC
 ** REPL
-   There's a basic repl using the mix task =mix terp.repl=.
+   There's a basic repl using the mix task ~mix terp.repl~.
 
    Currently allows expression evaluation (including module imports). History/scrollback not currently implemented.
    [[file:media/repl_demo.gif]] 
 
-   As a workaround for history/scrollback in the repl, start it as =iex -S mix terp.repl=. The IEx shell provides those features while still running the terp repl.
+   As a workaround for history/scrollback in the repl, start it as ~iex -S mix terp.repl~. The IEx shell provides those features while still running the terp repl.
 ** Test utilities
-   There's a mix task (=mix terp.test [$FILENAME | $DIRECTORY]=) to find and run tests in the given file(s)/directories.
+   There's a mix task (~mix terp.test [$FILENAME | $DIRECTORY]~) to find and run tests in the given file(s)/directories.
 
-   Test files *must* end in =_test.tp= or they will not be run.
+   Test files *must* end in ~_test.tp~ or they will not be run.
 
-   If a directory is provided to =mix terp.test=, its subdirectories are recursively checked for files to test.
+   If a directory is provided to ~mix terp.test~, its subdirectories are recursively checked for files to test.
 
-   =prelude/test.tp= exports the functions =test=, =assert=, and =refute=. See the documentation in [[https://github.com/tpoulsen/terp/blob/add-testing-features/prelude/test/runner.tp][prelude/test/runner.tp]] for more information.
+   ~prelude/test.tp~ exports the functions ~test~, ~assert~, and ~refute~. See the documentation in [[https://github.com/tpoulsen/terp/blob/add-testing-features/prelude/test/runner.tp][prelude/test/runner.tp]] for more information.
    #+BEGIN_SRC racket
      (type test (-> String (-> Bool Bool)))
 
@@ -303,7 +309,7 @@
    #+END_SRC
 
 **** Running tests
-     A symbol [✓ | x] and the name provided to =test= are printed to the console; they are color coded green/red based on pass/fail respectively.
+     A symbol [✓ | x] and the name provided to ~test~ are printed to the console; they are color coded green/red based on pass/fail respectively.
 
      The time spent running tests and a count of total tests and total failures are also printed.
 

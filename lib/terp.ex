@@ -202,7 +202,9 @@ defmodule Terp do
           :__lambda ->
             Function.lambda(operands, env)
           :__require ->
-            ModuleSystem.require_modules(Enum.map(operands, &eval_expr(&1, env)), env)
+            operands
+            |> Enum.map(&(&1.node))
+            |> ModuleSystem.require_modules(env)
           :__provide ->
             :noop
           :"__+" ->

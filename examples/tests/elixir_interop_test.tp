@@ -1,5 +1,5 @@
-(require "examples/elixir_interop.tp")
-(require "prelude/test.tp")
+(require examples/elixir_interop
+         prelude/test)
 
 ;; Tests Elixir interop.
 (test "reverse-squares"

@@ -1,4 +1,4 @@
-(require "prelude/function.tp")
+(require prelude/function)
 
 (let add
     (lambda (x y) (+ x y)))
