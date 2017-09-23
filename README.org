@@ -174,8 +174,8 @@
 
    Syntax is =(require ...)=, where =...= is a sequence of relative filepaths to the imported module.
    #+BEGIN_SRC racket
-     (require "examples/factorial.tp"
-              "examples/identity.tp")
+     (require examples/factorial
+              examples/identity)
 
      (factorial (identity 10))
    #+END_SRC

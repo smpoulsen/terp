@@ -1,8 +1,8 @@
 ;; Examples of writing tests.
 ;; Test files must end in `_test.tp`
 
-(require "prelude/test.tp")
-(require "prelude/list.tp")
+(require prelude/test
+         prelude/list)
 
 ;; Some basic example assertions/refutations:
 (test "true is true"
@@ -18,7 +18,9 @@
 ;; uses functions/variables bound in the global scope.
 (defn plus2 (x)
   (+ 2 x))
+
 (let ls '(1 2 3 4 5))
+
 (test "mapping plus2 with external variables"
   (assert (equal?
           (map plus2 ls)

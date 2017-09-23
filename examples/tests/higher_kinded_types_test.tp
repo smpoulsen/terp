@@ -1,5 +1,5 @@
-(require "examples/higher_kinded_types.tp")
-(require "prelude/test.tp")
+(require examples/higher_kinded_types
+         prelude/test)
 
 (test "pattern matching Just"
       (assert (equal?

@@ -32,7 +32,7 @@ defmodule Terp.ModuleSystem do
     {{:ok, {:imported, Enum.join(stringified_imports, "\n")}}, env}
   end
   def require_modules([filename | filenames], env, imports) do
-    with {:ok, module} <- File.read(filename),
+    with {:ok, module} <- File.read(filename <> ".tp"),
          {:ok, _types} = Types.type_check(module),
          ast = module |> Parser.parse() |> Enum.flat_map(&AST.to_tree/1),
          {_res, environment} = Terp.run_eval(ast, env) do

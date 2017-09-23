@@ -1,4 +1,7 @@
 defmodule Terp.Types.TypeEvaluator do
+  @moduledoc """
+  The primary type inference module.
+  """
   alias Terp.Error
   alias Terp.Types.Types
   alias Terp.Types.Annotation
@@ -111,7 +114,8 @@ defmodule Terp.Types.TypeEvaluator do
                 end
             end
           ts ->
-            type_strings = Enum.map(ts, &(to_string(&1)))
+            type_strings = ts
+            |> Enum.map(&(to_string(&1)))
             |> Enum.join(", ")
             {:error, {:type, "Unable to unify list types: #{type_strings}"}}
         end
@@ -492,7 +496,8 @@ defmodule Terp.Types.TypeEvaluator do
 
   @spec compose(substitution, substitution) :: substitution
   def compose(sub1, sub2) do
-    Map.merge(sub2, sub1, fn _k, v1, _v2 -> v1 end)
+    sub2
+    |> Map.merge(sub1, fn _k, v1, _v2 -> v1 end)
     |> Enum.map(fn {t_var, t_scheme} -> {t_var, apply_sub(sub1, t_scheme)} end)
     |> Map.new()
   end

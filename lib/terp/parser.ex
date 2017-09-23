@@ -246,6 +246,7 @@ defmodule Terp.Parser do
       string_to_atom(ignore(char(":")) |> word()),
       both(hyphenated_word(), char("?"), &(&1 <> &2)),
       both(hyphenated_word(), char("!"), &(&1 <> &2)),
+      module_path(),
       hyphenated_word(),
       string_parser(),
       lazy(fn -> list_parser() end),
@@ -255,13 +256,11 @@ defmodule Terp.Parser do
   # BEAM terms, Elixir and Erlang expressions, should
   # be prefixed with a `:`.
   defp beam_term_parser() do
-    sequence([
-      ignore(
-        char(":")),
-      hyphenated_word(),
-      ignore(char(".")),
-      string_to_atom(hyphenated_word()),
-    ])
+    [ignore(char(":")),
+     hyphenated_word(),
+     ignore(char(".")),
+     string_to_atom(hyphenated_word())]
+    |> sequence()
     |> map(&{:__beam, &1})
   end
 
@@ -344,6 +343,12 @@ defmodule Terp.Parser do
                 _ -> true end),
       fn x -> {:__comment, x} end
     )
+  end
+
+  defp module_path() do
+    hyphenated_word()
+    |> sep_by1(char("/"))
+    |> map(&Enum.join(&1, "/"))
   end
 
   defp hyphenated_word() do
