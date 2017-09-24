@@ -24,24 +24,28 @@ defmodule Terp.TypeSystem do
   @spec check_ast([RoseTree.t]) :: {:ok, [Types.t]} | {:error, any} | Error.t
   def check_ast(ast) do
     TypeEnvironment.start_if_unstarted()
+
     res = ast
-    |> Enum.reduce({:ok, []},
-    fn tree, {:ok, types} ->
-      case TypeEvaluator.run_infer(tree) do
-        {:error, _} = e ->
-          e
-        %Error{} = e ->
-          e
-        {:ok, type} ->
-          {:ok, [type | types]}
-      end
-      (_tree, {:error, e}) -> {:error, e}
-      (_tree, %Error{} = e) -> e
-    end)
+    |> Enum.reduce({:ok, []}, &check_tree/2)
 
     case res do
-      {:ok, types} -> {:ok, Enum.reverse(types)}
-      error -> error
+      {:ok, types} ->
+        {:ok, Enum.reverse(types)}
+      error ->
+        error
     end
   end
+
+  # Checks an individual tree. If it type checks :ok, adds
+  # the type to the running list of types for the AST.
+  # Otherwise bails with the error.
+  defp check_tree(tree, {:ok, types}) do
+    case TypeEvaluator.run_infer(tree) do
+      {:ok, type} ->
+        {:ok, [type | types]}
+      error ->
+        error
+    end
+  end
+  defp check_tree(_tree, error), do: error
 end
