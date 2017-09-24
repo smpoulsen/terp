@@ -1,7 +1,7 @@
 defmodule Terp.TypeSystem.Annotation do
   alias Terp.Error
   alias Terp.TypeSystem.TypeEnvironment
-  alias Terp.TypeSystem.TypeEvaluator
+  alias Terp.TypeSystem.Evaluator
   alias Terp.TypeSystem.Type
 
   def annotate_type(%RoseTree{node: :__beam, children: children}, type_trees) do
@@ -42,7 +42,7 @@ defmodule Terp.TypeSystem.Annotation do
     end
   end
 
-  @spec reconcile_annotation(String.t | RoseTree.t, Type.t) :: {:ok, TypeEvaluator.scheme} | {:error, any()}
+  @spec reconcile_annotation(String.t | RoseTree.t, Type.t) :: {:ok, Evaluator.scheme} | {:error, any()}
   def reconcile_annotation(%{node: :__beam, children: children}, type) do
     children
     |> Enum.map(&(&1.node))
@@ -51,9 +51,9 @@ defmodule Terp.TypeSystem.Annotation do
   end
   def reconcile_annotation(fn_name, type) when is_bitstring(fn_name) do
     with {:ok, annotated_type} <- TypeEnvironment.lookup_annotation(fn_name),
-         {:ok, _sub} <- TypeEvaluator.unify(annotated_type, type) do
+         {:ok, _sub} <- Evaluator.unify(annotated_type, type) do
       # If annotated, check to see if the annotation matches the inferred type
-      {:ok, TypeEvaluator.generalize(%{}, annotated_type)}
+      {:ok, Evaluator.generalize(%{}, annotated_type)}
     else
       {:error, {:type, {:unification, %{expected: expected, received: actual}}}} ->
         {:error, {:type, {:annotation, %{expected: expected, actual: actual}}}}

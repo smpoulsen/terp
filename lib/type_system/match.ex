@@ -1,7 +1,7 @@
 defmodule Terp.TypeSystem.Match do
   alias Terp.Error
   alias Terp.TypeSystem.Type
-  alias Terp.TypeSystem.TypeEvaluator
+  alias Terp.TypeSystem.Evaluator
 
   @doc """
   Checks to see if all constructors for a type are present in the match.
@@ -47,8 +47,8 @@ defmodule Terp.TypeSystem.Match do
     # Infer the type of the match expression
     {s1, t1} = infer_expr_list(res_exprs, type_env)
     # Unify the variable's type and the match expression's type
-    {:ok, s2} = TypeEvaluator.unify(t, t1)
-    {:ok, {TypeEvaluator.compose(s, TypeEvaluator.compose(s1, s2)), t1}}
+    {:ok, s2} = Evaluator.unify(t, t1)
+    {:ok, {Evaluator.compose(s, Evaluator.compose(s1, s2)), t1}}
   end
 
   defp infer_expr_list(exprs, type_env) do
@@ -56,13 +56,13 @@ defmodule Terp.TypeSystem.Match do
     |> Enum.reduce({%{}, nil},
     fn (_expr, {:error, _} = e) -> e
       (expr, {subs, _res_types}) ->
-        {:ok, {s1, t1}} = case TypeEvaluator.infer(expr, type_env) do
+        {:ok, {s1, t1}} = case Evaluator.infer(expr, type_env) do
                             {:error, _} = error ->
                               error
                             x -> x
                           end
-        subbed_t1 = TypeEvaluator.apply_sub(subs, t1)
-        {TypeEvaluator.compose(s1, subs), subbed_t1}
+        subbed_t1 = Evaluator.apply_sub(subs, t1)
+        {Evaluator.compose(s1, subs), subbed_t1}
     end)
   end
 end

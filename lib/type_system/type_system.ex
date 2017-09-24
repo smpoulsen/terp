@@ -4,7 +4,7 @@ defmodule Terp.TypeSystem do
   """
   alias Terp.Error
   alias Terp.TypeSystem.Type
-  alias Terp.TypeSystem.TypeEvaluator
+  alias Terp.TypeSystem.Evaluator
   alias Terp.TypeSystem.TypeEnvironment
 
   @doc """
@@ -41,7 +41,7 @@ defmodule Terp.TypeSystem do
   # the type to the running list of types for the AST.
   # Otherwise bails with the error.
   defp check_tree(tree, {:ok, types}) do
-    case TypeEvaluator.run_infer(tree) do
+    case Evaluator.run_infer(tree) do
       {:ok, type} ->
         {:ok, [type | types]}
       error ->

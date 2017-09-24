@@ -1,4 +1,4 @@
-defmodule Terp.TypeSystem.TypeEvaluator do
+defmodule Terp.TypeSystem.Evaluator do
   @moduledoc """
   The primary type inference module.
   """

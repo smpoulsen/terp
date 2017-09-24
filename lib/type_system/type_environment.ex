@@ -5,7 +5,7 @@ defmodule Terp.TypeSystem.TypeEnvironment do
   alias __MODULE__
   alias RoseTree.Zipper
   alias Terp.TypeSystem.TypeVars
-  alias Terp.TypeSystem.TypeEvaluator
+  alias Terp.TypeSystem.Evaluator
 
   defstruct [inferred_types: %{}, annotated_types: %{}, type_defs: %{}]
 
@@ -96,7 +96,7 @@ defmodule Terp.TypeSystem.TypeEnvironment do
             nil ->
               {:ok, {%{}, TypeVars.fresh()}}
             x ->
-              {:ok, {%{}, TypeEvaluator.instantiate(TypeEvaluator.generalize(%{}, x))}}
+              {:ok, {%{}, Evaluator.instantiate(Evaluator.generalize(%{}, x))}}
           end
     {:reply, res, state}
   end

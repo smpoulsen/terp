@@ -1,4 +1,4 @@
-defmodule Terp.TypeSystem.Type.TypeEvaluatorTest do
+defmodule Terp.TypeSystem.EvaluatorTest do
   use ExUnit.Case
   alias Terp.TypeSystem
   alias Terp.TypeSystem.Type
