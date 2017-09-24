@@ -2,10 +2,9 @@ defmodule Terp.TypeSystem.EvaluatorTest do
   use ExUnit.Case
   alias Terp.TypeSystem
   alias Terp.TypeSystem.Type
-  alias Terp.TypeSystem.TypeEnvironment
 
   setup do
-    TypeEnvironment.start_link()
+    TypeSystem.start_environment()
     {:ok, %{}}
   end
 

@@ -1,10 +1,9 @@
 defmodule Terp.TypeSystem.MatchTest do
   use ExUnit.Case
   alias Terp.TypeSystem
-  alias Terp.TypeSystem.TypeEnvironment
 
   setup do
-    TypeEnvironment.start_link()
+    TypeSystem.start_environment()
     {:ok, %{}}
   end
 

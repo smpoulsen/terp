@@ -1,6 +1,6 @@
 defmodule Terp.TypeSystem.Annotation do
   alias Terp.Error
-  alias Terp.TypeSystem.TypeEnvironment
+  alias Terp.TypeSystem.Environment
   alias Terp.TypeSystem.Evaluator
   alias Terp.TypeSystem.Type
 
@@ -18,7 +18,7 @@ defmodule Terp.TypeSystem.Annotation do
     if annotated?(name) do
       reconcile_annotation(name, t)
     else
-      TypeEnvironment.annotate(name, t)
+      Environment.annotate(name, t)
       {:ok, {%{}, t}}
     end
   end
@@ -35,7 +35,7 @@ defmodule Terp.TypeSystem.Annotation do
   @spec annotated?(RoseTree.t) :: boolean()
   def annotated?(name) do
     annotation = name
-    |> TypeEnvironment.lookup_annotation()
+    |> Environment.lookup_annotation()
     case annotation do
       {:ok, _} -> true
       {:error, _} -> false
@@ -50,7 +50,7 @@ defmodule Terp.TypeSystem.Annotation do
     |> reconcile_annotation(type)
   end
   def reconcile_annotation(fn_name, type) when is_bitstring(fn_name) do
-    with {:ok, annotated_type} <- TypeEnvironment.lookup_annotation(fn_name),
+    with {:ok, annotated_type} <- Environment.lookup_annotation(fn_name),
          {:ok, _sub} <- Evaluator.unify(annotated_type, type) do
       # If annotated, check to see if the annotation matches the inferred type
       {:ok, Evaluator.generalize(%{}, annotated_type)}

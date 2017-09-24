@@ -6,7 +6,7 @@ defmodule Terp.TypeSystem.Evaluator do
   alias Terp.TypeSystem.Type
   alias Terp.TypeSystem.Annotation
   alias Terp.TypeSystem.TypeVars
-  alias Terp.TypeSystem.TypeEnvironment
+  alias Terp.TypeSystem.Environment
   alias Terp.TypeSystem.Match
 
   @type scheme :: {[Type.t], Type.t}
@@ -34,7 +34,7 @@ defmodule Terp.TypeSystem.Evaluator do
               error
             _ ->
               type_scheme = generalize(%{}, type)
-              TypeEnvironment.extend_environment(expr, type)
+              Environment.extend_environment(expr, type)
               {:ok, substitute_type_vars(type_scheme)}
           end
         end
@@ -59,7 +59,7 @@ defmodule Terp.TypeSystem.Evaluator do
         {name, vars} = format_constructor(type_constructor.node)
         data_constructors = Enum.map(data_constructors.node, &format_constructor/1)
         t = Type.sum_type(name, vars, data_constructors)
-        TypeEnvironment.define_type(name, t)
+        Environment.define_type(name, t)
         {:ok, {%{}, t}}
       :__type ->
         [fn_name | [type_info | []]] = children
@@ -455,7 +455,7 @@ defmodule Terp.TypeSystem.Evaluator do
       nil ->
         case type_for_constructor(var) do
           {:error, _e} ->
-            TypeEnvironment.lookup(var)
+            Environment.lookup(var)
           {:ok, t} ->
             {:ok, {null_substitution(), t}}
         end

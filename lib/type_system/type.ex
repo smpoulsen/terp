@@ -10,7 +10,7 @@ defmodule Terp.TypeSystem.Type do
 
   """
   alias __MODULE__
-  alias Terp.TypeSystem.TypeEnvironment
+  alias Terp.TypeSystem.Environment
 
   defstruct [:constructor, :t, :vars, :type_constructor]
 
@@ -82,7 +82,7 @@ defmodule Terp.TypeSystem.Type do
   end
 
   def constructor_for_type(name) do
-    type = TypeEnvironment.contents.type_defs
+    type = Environment.contents.type_defs
     |> Enum.find(fn {_k, v} ->
       Enum.member?(Enum.map(v.t, &(&1.constructor)), name)
     end)
@@ -118,7 +118,7 @@ defmodule Terp.TypeSystem.Type do
   # to_type/2
   def to_type("List", x), do: list(to_type(x))
   def to_type(constructor, vars) do
-    case TypeEnvironment.lookup_def(constructor) do
+    case Environment.lookup_def(constructor) do
       {:error, e} ->
         {:error, e}
       {:ok, t} ->

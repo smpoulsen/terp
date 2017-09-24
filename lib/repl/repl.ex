@@ -3,12 +3,11 @@ defmodule Terp.Repl do
   A REPL (read-eval-print-loop) for terp.
   """
   alias Terp.TypeSystem
-  alias Terp.TypeSystem.TypeEnvironment
   alias Terp.Error
 
   def init() do
     # Starts a persisted type environment for the current session.
-    TypeEnvironment.start_link()
+    TypeSystem.start_environment()
     loop(fn (z) -> {:error, {:unbound, z}} end)
   end
 

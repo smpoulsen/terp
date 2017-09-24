@@ -5,7 +5,7 @@ defmodule Terp.TypeSystem do
   alias Terp.Error
   alias Terp.TypeSystem.Type
   alias Terp.TypeSystem.Evaluator
-  alias Terp.TypeSystem.TypeEnvironment
+  alias Terp.TypeSystem.Environment
 
   @doc """
   Run the type evaluator for a given piece of source code.
@@ -24,7 +24,7 @@ defmodule Terp.TypeSystem do
   """
   @spec check_ast([RoseTree.t]) :: {:ok, [Type.t]} | {:error, any} | Error.t
   def check_ast(ast) do
-    TypeEnvironment.start_if_unstarted()
+    start_environment()
 
     res = ast
     |> Enum.reduce({:ok, []}, &check_tree/2)
@@ -49,4 +49,9 @@ defmodule Terp.TypeSystem do
     end
   end
   defp check_tree(_tree, error), do: error
+
+  @doc """
+  Starts the GenServer for the type environment if it is not already initialized.
+  """
+  def start_environment(), do: Environment.start_if_unstarted()
 end
