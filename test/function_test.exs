@@ -1,4 +1,4 @@
-defmodule Terp.FunctionTest do
+defmodule Terp.Evaluate.FunctionTest do
   use ExUnit.Case
-  doctest Terp.Function
+  doctest Terp.Evaluate.Function
 end

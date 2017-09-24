@@ -1,4 +1,4 @@
-defmodule Terp.Environment do
+defmodule Terp.Evaluate.Environment do
   @moduledoc """
   Functionality for updating the environment in the interpreter.
   """

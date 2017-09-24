@@ -1,4 +1,4 @@
-defmodule Terp.BooleanTest do
+defmodule Terp.Evaluate.BooleanTest do
   use ExUnit.Case
-  doctest Terp.Boolean
+  doctest Terp.Evaluate.Boolean
 end

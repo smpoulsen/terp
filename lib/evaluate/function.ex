@@ -1,4 +1,4 @@
-defmodule Terp.Function do
+defmodule Terp.Evaluate.Function do
   @moduledoc """
   Function/anonymous function definition and application.
 
@@ -46,12 +46,12 @@ defmodule Terp.Function do
     apply_lambda(func.(arg), args, env)
   end
 
-  @doc"""
+  @doc """
   Y = λf.(λx.f (x x))(λx.f (x x))
 
   ## Examples
 
-      iex> Terp.Function.y(fn f -> fn 0 -> 1; x -> x * f.(x - 1) end end).(5)
+      iex> Terp.Evaluate.Function.y(fn f -> fn 0 -> 1; x -> x * f.(x - 1) end end).(5)
       120
   """
   def y(f) do

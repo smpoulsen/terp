@@ -1,4 +1,4 @@
-defmodule Terp.List do
+defmodule Terp.Evaluate.List do
   @moduledoc """
   Provides functionality for working with lists.
   """

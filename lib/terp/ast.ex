@@ -1,6 +1,6 @@
 defmodule Terp.AST do
   @moduledoc """
-  Interface for working with the Terp AST.
+  Interface for working with the Terp.AST.
   """
 
   @doc """

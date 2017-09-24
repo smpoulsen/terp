@@ -1,4 +1,4 @@
-defmodule Terp.Arithmetic do
+defmodule Terp.Evaluate.Arithmetic do
   @moduledoc """
   Arithmetic operations.
   """
@@ -8,7 +8,7 @@ defmodule Terp.Arithmetic do
 
   ## Examples
 
-      iex> Terp.Arithmetic.add([1, 2, 3, 4])
+      iex> Terp.Evaluate.Arithmetic.add([1, 2, 3, 4])
       10
   """
   def add(ns) do
@@ -20,7 +20,7 @@ defmodule Terp.Arithmetic do
 
   ## Examples
 
-      iex> Terp.Arithmetic.multiply([1, 2, 3, 4])
+      iex> Terp.Evaluate.Arithmetic.multiply([1, 2, 3, 4])
       24
   """
   def multiply(ns) do
@@ -35,7 +35,7 @@ defmodule Terp.Arithmetic do
 
   ## Examples
 
-      iex> Terp.Arithmetic.subtract([2, 3, 5, 7])
+      iex> Terp.Evaluate.Arithmetic.subtract([2, 3, 5, 7])
       -13
   """
   def subtract(ns) do
@@ -56,7 +56,7 @@ defmodule Terp.Arithmetic do
 
   ## Examples
 
-      iex> Terp.Arithmetic.divide([2, 3, 5, 4])
+      iex> Terp.Evaluate.Arithmetic.divide([2, 3, 5, 4])
       0.03333333333333333
   """
   def divide(ns) do

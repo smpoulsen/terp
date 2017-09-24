@@ -4,15 +4,16 @@ defmodule Terp do
   """
   alias RoseTree.Zipper
   alias Terp.AST
-  alias Terp.Arithmetic
-  alias Terp.Boolean
-  alias Terp.Environment
   alias Terp.Error
-  alias Terp.Function
-  alias Terp.Match
   alias Terp.ModuleSystem
   alias Terp.Parser
   alias Terp.Value
+  alias Terp.Evaluate.Arithmetic
+  alias Terp.Evaluate.Boolean
+  alias Terp.Evaluate.Environment
+  alias Terp.Evaluate.Function
+  alias Terp.Evaluate.List, as: TerpList
+  alias Terp.Evaluate.Match
 
   @debug false
 
@@ -216,15 +217,15 @@ defmodule Terp do
           :__div ->
             Arithmetic.divide(Enum.map(operands, &eval_expr(&1, env)))
           :__equal? ->
-            Terp.Boolean.equal?(operands, env)
+            Boolean.equal?(operands, env)
           :__cons ->
-            Terp.List.cons(operands, env)
+            TerpList.cons(operands, env)
           :__car ->
-            Terp.List.car(operands, env)
+            TerpList.car(operands, env)
           :__cdr ->
-            Terp.List.cdr(operands, env)
+            TerpList.cdr(operands, env)
           :__empty? ->
-            Terp.List.empty?(operands, env)
+            TerpList.empty?(operands, env)
           x when is_function(x) ->
             Function.apply_lambda(operator, Enum.map(operands, &eval_expr(&1, env)), env)
           {:error, reason} ->

@@ -1,4 +1,4 @@
-defmodule Terp.Match do
+defmodule Terp.Evaluate.Match do
   @moduledoc """
   Pattern matching functionality.
   """

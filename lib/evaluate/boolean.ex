@@ -1,4 +1,4 @@
-defmodule Terp.Boolean do
+defmodule Terp.Evaluate.Boolean do
   @moduledoc """
   Boolean values and conditional evaluation.
   """
@@ -8,7 +8,7 @@ defmodule Terp.Boolean do
 
   ## Examples
 
-      iex> Terp.Boolean.t
+      iex> Terp.Evaluate.Boolean.t
       true
   """
   def t(), do: true
@@ -18,7 +18,7 @@ defmodule Terp.Boolean do
 
   ## Examples
 
-      iex> Terp.Boolean.f
+      iex> Terp.Evaluate.Boolean.f
       false
   """
   def f(), do: false
@@ -29,11 +29,11 @@ defmodule Terp.Boolean do
   ## Examples
 
       iex> [RoseTree.new(true), RoseTree.new(5), RoseTree.new(3)]
-      ...> |> Terp.Boolean.conditional(fn x -> x end)
+      ...> |> Terp.Evaluate.Boolean.conditional(fn x -> x end)
       5
 
       iex> [RoseTree.new(false), RoseTree.new(5), RoseTree.new(3)]
-      ...> |> Terp.Boolean.conditional(fn x -> x end)
+      ...> |> Terp.Evaluate.Boolean.conditional(fn x -> x end)
       3
   """
   def conditional([test | [consequent | [alternative | []]]], env) do
