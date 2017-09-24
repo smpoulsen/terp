@@ -1,6 +1,6 @@
 defmodule Terp.TypeSystem.Match do
   alias Terp.Error
-  alias Terp.TypeSystem.Types
+  alias Terp.TypeSystem.Type
   alias Terp.TypeSystem.TypeEvaluator
 
   @doc """
@@ -15,7 +15,7 @@ defmodule Terp.TypeSystem.Match do
     |> Stream.map(&Enum.at(&1, 0))
     |> Enum.map(&(&1.node))
 
-    case Types.constructor_for_type(Enum.at(match_constructors, 0)) do
+    case Type.constructor_for_type(Enum.at(match_constructors, 0)) do
       {:error, _e} ->
         {:error, {:type, :non_exhaustive_match}}
       {:ok, t} ->

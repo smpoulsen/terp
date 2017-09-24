@@ -1,7 +1,7 @@
 defmodule Terp.TypeSystem.Type.TypeEvaluatorTest do
   use ExUnit.Case
   alias Terp.TypeSystem
-  alias Terp.TypeSystem.Types
+  alias Terp.TypeSystem.Type
   alias Terp.TypeSystem.TypeEnvironment
 
   setup do
@@ -184,8 +184,8 @@ defmodule Terp.TypeSystem.Type.TypeEvaluatorTest do
 
       assert error.kind == :type
       assert error.type == :unification
-      assert error.evaluating == %{expected: %Types{constructor: :Tconst, t: :Int},
-                                   actual: %Types{constructor: :Tconst, t: :String}}
+      assert error.evaluating == %{expected: %Type{constructor: :Tconst, t: :Int},
+                                   actual: %Type{constructor: :Tconst, t: :String}}
     end
 
     test "infer empty? for a list of integers" do

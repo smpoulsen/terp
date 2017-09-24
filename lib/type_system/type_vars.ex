@@ -10,7 +10,7 @@ defmodule Terp.TypeSystem.TypeVars do
 
   defstruct [var_index: 0]
 
-  alias Terp.TypeSystem.Types
+  alias Terp.TypeSystem.Type
 
   # Client
   @doc """
@@ -62,7 +62,7 @@ defmodule Terp.TypeSystem.TypeVars do
     ])
     fresh_var = vars
     |> Enum.at(index)
-    |> Types.var()
+    |> Type.var()
     {:reply, fresh_var, %{state | var_index: index + 1}}
   end
 
@@ -75,7 +75,7 @@ defmodule Terp.TypeSystem.TypeVars do
     ])
     fresh_var = vars
     |> Enum.at(index)
-    |> Types.var()
+    |> Type.var()
     {:reply, fresh_var, %{state | var_index: index + 1}}
   end
 

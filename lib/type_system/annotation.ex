@@ -2,7 +2,7 @@ defmodule Terp.TypeSystem.Annotation do
   alias Terp.Error
   alias Terp.TypeSystem.TypeEnvironment
   alias Terp.TypeSystem.TypeEvaluator
-  alias Terp.TypeSystem.Types
+  alias Terp.TypeSystem.Type
 
   def annotate_type(%RoseTree{node: :__beam, children: children}, type_trees) do
     children
@@ -14,7 +14,7 @@ defmodule Terp.TypeSystem.Annotation do
   def annotate_type(%RoseTree{node: name}, type_trees) do
     vs = type_trees
     |> Enum.map(&extract_type_nodes/1)
-    t = apply(Types, :to_type, vs)
+    t = apply(Type, :to_type, vs)
     if annotated?(name) do
       reconcile_annotation(name, t)
     else
@@ -42,7 +42,7 @@ defmodule Terp.TypeSystem.Annotation do
     end
   end
 
-  @spec reconcile_annotation(String.t | RoseTree.t, Types.t) :: {:ok, TypeEvaluator.scheme} | {:error, any()}
+  @spec reconcile_annotation(String.t | RoseTree.t, Type.t) :: {:ok, TypeEvaluator.scheme} | {:error, any()}
   def reconcile_annotation(%{node: :__beam, children: children}, type) do
     children
     |> Enum.map(&(&1.node))

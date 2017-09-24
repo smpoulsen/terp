@@ -3,6 +3,7 @@ defmodule Terp.TypeSystem do
   The context entry point/interface for terp's type system.
   """
   alias Terp.Error
+  alias Terp.TypeSystem.Type
   alias Terp.TypeSystem.TypeEvaluator
   alias Terp.TypeSystem.TypeEnvironment
 
@@ -11,7 +12,7 @@ defmodule Terp.TypeSystem do
 
   Converts the source to an AST and then type checks it.
   """
-  @spec check_src(String.t) :: [Types.t]
+  @spec check_src(String.t) :: [Type.t]
   def check_src(src) do
     src
     |> Terp.to_ast()
@@ -21,7 +22,7 @@ defmodule Terp.TypeSystem do
   @doc """
   Runs the type evaluator for an AST.
   """
-  @spec check_ast([RoseTree.t]) :: {:ok, [Types.t]} | {:error, any} | Error.t
+  @spec check_ast([RoseTree.t]) :: {:ok, [Type.t]} | {:error, any} | Error.t
   def check_ast(ast) do
     TypeEnvironment.start_if_unstarted()
 

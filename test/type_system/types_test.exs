@@ -1,3 +1,3 @@
-defmodule Terp.TypeSystem.TypesTest do
+defmodule Terp.TypeSystem.TypeTest do
   use ExUnit.Case
 end
