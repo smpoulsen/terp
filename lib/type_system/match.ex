@@ -1,7 +1,7 @@
-defmodule Terp.Types.Match do
+defmodule Terp.TypeSystem.Match do
   alias Terp.Error
-  alias Terp.Types.Types
-  alias Terp.Types.TypeEvaluator
+  alias Terp.TypeSystem.Types
+  alias Terp.TypeSystem.TypeEvaluator
 
   @doc """
   Checks to see if all constructors for a type are present in the match.

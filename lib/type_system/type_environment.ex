@@ -1,14 +1,13 @@
-defmodule Terp.Types.TypeEnvironment do
+defmodule Terp.TypeSystem.TypeEnvironment do
   @moduledoc """
   """
   use GenServer
   alias __MODULE__
   alias RoseTree.Zipper
-  alias Terp.Types.TypeVars
+  alias Terp.TypeSystem.TypeVars
+  alias Terp.TypeSystem.TypeEvaluator
 
   defstruct [inferred_types: %{}, annotated_types: %{}, type_defs: %{}]
-
-  alias Terp.Types.TypeEvaluator
 
   # Client
   @doc """

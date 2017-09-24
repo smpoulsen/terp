@@ -1,4 +1,4 @@
-defmodule Terp.Types.TypeVars do
+defmodule Terp.TypeSystem.TypeVars do
   @moduledoc """
   A generator for fresh type variables. Fresh variables are generated frequently
   as a part of type inference. Running the generator as its own genserver
@@ -10,7 +10,7 @@ defmodule Terp.Types.TypeVars do
 
   defstruct [var_index: 0]
 
-  alias Terp.Types.Types
+  alias Terp.TypeSystem.Types
 
   # Client
   @doc """

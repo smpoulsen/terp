@@ -1,13 +1,13 @@
-defmodule Terp.Types.TypeEvaluator do
+defmodule Terp.TypeSystem.TypeEvaluator do
   @moduledoc """
   The primary type inference module.
   """
   alias Terp.Error
-  alias Terp.Types.Types
-  alias Terp.Types.Annotation
-  alias Terp.Types.TypeVars
-  alias Terp.Types.TypeEnvironment
-  alias Terp.Types.Match
+  alias Terp.TypeSystem.Types
+  alias Terp.TypeSystem.Annotation
+  alias Terp.TypeSystem.TypeVars
+  alias Terp.TypeSystem.TypeEnvironment
+  alias Terp.TypeSystem.Match
 
   @type scheme :: {[Types.t], Types.t}
   @type type_environment :: map()

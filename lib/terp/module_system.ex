@@ -6,7 +6,7 @@ defmodule Terp.ModuleSystem do
   alias Terp.AST
   alias Terp.Error
   alias Terp.Parser
-  alias Terp.Types.Types
+  alias Terp.TypeSystem
   alias RoseTree.Zipper
 
   @doc """
@@ -33,7 +33,7 @@ defmodule Terp.ModuleSystem do
   end
   def require_modules([filename | filenames], env, imports) do
     with {:ok, module} <- File.read(filename <> ".tp"),
-         {:ok, _types} = Types.type_check(module),
+         {:ok, _types} = TypeSystem.check_src(module),
          ast = module |> Parser.parse() |> Enum.flat_map(&AST.to_tree/1),
          {_res, environment} = Terp.run_eval(ast, env) do
 

@@ -1,4 +1,4 @@
-defmodule Terp.Types.Types do
+defmodule Terp.TypeSystem.Types do
   @moduledoc """
   Types
 
@@ -9,10 +9,8 @@ defmodule Terp.Types.Types do
     - Tlist  -> list
 
   """
-  alias Terp.Error
   alias __MODULE__
-  alias Terp.Types.TypeEvaluator
-  alias Terp.Types.TypeEnvironment
+  alias Terp.TypeSystem.TypeEnvironment
 
   defstruct [:constructor, :t, :vars, :type_constructor]
 
@@ -54,37 +52,6 @@ defmodule Terp.Types.Types do
   @spec var(String.t | atom()) :: Types.t
   def var(x) do
     %Types{constructor: :Tvar, t: x}
-  end
-
-  @doc """
-  Run the type evaluator for a given piece of source code.
-  """
-  @spec type_check(String.t) :: [Types.t]
-  def type_check(src) do
-    src
-    |> Terp.to_ast()
-    |> type_check_ast()
-  end
-  def type_check_ast(ast) do
-    TypeEnvironment.start_if_unstarted()
-    res = ast
-    |> Enum.reduce({:ok, []},
-    fn tree, {:ok, types} ->
-      case TypeEvaluator.run_infer(tree) do
-        {:error, _} = e ->
-          e
-        %Error{} = e ->
-          e
-        {:ok, type} ->
-          {:ok, [type | types]}
-      end
-      (_tree, {:error, e}) -> {:error, e}
-      (_tree, %Error{} = e) -> e
-    end)
-    case res do
-      {:ok, types} -> {:ok, Enum.reverse(types)}
-      error -> error
-    end
   end
 
   @doc """

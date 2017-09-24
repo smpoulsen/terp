@@ -1,7 +1,8 @@
-defmodule Terp.Types.Type.TypeEvaluatorTest do
+defmodule Terp.TypeSystem.Type.TypeEvaluatorTest do
   use ExUnit.Case
-  alias Terp.Types.Types
-  alias Terp.Types.TypeEnvironment
+  alias Terp.TypeSystem
+  alias Terp.TypeSystem.Types
+  alias Terp.TypeSystem.TypeEnvironment
 
   setup do
     TypeEnvironment.start_link()
@@ -11,14 +12,14 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
   describe "basic function inference" do
     test "infer a lambda" do
       {:ok, types} = "(lambda (x) x)"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> a a)"
     end
 
     test "infer a lambda application" do
       {:ok, types} = "((lambda (x) x) 5)"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "Int"
     end
@@ -27,28 +28,28 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
   describe "literal inference" do
     test "infer a literal int" do
       {:ok, types} = "5"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "Int"
     end
 
     test "infer a literal bool - true" do
       {:ok, types} = "#t"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "Bool"
     end
 
     test "infer a literal bool - false" do
       {:ok, types} = "#f"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "Bool"
     end
 
     test "infer a literal string" do
       {:ok, types} = "\"testing\""
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "String"
     end
@@ -57,14 +58,14 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
   describe "binary operation inference" do
     test "infer a binary operation application" do
       {:ok, types} = "((lambda (x) (+ x 5)) 5)"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "Int"
     end
 
     test "infer a binary operation inside a lambda" do
       {:ok, types} = "(lambda (x) (+ x 5))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> Int Int)"
     end
@@ -73,14 +74,14 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
   describe "equality inference" do
     test "infer equality" do
       {:ok, types} = "(lambda (x) (equal? x 5))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> Int Bool)"
     end
 
     test "infer equality pt. 2" do
       {:ok, types} = "(lambda (x y) (equal? x y))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> a (-> a Bool))"
     end
@@ -89,21 +90,21 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
   describe "if statement inference" do
     test "infer an if statement" do
       {:ok, types} = "(if #t 8 1)"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "Int"
     end
 
     test "infer an if statement wrapped in a lambda" do
       {:ok, types} = "(lambda (x) (if #t x 1))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> Int Int)"
     end
 
     test "infer an if statement with an equals? test" do
       {:ok, types} = "(lambda (x) (if (equal? x #t) 8 1))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> Bool Int)"
     end
@@ -121,7 +122,7 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
             [#t "zzz"]
             )))
       """
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> String String)"
     end
@@ -130,73 +131,73 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
   describe "list inference" do
     test "infer a list of integers" do
       {:ok, types} = "'(3 2 5 9)"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "[Int]"
     end
 
     test "infer a function that builds a list of integers" do
       {:ok, types} = "(lambda (x) '(3 2 5 x))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> Int [Int])"
     end
 
     test "infer a list of lists of integers" do
       {:ok, types} = "'('(1 2 3) '(4 5 6))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "[[Int]]"
     end
 
     test "infer car" do
       {:ok, types} = "(car '(3 2 5 9))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "Int"
     end
 
     test "infer cdr" do
       {:ok, types} = "(cdr '(3 2 5 9))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "[Int]"
     end
 
     test "infer cons" do
       {:ok, types} = "(cons 4 '(3 2 5 9))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "[Int]"
     end
 
     test "infer cons in a function" do
       {:ok, types} = "(lambda (x) (cons x '(3 2 5 9)))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> Int [Int])"
     end
 
     test "infer cons consing a string to [Int]" do
       error = "(cons \"asdf\" '(3 2 5 9))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
 
       assert error.kind == :type
       assert error.type == :unification
-      assert error.evaluating == %{expected: %Terp.Types.Types{constructor: :Tconst, t: :Int},
-                                   actual: %Terp.Types.Types{constructor: :Tconst, t: :String}}
+      assert error.evaluating == %{expected: %Types{constructor: :Tconst, t: :Int},
+                                   actual: %Types{constructor: :Tconst, t: :String}}
     end
 
     test "infer empty? for a list of integers" do
       {:ok, types} = "(empty? '(3 2 5 9))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "Bool"
     end
 
     test "infer empty? inside a function application" do
       {:ok, types} = "(lambda (x) (empty? x))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> [a] Bool)"
     end
@@ -211,7 +212,7 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
             1
             (* n (factorial (- n 1))))))
       """
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> Int Int)"
     end
@@ -220,7 +221,7 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
   describe "higher order functions" do
     test "infer a general higher order function" do
       {:ok, types} = "(lambda (f x) (f x))"
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> (-> a b) (-> a b))"
     end
@@ -232,7 +233,7 @@ defmodule Terp.Types.Type.TypeEvaluatorTest do
           x
           (f x)))
       """
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.first(types)
       assert to_string(type) == "(-> (-> Int Int) (-> Int Int))"
     end

@@ -3,7 +3,7 @@ defmodule Terp.IO do
   Read and evaluate a file containing terp code.
   """
   alias Terp.Error
-  alias Terp.Types.Types
+  alias Terp.TypeSystem
 
   @doc """
   Given a filepath, reads the file and evaluates its contents.
@@ -13,7 +13,7 @@ defmodule Terp.IO do
   def run_terp(file) do
     with true <- is_terp_file(file),
          {:ok, src} <- File.read(file),
-         {:ok, _type} <- Types.type_check(src) do
+         {:ok, _type} <- TypeSystem.check_src(src) do
       Terp.eval(src)
     else
       false ->

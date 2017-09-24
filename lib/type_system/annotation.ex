@@ -1,8 +1,8 @@
-defmodule Terp.Types.Annotation do
+defmodule Terp.TypeSystem.Annotation do
   alias Terp.Error
-  alias Terp.Types.TypeEnvironment
-  alias Terp.Types.TypeEvaluator
-  alias Terp.Types.Types
+  alias Terp.TypeSystem.TypeEnvironment
+  alias Terp.TypeSystem.TypeEvaluator
+  alias Terp.TypeSystem.Types
 
   def annotate_type(%RoseTree{node: :__beam, children: children}, type_trees) do
     children

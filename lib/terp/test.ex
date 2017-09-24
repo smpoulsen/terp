@@ -5,7 +5,7 @@ defmodule Terp.Test do
   alias Terp.Error
   alias Terp.AST
   alias Terp.Parser
-  alias Terp.Types.Types
+  alias Terp.TypeSystem
   alias RoseTree.Zipper
 
   def test_dir(path, state \\ %{tests: 0, failures: 0}) do
@@ -32,7 +32,7 @@ defmodule Terp.Test do
     with true <- Terp.IO.is_terp_file(file),
          {:ok, src} <- File.read(file),
            ast = src |> Parser.parse() |> Enum.flat_map(&AST.to_tree/1),
-         {:ok, _type} <- Types.type_check_ast(ast) do
+         {:ok, _type} <- TypeSystem.check_ast(ast) do
       initial_environment = fn x -> {:error, {:unbound, x}} end
       {stats, _env} = ast
       |> Enum.reduce({%{tests: 0, failures: 0}, initial_environment}, fn
@@ -53,7 +53,7 @@ defmodule Terp.Test do
   end
 
   def run_test(expr, {state, env}) do
-    with {:ok, _type} <- Types.type_check_ast(List.wrap(expr)),
+    with {:ok, _type} <- TypeSystem.check_ast(List.wrap(expr)),
          res <- Terp.eval_tree(expr, env) do
       case res do
         {:ok, {:environment, environment}} ->
