@@ -33,6 +33,8 @@ defmodule Terp.Parser do
       let_values_parser(),
       cond_parser(),
       typedef_parser(),
+      type_class(),
+      type_class_instance(),
       type_annotation_parser(),
       defn_parser(),
       application_parser(),
@@ -130,7 +132,7 @@ defmodule Terp.Parser do
       ignore(char("(")),
       ignore(string("type")),
       ignore(either(newline(), space())),
-      either(hyphenated_word(), beam_term_parser()),
+      choice([hyphenated_word(), beam_term_parser(), punctuation_parser()]),
       ignore(either(newline(), space())),
       arrow_parser(),
       ignore(char(")"))
@@ -148,6 +150,54 @@ defmodule Terp.Parser do
       arrow_parser(),
       word(),
     ])
+  end
+
+  defp type_class() do
+    c_parser = sequence([
+      ignore(char("(")),
+      ignore(string("class")),
+      ignore(either(newline(), space())),
+      between(string("["),
+        sep_by(hyphenated_word(), space()),
+        string("]")),
+      ignore(either(newline(), space())),
+      between(
+        string("["),
+        many1(
+          choice([
+            type_annotation_parser(),
+            ignore(either(newline(), space()))
+          ])
+        ),
+        string("]")
+      ),
+      ignore(char(")"))
+    ])
+    map(c_parser, fn x -> {:__class, x} end)
+  end
+
+  defp type_class_instance() do
+    c_parser = sequence([
+      ignore(char("(")),
+      ignore(string("instance")),
+      ignore(either(newline(), space())),
+      between(string("["),
+        sep_by(hyphenated_word(), space()),
+        string("]")),
+      ignore(either(newline(), space())),
+      between(
+        string("["),
+        many1(
+          choice([
+            lazy(fn -> application_parser() end),
+            ignore(either(newline(), space()))
+          ])
+        ),
+        string("]")
+      ),
+      ignore(char(")"))
+    ])
+    map(c_parser, fn x -> {:__instance, x} end)
   end
 
   defp arrow_parser() do
@@ -238,11 +288,11 @@ defmodule Terp.Parser do
   # Parses literals
   defp literal_parser() do
     choice([
+      beam_term_parser(),
       built_ins_parser(),
       bool_parser(),
       integer(),
       punctuation_parser(),
-      beam_term_parser(),
       string_to_atom(ignore(char(":")) |> word()),
       both(hyphenated_word(), char("?"), &(&1 <> &2)),
       both(hyphenated_word(), char("!"), &(&1 <> &2)),
@@ -259,7 +309,7 @@ defmodule Terp.Parser do
     [ignore(char(":")),
      hyphenated_word(),
      ignore(char(".")),
-     string_to_atom(hyphenated_word())]
+     string_to_atom(either(hyphenated_word(), punctuation_parser()))]
     |> sequence()
     |> map(&{:__beam, &1})
   end
@@ -286,6 +336,16 @@ defmodule Terp.Parser do
     choice([
       string("/"),
       string("."),
+      string("+"),
+      string("-"),
+      string("="),
+      string("<"),
+      string(">"),
+      string("*"),
+      string("$"),
+      string("^"),
+      string("%"),
+      string("#"),
     ])
   end
 
