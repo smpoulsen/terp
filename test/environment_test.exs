@@ -1,4 +1,4 @@
-defmodule Terp.EnvironmentTest do
+defmodule Terp.Evaluate.EnvironmentTest do
   use ExUnit.Case
-  doctest Terp.Environment
+  doctest Terp.Evaluate.Environment
 end

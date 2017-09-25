@@ -1,4 +1,4 @@
-defmodule Terp.ArithmeticTest do
+defmodule Terp.Evaluate.ArithmeticTest do
   use ExUnit.Case
-  doctest Terp.Arithmetic
+  doctest Terp.Evaluate.Arithmetic
 end

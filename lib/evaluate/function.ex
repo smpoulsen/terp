@@ -1,4 +1,4 @@
-defmodule Terp.Function do
+defmodule Terp.Evaluate.Function do
   @moduledoc """
   Function/anonymous function definition and application.
 
@@ -18,6 +18,7 @@ defmodule Terp.Function do
       ...> |> Terp.eval()
       45
   """
+  alias Terp.Evaluate
 
   @doc """
   Defines an anonymous function.
@@ -28,7 +29,7 @@ defmodule Terp.Function do
   end
   defp lambda_helper([argument | []], body, env) do
     fn arg ->
-      Terp.eval_expr(body, fn y -> if argument == y, do: arg, else: env.(y) end)
+      Evaluate.eval_expr(body, fn y -> if argument == y, do: arg, else: env.(y) end)
     end
   end
   defp lambda_helper([argument | arguments], body, env) do
@@ -46,12 +47,12 @@ defmodule Terp.Function do
     apply_lambda(func.(arg), args, env)
   end
 
-  @doc"""
+  @doc """
   Y = λf.(λx.f (x x))(λx.f (x x))
 
   ## Examples
 
-      iex> Terp.Function.y(fn f -> fn 0 -> 1; x -> x * f.(x - 1) end end).(5)
+      iex> Terp.Evaluate.Function.y(fn f -> fn 0 -> 1; x -> x * f.(x - 1) end end).(5)
       120
   """
   def y(f) do
@@ -68,10 +69,10 @@ defmodule Terp.Function do
       RoseTree.new(:__quote, [:z]),
       RoseTree.update_node(bound, name.node, :z)
     ])
-    |> Terp.eval_expr(env)
+    |> Evaluate.eval_expr(env)
     |> y()
 
-    Terp.eval_expr(name,
+    Evaluate.eval_expr(name,
       fn y ->
         fn arg ->
           if arg == y, do: recursive_fn, else: env.(arg)

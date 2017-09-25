@@ -1,15 +1,16 @@
-defmodule Terp.Environment do
+defmodule Terp.Evaluate.Environment do
   @moduledoc """
   Functionality for updating the environment in the interpreter.
   """
+  alias Terp.Evaluate
 
   @doc """
   Add a new named [function | variable] to the environment.
   """
   def let([name | [bound | []]], env) do
-    Terp.eval_expr(name, fn arg ->
+    Evaluate.eval_expr(name, fn arg ->
       fn name ->
-        if arg == name, do: Terp.eval_expr(bound, env), else: env.(name)
+        if arg == name, do: Evaluate.eval_expr(bound, env), else: env.(name)
       end
     end)
   end

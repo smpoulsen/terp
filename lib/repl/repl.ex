@@ -2,13 +2,12 @@ defmodule Terp.Repl do
   @moduledoc """
   A REPL (read-eval-print-loop) for terp.
   """
-  alias Terp.Types.Types
-  alias Terp.Types.TypeEnvironment
+  alias Terp.TypeSystem
   alias Terp.Error
 
   def init() do
     # Starts a persisted type environment for the current session.
-    TypeEnvironment.start_link()
+    TypeSystem.start_environment()
     loop(fn (z) -> {:error, {:unbound, z}} end)
   end
 
@@ -39,7 +38,7 @@ defmodule Terp.Repl do
     |> String.trim_leading(":t ")
 
     inference = trimmed
-    |> Types.type_check()
+    |> TypeSystem.check_src()
 
     case inference do
       {:error, _} = e ->
@@ -60,8 +59,8 @@ defmodule Terp.Repl do
 
   # Evaluate the expression and return the updated environment.
   defp eval(expr, environment) do
-    with {:ok, _type} <- Types.type_check(expr),
-         {res, env} <- Terp.evaluate_source(expr, environment) do
+    with {:ok, _type} <- TypeSystem.check_src(expr),
+         {res, env} <- Terp.eval_source(expr, environment) do
       case res do
         {:error, _} = e ->
           Error.pretty_print_error(e, expr)

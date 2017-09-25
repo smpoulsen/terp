@@ -1,10 +1,9 @@
-defmodule Terp.Types.MatchTest do
+defmodule Terp.TypeSystem.MatchTest do
   use ExUnit.Case
-  alias Terp.Types.Types
-  alias Terp.Types.TypeEnvironment
+  alias Terp.TypeSystem
 
   setup do
-    TypeEnvironment.start_link()
+    TypeSystem.start_environment()
     {:ok, %{}}
   end
 
@@ -20,7 +19,7 @@ defmodule Terp.Types.MatchTest do
       {:ok, types} = maybe <> """
       (maybePlusFive (Just 4))
       """
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.last(types)
       assert to_string(type) == "[Maybe Int]"
     end
@@ -29,7 +28,7 @@ defmodule Terp.Types.MatchTest do
       {:ok, types} = maybe <> """
       (maybePlusFive (Nothing))
       """
-      |> Types.type_check()
+      |> TypeSystem.check_src()
       {_vars, type} = List.last(types)
       assert to_string(type) == "[Maybe Int]"
     end

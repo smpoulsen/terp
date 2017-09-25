@@ -1,21 +1,20 @@
-defmodule Terp.Types.TypeEnvironment do
+defmodule Terp.TypeSystem.Environment do
   @moduledoc """
   """
   use GenServer
   alias __MODULE__
   alias RoseTree.Zipper
-  alias Terp.Types.TypeVars
+  alias Terp.TypeSystem.TypeVars
+  alias Terp.TypeSystem.Evaluator
 
   defstruct [inferred_types: %{}, annotated_types: %{}, type_defs: %{}]
-
-  alias Terp.Types.TypeEvaluator
 
   # Client
   @doc """
   Starts the type vars server; it is named :type_env.
   """
   def start_link() do
-    GenServer.start_link(__MODULE__, %TypeEnvironment{}, name: :type_env)
+    GenServer.start_link(__MODULE__, %Environment{}, name: :type_env)
   end
 
   @doc """
@@ -92,23 +91,23 @@ defmodule Terp.Types.TypeEnvironment do
   # server
 
   @doc false
-  def handle_call({:lookup, name}, _from, %TypeEnvironment{inferred_types: types} = state) do
+  def handle_call({:lookup, name}, _from, %Environment{inferred_types: types} = state) do
     res = case Map.get(types, name) do
             nil ->
               {:ok, {%{}, TypeVars.fresh()}}
             x ->
-              {:ok, {%{}, TypeEvaluator.instantiate(TypeEvaluator.generalize(%{}, x))}}
+              {:ok, {%{}, Evaluator.instantiate(Evaluator.generalize(%{}, x))}}
           end
     {:reply, res, state}
   end
 
   @doc false
-  def handle_call(:contents, _from, %TypeEnvironment{} = state) do
+  def handle_call(:contents, _from, %Environment{} = state) do
     {:reply, state, state}
   end
 
   @doc false
-  def handle_call({:lookup_def, name}, _from, %TypeEnvironment{type_defs: types} = state) do
+  def handle_call({:lookup_def, name}, _from, %Environment{type_defs: types} = state) do
     res = case Map.get(types, name) do
             nil ->
               {:error, {:type_def, "Data constructor not in scope: #{name}"}}
@@ -119,7 +118,7 @@ defmodule Terp.Types.TypeEnvironment do
   end
 
   @doc false
-  def handle_call({:lookup_annotation, fn_name}, _from, %TypeEnvironment{inferred_types: types} = state) do
+  def handle_call({:lookup_annotation, fn_name}, _from, %Environment{inferred_types: types} = state) do
     res = case Map.get(types, fn_name) do
             nil ->
               {:error, {:type_annotation, "No annotation for: #{fn_name}"}}
@@ -130,31 +129,31 @@ defmodule Terp.Types.TypeEnvironment do
   end
 
   @doc false
-  def handle_cast({:extend, name, scheme}, %TypeEnvironment{inferred_types: types} = state) do
+  def handle_cast({:extend, name, scheme}, %Environment{inferred_types: types} = state) do
     updated_types = Map.put_new(types, name, scheme)
     {:noreply, %{state | inferred_types: updated_types}}
   end
 
-  def handle_cast({:restrict, name}, %TypeEnvironment{inferred_types: types} = state) do
+  def handle_cast({:restrict, name}, %Environment{inferred_types: types} = state) do
     updated_types = Map.drop(types, name)
     {:noreply, %{state | inferred_types: updated_types}}
   end
 
   @doc false
-  def handle_cast(:reset, %TypeEnvironment{} = _state) do
-    {:noreply, %TypeEnvironment{}}
+  def handle_cast(:reset, %Environment{} = _state) do
+    {:noreply, %Environment{}}
   end
 
   # User defined types
   @doc false
-  def handle_cast({:define, name, type}, %TypeEnvironment{type_defs: types} = state) do
+  def handle_cast({:define, name, type}, %Environment{type_defs: types} = state) do
     updated_types = Map.put_new(types, name, type)
     {:noreply, %{state | type_defs: updated_types}}
   end
 
   # Type annotations
   @doc false
-  def handle_cast({:annotate, fn_name, type}, %TypeEnvironment{inferred_types: types} = state) do
+  def handle_cast({:annotate, fn_name, type}, %Environment{inferred_types: types} = state) do
     updated_types = Map.put_new(types, fn_name, type)
     {:noreply, %{state | inferred_types: updated_types}}
   end

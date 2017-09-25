@@ -1,13 +1,14 @@
-defmodule Terp.Match do
+defmodule Terp.Evaluate.Match do
   @moduledoc """
   Pattern matching functionality.
   """
   alias Terp.Error
+  alias Terp.Evaluate
   alias Terp.Value
 
   def match(expr, env) do
     [var | match_exprs] = expr
-    evald_vars = Enum.map(var.node, &Terp.eval_expr(&1, env))
+    evald_vars = Enum.map(var.node, &Evaluate.eval_expr(&1, env))
     # TODO Should this be just the head? Can you match multiple vars?
     # Not for now at least.
     check_matches((hd evald_vars), match_exprs, env)
@@ -24,7 +25,7 @@ defmodule Terp.Match do
       {:no_match} ->
         check_matches(evald_vars, match_exprs, env)
       {:ok, consequent} ->
-        Terp.eval_expr(consequent, env)
+        Evaluate.eval_expr(consequent, env)
     end
   end
 

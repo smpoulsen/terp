@@ -1,14 +1,15 @@
-defmodule Terp.Boolean do
+defmodule Terp.Evaluate.Boolean do
   @moduledoc """
   Boolean values and conditional evaluation.
   """
+  alias Terp.Evaluate
 
   @doc """
   true
 
   ## Examples
 
-      iex> Terp.Boolean.t
+      iex> Terp.Evaluate.Boolean.t
       true
   """
   def t(), do: true
@@ -18,7 +19,7 @@ defmodule Terp.Boolean do
 
   ## Examples
 
-      iex> Terp.Boolean.f
+      iex> Terp.Evaluate.Boolean.f
       false
   """
   def f(), do: false
@@ -29,18 +30,18 @@ defmodule Terp.Boolean do
   ## Examples
 
       iex> [RoseTree.new(true), RoseTree.new(5), RoseTree.new(3)]
-      ...> |> Terp.Boolean.conditional(fn x -> x end)
+      ...> |> Terp.Evaluate.Boolean.conditional(fn x -> x end)
       5
 
       iex> [RoseTree.new(false), RoseTree.new(5), RoseTree.new(3)]
-      ...> |> Terp.Boolean.conditional(fn x -> x end)
+      ...> |> Terp.Evaluate.Boolean.conditional(fn x -> x end)
       3
   """
   def conditional([test | [consequent | [alternative | []]]], env) do
-    if Terp.eval_expr(test, env) do
-      Terp.eval_expr(consequent, env)
+    if Evaluate.eval_expr(test, env) do
+      Evaluate.eval_expr(consequent, env)
     else
-      Terp.eval_expr(alternative, env)
+      Evaluate.eval_expr(alternative, env)
     end
   end
 
@@ -64,10 +65,10 @@ defmodule Terp.Boolean do
   """
   def cond([], _env), do: {:error, {:cond, "no true condition"}}
   def cond([%{node: [condition | consequent]} | conditions], env) do
-    if Terp.eval_expr(condition, env) do
+    if Evaluate.eval_expr(condition, env) do
       # An artifact of the parser; pulls in consequent as a list.
       consequent
-      |> Enum.map(&Terp.eval_expr(&1, env))
+      |> Enum.map(&Evaluate.eval_expr(&1, env))
       |> List.first
     else
       cond(conditions, env)
@@ -86,7 +87,7 @@ defmodule Terp.Boolean do
       true
   """
   def equal?(operands, environment) do
-    case Enum.map(operands, &Terp.eval_expr(&1, environment)) do
+    case Enum.map(operands, &Evaluate.eval_expr(&1, environment)) do
       [x | [y | []]] ->
         x == y
       _ ->

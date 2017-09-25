@@ -1,11 +1,13 @@
 defmodule Terp.Value do
-  alias __MODULE__
   defstruct [:constructor, :args]
+
+  alias __MODULE__
+  alias Terp.Evaluate.Environment
 
   def constructor_fn([c | xs], env) do
     args = Enum.map(xs, fn x -> x.node end)
     f = constructor_helper(args, c.node, [])
-    Terp.Environment.let([c, RoseTree.new(f)], env)
+    Environment.let([c, RoseTree.new(f)], env)
   end
   defp constructor_helper([], c, _env) do
     fn -> to_value(c, []) end
