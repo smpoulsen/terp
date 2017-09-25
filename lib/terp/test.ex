@@ -2,8 +2,9 @@ defmodule Terp.Test do
   @moduledoc """
   Functions to facilitate terp testing itself.
   """
-  alias Terp.Error
   alias Terp.AST
+  alias Terp.Error
+  alias Terp.Evaluate
   alias Terp.Parser
   alias Terp.TypeSystem
   alias RoseTree.Zipper
@@ -54,7 +55,7 @@ defmodule Terp.Test do
 
   def run_test(expr, {state, env}) do
     with {:ok, _type} <- TypeSystem.check_ast(List.wrap(expr)),
-         res <- Terp.eval_tree(expr, env) do
+         res <- Evaluate.eval_tree(expr, env) do
       case res do
         {:ok, {:environment, environment}} ->
           # Environment was updated

@@ -2,16 +2,17 @@ defmodule Terp.Evaluate.List do
   @moduledoc """
   Provides functionality for working with lists.
   """
+  alias Terp.Evaluate
 
   @doc """
   Build a list by prepending an item to it.
   """
-  def cons([], environment), do: Terp.eval_expr(nil, environment)
+  def cons([], environment), do: Evaluate.eval_expr(nil, environment)
   def cons([x | xs], environment) do
-    e = Terp.eval_expr(x, environment)
+    e = Evaluate.eval_expr(x, environment)
     acc = case xs do
       []  -> []
-      [t] -> Terp.eval_expr(t, environment)
+      [t] -> Evaluate.eval_expr(t, environment)
     end
     [e | acc]
   end
@@ -36,7 +37,7 @@ defmodule Terp.Evaluate.List do
   def car(operands, environment) do
     operands
     |> List.first()
-    |> Terp.eval_expr(environment)
+    |> Evaluate.eval_expr(environment)
     |> car_helper()
   end
   defp car_helper([]), do: {:error, {:terp, :empty_list}}
@@ -63,7 +64,7 @@ defmodule Terp.Evaluate.List do
   def cdr(operands, environment) do
     operands
     |> List.first()
-    |> Terp.eval_expr(environment)
+    |> Evaluate.eval_expr(environment)
     |> cdr_helper()
   end
   defp cdr_helper([]), do: {:error, {:terp, :empty_list}}
@@ -84,7 +85,7 @@ defmodule Terp.Evaluate.List do
   """
   def empty?(operands, environment) do
     operands
-    |> Enum.map(&Terp.eval_expr(&1, environment))
+    |> Enum.map(&Evaluate.eval_expr(&1, environment))
     |> List.first()
     |> Enum.empty?()
   end

@@ -2,6 +2,7 @@ defmodule Terp.TypeSystem do
   @moduledoc """
   The context entry point/interface for terp's type system.
   """
+  alias Terp.AST
   alias Terp.Error
   alias Terp.TypeSystem.Type
   alias Terp.TypeSystem.Evaluator
@@ -15,7 +16,7 @@ defmodule Terp.TypeSystem do
   @spec check_src(String.t) :: [Type.t]
   def check_src(src) do
     src
-    |> Terp.to_ast()
+    |> AST.from_src()
     |> check_ast()
   end
 

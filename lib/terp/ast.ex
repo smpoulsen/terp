@@ -2,6 +2,19 @@ defmodule Terp.AST do
   @moduledoc """
   Interface for working with the Terp.AST.
   """
+  alias RoseTree.Zipper
+  alias Terp.Parser
+
+  @doc """
+  Parse source code and convert it to an ast.
+  """
+  @spec from_src(String.t) :: [RoseTree.t]
+  def from_src(str) do
+    str
+    |> Parser.parse()
+    |> Enum.flat_map(&to_tree/1)
+    |> filter_nodes(:__comment)
+  end
 
   @doc """
   `to_tree/1` takes a tokenized expression and builds a parse tree.
@@ -129,5 +142,24 @@ defmodule Terp.AST do
     trees
     |> Enum.map(&stringify/1)
     |> Enum.join(" ")
+  end
+
+  @doc """
+  Filters nodes out of the AST.
+  """
+  def filter_nodes(trees, node_name) do
+    Enum.reject(trees, fn %RoseTree{node: node} -> node == node_name end)
+  end
+
+  @spec fn_name(RoseTree.t) :: {:ok, String.t} | {:error, :no_fn_name}
+  def fn_name(expr) do
+    z = Zipper.from_tree(expr)
+    with {:ok, {%RoseTree{node: t}, _history}} = expr_type <- Zipper.first_child(z),
+         true <- Enum.member?([:__let, :__letrec], t),
+         {:ok, {%RoseTree{node: name}, _history}} <- Zipper.lift(expr_type, &Zipper.next_sibling/1) do
+      {:ok, name}
+    else
+      _ -> {:error, :no_fn_name}
+    end
   end
 end

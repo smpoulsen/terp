@@ -1,4 +1,5 @@
 defmodule Terp.TypeSystem.Annotation do
+  alias Terp.AST
   alias Terp.Error
   alias Terp.TypeSystem.Environment
   alias Terp.TypeSystem.Evaluator
@@ -64,7 +65,7 @@ defmodule Terp.TypeSystem.Annotation do
     end
   end
   def reconcile_annotation(expr, type) do
-    case Terp.fn_name(expr) do
+    case AST.fn_name(expr) do
       {:ok, fn_name} ->
         reconcile_annotation(fn_name, type)
       {:error, _e} = error ->

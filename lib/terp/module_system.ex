@@ -1,5 +1,5 @@
 defmodule Terp.ModuleSystem do
-  @moduledoc"""
+  @moduledoc """
   Functionality supporting a basic module system, e.g. export functions from a
   module and import them in another.
   """
@@ -35,7 +35,7 @@ defmodule Terp.ModuleSystem do
     with {:ok, module} <- File.read(filename <> ".tp"),
          {:ok, _types} = TypeSystem.check_src(module),
          ast = module |> Parser.parse() |> Enum.flat_map(&AST.to_tree/1),
-         {_res, environment} = Terp.run_eval(ast, env) do
+         {_res, environment} = Terp.eval_ast(ast, env) do
 
       provides = find_exported_definitions(ast)
       defined = find_node_values_of_type(ast, [:__let, :__letrec])
