@@ -89,14 +89,13 @@ defmodule Terp.Repl do
       :ok ->
         {:ok, nil}
       {:ok, types} ->
-        {type_vars, type} = List.first(types)
-        type_str = if Enum.empty?(type_vars) do
-          to_string(type)
-        else
-          variables = Enum.map(type_vars, &(to_string(&1)))
-          "∀ #{Enum.join(variables, " ")} => #{to_string(type)}"
-        end
+        type_str = types
+        |> List.first()
+        |> TypeSystem.stringify_type_scheme()
+
         Bunt.puts([:blue, trimmed, :green, " : ", :yellow, type_str])
+      error ->
+        Error.pretty_print_error(error)
     end
   end
 

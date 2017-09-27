@@ -189,7 +189,7 @@ defmodule Terp.Parser do
         string("["),
         many1(
           choice([
-            lazy(fn -> application_parser() end),
+            lazy(fn -> expr_parser() end),
             ignore(either(newline(), space()))
           ])
         ),
@@ -218,7 +218,7 @@ defmodule Terp.Parser do
     p = sequence([
       either(string("defn"), string("defrec")),
       ignore(either(newline(), space())),
-      hyphenated_word(), # fn_name
+      either(hyphenated_word(), punctuation_parser()), # fn_name
       ignore(either(newline(), space())),
       between_parens_parser( # Args
         valid_expr_parser()
@@ -373,9 +373,9 @@ defmodule Terp.Parser do
   # Parses valid built-in functions/terms in terp.
   defp built_ins_parser() do
     choice([
-      to_built_in(char("+")),
-      to_built_in(char("-")),
-      to_built_in(char("*")),
+      #to_built_in(char("+")),
+      #to_built_in(char("-")),
+      #to_built_in(char("*")),
       to_built_in(string("div")), # / collides with the symbol
       to_built_in(string("if")),
       to_built_in(string("car")),

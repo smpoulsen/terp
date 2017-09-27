@@ -11,6 +11,7 @@ defmodule Terp.Evaluate do
   alias Terp.Evaluate.Function
   alias Terp.Evaluate.List, as: TerpList
   alias Terp.Evaluate.Match
+  alias Terp.TypeSystem
 
   @debug false
 
@@ -100,6 +101,11 @@ defmodule Terp.Evaluate do
         constructors = value_constructors.node
         env_prime = Enum.reduce(constructors, env, fn c, env ->  Value.constructor_fn(c, env) end)
         env_prime
+      :__instance ->
+        [_class, %{node: definitions}] = children
+        Enum.reduce(definitions, env, fn (defn, env) ->
+          eval_expr(defn, env)
+        end)
       :__string ->
         str = List.first(children)
         str.node
@@ -133,7 +139,7 @@ defmodule Terp.Evaluate do
         {:__beam, fn (args) -> apply(fully_qualified_module, function, args) end}
       :__apply ->
         [operator | operands] = children
-        operator = eval_expr(operator, env)
+        operator = eval_operator_with_type_class(operator, tree, env)
         case operator do
           :__if ->
             Boolean.conditional(operands, env)
@@ -191,6 +197,15 @@ defmodule Terp.Evaluate do
           _ ->
             env.(x)
         end
+    end
+  end
+
+  defp eval_operator_with_type_class(%{node: function} = operator, tree, env) do
+    case TypeSystem.lookup_class_defn(function, tree) do
+      {:ok, defn} ->
+        eval_expr(defn, env).(function)
+      _ ->
+        eval_expr(operator, env)
     end
   end
 end

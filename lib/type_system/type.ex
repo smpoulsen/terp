@@ -12,7 +12,7 @@ defmodule Terp.TypeSystem.Type do
   alias __MODULE__
   alias Terp.TypeSystem.Environment
 
-  defstruct [:constructor, :t, :vars, :type_constructor]
+  defstruct [:constructor, :t, :vars, :type_constructor, :classes]
 
   @type t :: %__MODULE__{}
 
@@ -84,7 +84,7 @@ defmodule Terp.TypeSystem.Type do
   def constructor_for_type(name) do
     type = Environment.contents.type_defs
     |> Enum.find(fn {_k, v} ->
-      Enum.member?(Enum.map(v.t, &(&1.constructor)), name)
+      Enum.member?(Enum.map(Map.get(v, :t, []), &(&1.constructor)), name)
     end)
     case type do
       nil ->

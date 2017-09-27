@@ -26,8 +26,8 @@ defmodule Terp.TypeSystem.Annotation do
 
   # Helper to pull out the type annotations from arbitrarily nested
   # type defs.
-  defp extract_type_nodes(%RoseTree{node: node, children: []}), do: node
-  defp extract_type_nodes(type_trees) when is_list(type_trees) do
+  def extract_type_nodes(%RoseTree{node: node, children: []}), do: node
+  def extract_type_nodes(type_trees) when is_list(type_trees) do
     for tree <- type_trees do
       extract_type_nodes(tree)
     end
