@@ -102,22 +102,21 @@
      (lambda (x) x)
 
      ;; Defining a named function:
-     (let double
-         (x) (* x x))
-
+     (let double (lambda (x) (* 2 x)))
      (double 5)
      ;; 10
+
+     (let square (lambda (x) (* x x)))
+     (square 5)
+     ;; 25
    #+END_SRC
 
    Multi-argument functions:
    #+BEGIN_SRC racket
-     (((lambda (x)
-         (lambda (y)
-           (+ x y))) 5 ) 3)
+     (((lambda (x) (lambda (y) (+ x y))) 5 ) 3)
      ;; 8
 
-     ((lambda (x y)
-        (+ x y)) 5 3)
+     ((lambda (x y) (+ x y)) 5 3)
      ;; 8
    #+END_SRC
 
@@ -126,13 +125,11 @@
      ;; add is a function that takes two arguments.
      ;;   Currying turns it into a series of functions
      ;;   that each takes a single argument.
-     (let add
-         (lambda (x y) (+ x y)))
+     (let add (lambda (x y) (+ x y)))
 
      ;; We can define a new function, add_five, that partially
      ;; applies add to the value 5:
-     (let add_five
-         (add 5))
+     (let add_five (add 5))
 
      ;; evaluating add_five with 3 binds the last argument in
      ;; add, and the function is fully evaluated:
