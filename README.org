@@ -38,6 +38,7 @@
    #+BEGIN_SRC racket
      ;; A comment
      (+ 5 1)
+     6
    #+END_SRC
 
 ** Variable binding
