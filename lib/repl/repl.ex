@@ -11,19 +11,22 @@ defmodule Terp.Repl do
     loop(fn (z) -> {:error, {:unbound, z}} end)
   end
 
-  def loop(environment) do
+  def loop(environment, current_expr \\ "") do
     expr = IO.gets("terp> ")
     case expr do
       :eof ->
         # Ctl-D
         IO.write("\nBye!")
       _ ->
+        full_expr = current_expr <> expr
         cond do
+          incomplete_expr?(full_expr) && !double_new_line(full_expr) ->
+            loop(environment, full_expr)
           String.starts_with?(expr, ":t ") || String.starts_with?(expr, ":type ") ->
             type_check(expr)
             loop(environment)
           true ->
-            env = expr
+            env = full_expr
             |> String.trim()
             |> eval(environment)
             loop(env)
@@ -95,5 +98,29 @@ defmodule Terp.Repl do
         Error.pretty_print_error(error)
       environment
     end
+  end
+
+  # Helpers for determining whether a full command has been
+  # entered into the REPL.
+  defp complete_expr?(expr) do
+    # Compares the number of opening parens to closing parens.
+    opening_parens = expr
+    |> String.graphemes()
+    |> Enum.filter(&(&1 == "(" || &1 == "["))
+    |> length()
+
+    closing_parens = expr
+    |> String.graphemes()
+    |> Enum.filter(&(&1 == ")" || &1 == "]"))
+    |> length()
+    (opening_parens == closing_parens) && String.ends_with?(expr, "\n")
+  end
+
+  defp incomplete_expr?(expr) do
+    !complete_expr?(expr)
+  end
+
+  defp double_new_line(expr) do
+    String.ends_with?(expr, "\n\n")
   end
 end
