@@ -26,13 +26,13 @@ defmodule Terp.ModuleSystem do
     3. Returns the environment that now contains the exported definitions
          from the required modules.
   """
-  def require_modules(filenames, env), do: require_modules(filenames, env, [])
+  def require_modules(module_names, env), do: require_modules(module_names, env, [])
   def require_modules([], env, imports) do
     stringified_imports = Enum.map(imports, fn {f, i} -> "#{f}: #{Enum.join(i, ", ")}" end)
     {{:ok, {:imported, Enum.join(stringified_imports, "\n")}}, env}
   end
-  def require_modules([filename | filenames], env, imports) do
-    with {:ok, module} <- File.read(filename <> ".tp"),
+  def require_modules([module_name | module_names], env, imports) do
+    with {:ok, module} <- File.read(module_name <> ".tp"),
          {:ok, _types} = TypeSystem.check_src(module),
          ast = module |> Parser.parse() |> Enum.flat_map(&AST.to_tree/1),
          {_res, environment} = Terp.eval_ast(ast, env) do
@@ -40,12 +40,12 @@ defmodule Terp.ModuleSystem do
       provides = find_exported_definitions(ast)
       defined = find_node_values_of_type(ast, [:__let, :__letrec])
       cleaned_environment = hide_private_fns({provides, defined}, environment)
-      updated_imports = [{filename, provides} | imports]
+      updated_imports = [{module_name, provides} | imports]
 
-      require_modules(filenames, cleaned_environment, updated_imports)
+      require_modules(module_names, cleaned_environment, updated_imports)
     else
       {:error, :enoent} ->
-        {:error, {:module_doesnt_exist, filename}}
+        {:error, {:module_doesnt_exist, module_name}}
       %Error{} = error ->
         error
     end
