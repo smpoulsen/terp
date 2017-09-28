@@ -3,6 +3,10 @@
    ~terp~ is a toy language that falls somewhere between an ML and a lisp.
 
    Currently implemented:
+     + Using terp
+       + [[#installation-prerequisites][Installation]]
+       + [[#repl][REPL]]
+       + [[#file-evaluation][File evaluation]]
      + Core language features
        + Integers
        + Strings
@@ -25,20 +29,50 @@
        + Type definition/annotation
        + [[#pattern-matching][Pattern matching]] (currently limited to type constructors)
      + [[#elixirerlang-interop][Elixir/Erlang interop]]
-     + [[#file-evaluation][File evaluation]]
-     + [[#repl][REPL]]
      + Tooling
        + [[#test-utilities][Test utilities]]
      + [[#error-messages][Error messages]]
 
    Additional examples can be found in the [[https://github.com/tpoulsen/terp/tree/master/examples][examples]] directory.
 * Usage
+** Installation/Prerequisites
+   To try terp, you must have Elixir and Erlang installed. If you don't already have them installed, [[https://github.com/asdf-vm/asdf][the asdf version manager]] is a good way to do so (or see the [[https://elixir-lang.org/install.html][installation guide]] at elixir-lang.org).   
+   If you're using =asdf=, there is a =.tool-versions= file in the root of the project; running ~asdf install~ will install the proper versions of Elixir and Erlang.
+
+   With those installed, run ~mix deps.get~ in the root directory to install additional dependencies.
+** REPL
+   The quickest way to try terp is via the Read-Eval-Print-Loop (REPL). The repl is started by running* ~iex -S mix terp.repl~ at the command line from the project root.
+
+   In the REPL you can evaluate expressions, import modules, and type check expressions.
+
+   [[file:media/repl_demo.gif]] 
+
+   *The REPL can also be started with just ~mix terp.repl~. If stared like this, there is not any scrollback or history. By using ~iex -S mix terp.repl~, the IEx shell provides those features while still running the terp REPL.
+** File evaluation
+   There's a mix task (~mix terp.run $FILENAME~) to evaluate a file:
+
+   For example, with a file named ~test.tp~ (~terp~ files must end in ~.tp~) that contains the following code:
+   #+BEGIN_SRC racket
+     (defn identity (x) x)
+
+     (defn square (x)
+         (* x x))
+
+     (square (identity 2))
+   #+END_SRC
+
+   Running ~mix terp.run test.tp~ evaluates the file:
+   #+BEGIN_SRC sh
+     $ mix terp.run test.tp
+     4
+   #+END_SRC
+* Language Features
 ** Comments
    Comments are single-line and begin with ~;;~:
    #+BEGIN_SRC racket
      ;; A comment
      (+ 5 1)
-     6
+     ;; 6
    #+END_SRC
 
 ** Variable binding
@@ -46,7 +80,8 @@
     #+BEGIN_SRC racket
       (let x 5)
 
-      (let identity (lambda (x) x))
+      (let identity
+          (lambda (x) x))
 
       (identity x)
       ;; 5
@@ -74,7 +109,9 @@
      ;; 5
 
      (let x 5)
-     (if (equal? x 5) (* x x) 0)
+     (if (equal? x 5)
+         (* x x)
+         0)
      ;; 25
    #+END_SRC
 
@@ -103,21 +140,28 @@
      (lambda (x) x)
 
      ;; Defining a named function:
-     (let double (lambda (x) (* 2 x)))
+     (let double
+         (lambda (x)
+           (* 2 x)))
      (double 5)
      ;; 10
 
-     (let square (lambda (x) (* x x)))
+     (let square
+         (lambda (x)
+           (* x x)))
      (square 5)
      ;; 25
    #+END_SRC
 
    Multi-argument functions:
    #+BEGIN_SRC racket
-     (((lambda (x) (lambda (y) (+ x y))) 5 ) 3)
+     (((lambda (x)
+         (lambda (y)
+           (+ x y))) 5 ) 3)
      ;; 8
 
-     ((lambda (x y) (+ x y)) 5 3)
+     ((lambda (x y)
+        (+ x y)) 5 3)
      ;; 8
    #+END_SRC
 
@@ -126,11 +170,14 @@
      ;; add is a function that takes two arguments.
      ;;   Currying turns it into a series of functions
      ;;   that each takes a single argument.
-     (let add (lambda (x y) (+ x y)))
+     (let add
+         (lambda (x y)
+           (+ x y)))
 
      ;; We can define a new function, add_five, that partially
      ;; applies add to the value 5:
-     (let add_five (add 5))
+     (let add_five
+         (add 5))
 
      ;; evaluating add_five with 3 binds the last argument in
      ;; add, and the function is fully evaluated:
@@ -140,7 +187,8 @@
 
    Functions can also be defined using ~defn~; this is syntactic sugar for ~let/lambda~ definition:
    #+BEGIN_SRC racket
-     (defn add (x y) (+ x y))
+     (defn add (x y)
+       (+ x y))
    #+END_SRC
 ** Recursive functions
    Recursive functions are defined with ~letrec~.
@@ -265,31 +313,6 @@
    2) Type inference does not work for Elixir/Erlang functions. When writing functions that use Elixir/Erlang functions, type annotations should be provided for used functions. See [[./examples/elixir_interop.tp][./examples/elixir_interop.tp]] for examples/details.
    3) The full module and function names must be provided.
    4) Elixir and Erlang functions aren't curried.
-** File evaluation
-   There's a mix task (~mix terp.run $FILENAME~) to evaluate a file:
-
-   Filename ~test.tp~ (~terp~ files must end in ~.tp~):
-   #+BEGIN_SRC racket
-     (let identity
-         (lambda '(x) x))
-
-     (let double_identity
-         ((identity identity) 5))
-
-     (+ 2 double_identity)
-   #+END_SRC
-
-   #+BEGIN_SRC sh
-     $ mix terp.run test.tp
-     7
-   #+END_SRC
-** REPL
-   There's a basic repl using the mix task ~mix terp.repl~.
-
-   Currently allows expression evaluation (including module imports). History/scrollback not currently implemented.
-   [[file:media/repl_demo.gif]] 
-
-   As a workaround for history/scrollback in the repl, start it as ~iex -S mix terp.repl~. The IEx shell provides those features while still running the terp repl.
 ** Test utilities
    There's a mix task (~mix terp.test [$FILENAME | $DIRECTORY]~) to find and run tests in the given file(s)/directories.
 
