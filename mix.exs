@@ -29,7 +29,7 @@ defmodule Terp.Mixfile do
     [
       {:bunt, "~> 0.2.0"},
       {:combine, "~> 0.9.6"},
-      {:focus, "~> 0.3.4"},
+      {:focus, "~> 0.3.5"},
       {:rose_tree, "~> 0.2.0"},
       {:credo, "~> 0.8.2", only: [:dev, :test]},
       {:dialyxir, "~> 0.5.0", only: [:dev, :test]},
