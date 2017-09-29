@@ -159,7 +159,8 @@ defmodule Terp.AST do
          {:ok, {%RoseTree{node: name}, _history}} <- Zipper.lift(expr_type, &Zipper.next_sibling/1) do
       {:ok, name}
     else
-      _ -> {:error, :no_fn_name}
+      _ ->
+        {:error, :no_fn_name}
     end
   end
 end

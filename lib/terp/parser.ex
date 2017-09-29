@@ -156,17 +156,17 @@ defmodule Terp.Parser do
     c_parser = sequence([
       ignore(char("(")),
       ignore(string("class")),
-      ignore(either(newline(), space())),
+      ignore(many(either(newline(), space()))),
       between(string("["),
         sep_by(hyphenated_word(), space()),
         string("]")),
-      ignore(either(newline(), space())),
+      ignore(many(either(newline(), space()))),
       between(
         string("["),
         many1(
           choice([
             type_annotation_parser(),
-            ignore(either(newline(), space()))
+            ignore(either(newline(), space())),
           ])
         ),
         string("]")
@@ -180,11 +180,11 @@ defmodule Terp.Parser do
     c_parser = sequence([
       ignore(char("(")),
       ignore(string("instance")),
-      ignore(either(newline(), space())),
+      ignore(many(either(newline(), space()))),
       between(string("["),
         sep_by(hyphenated_word(), space()),
         string("]")),
-      ignore(either(newline(), space())),
+      ignore(many(either(newline(), space()))),
       between(
         string("["),
         many1(

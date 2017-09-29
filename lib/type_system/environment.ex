@@ -190,7 +190,7 @@ defmodule Terp.TypeSystem.Environment do
   end
 
   @doc false
-  def handle_call({:implements_class, nil, type}, _from, state), do: {:reply, true, state}
+  def handle_call({:implements_class, nil, _type}, _from, state), do: {:reply, true, state}
   def handle_call({:implements_class, class, type}, _from, %Environment{type_classes: type_classes} = state) do
     res = case Map.get(type_classes, class) do
             nil ->
@@ -242,13 +242,9 @@ defmodule Terp.TypeSystem.Environment do
 
   @doc false
   def handle_cast({:define_instance, name, type_dict}, %Environment{type_classes: types, type_instances: type_instances} = state) do
-    updated_type_instances = if Map.has_key?(type_instances, name) do
-      Map.merge(type_instances, type_dict, fn (_k, v1, v2) ->
-        Map.merge(v1, v2)
-      end)
-    else
-      type_dict
-    end
+    updated_type_instances = Map.merge(type_instances, type_dict, fn (_k, v1, v2) ->
+      Map.merge(v1, v2)
+    end)
     updated_classes = if Map.has_key?(types, name) do
       new_instances = type_dict
       |> Enum.map(fn {_k, v} -> Map.keys(v) end)

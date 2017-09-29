@@ -23,7 +23,7 @@ defmodule Terp.TypeSystem.Evaluator do
     end
     case infer(expr, %{}) do
       :ok ->
-        :ok
+        {:ok, %{}}
       {:ok, {_substitution, type}} ->
         if expr.node == :__type do
           {:ok, {null_substitution(), type}}

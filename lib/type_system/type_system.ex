@@ -108,7 +108,7 @@ defmodule Terp.TypeSystem do
     {Enum.join(vars, " "), Enum.join(classes, ", ")}
   end
 
-  def lookup_class_defn(fn_name, %{children: [operator, arg1 | args]}) do
+  def lookup_class_defn(fn_name, %{children: [_operator, arg1 | _args]}) do
     with {:ok, defn} <- Environment.lookup_instance_defn(fn_name),
          {:ok, {_s, type}} <- check_ast(arg1) do
       case Map.get(defn, to_string(type.t)) do
@@ -122,4 +122,5 @@ defmodule Terp.TypeSystem do
         error
     end
   end
+  def lookup_class_defn(_fn_name, _args), do: {:error, :no_matching_class_instance}
 end

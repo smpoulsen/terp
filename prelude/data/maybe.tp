@@ -1,0 +1,15 @@
+;; (module prelude.data.maybe)
+;; Currently, all constructors are exported along with
+;; a type definition.
+;;   ex: exporting Maybe also exports Just and Nothing
+(provide Maybe
+         maybe)
+
+(data (Maybe a)
+      [Just a]
+      [Nothing])
+
+(defn maybe (default f maybeVal)
+  (match (maybeVal)
+    [(Nothing) (Just default)]
+    [(Just x) (Just (f x))]))

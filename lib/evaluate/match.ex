@@ -14,11 +14,10 @@ defmodule Terp.Evaluate.Match do
     check_matches((hd evald_vars), match_exprs, env)
   end
 
-  def check_matches(evald_vars, [], _env) do
+  def check_matches(_evald_vars, [], _env) do
     %Error{kind: :evaluation,
            type: :match,
-           message: "No successful pattern match",
-           evaluating: evald_vars}
+           message: "No successful pattern match"}
   end
   def check_matches(evald_vars, [match_expr | match_exprs], env) do
     case check_match(evald_vars, match_expr) do

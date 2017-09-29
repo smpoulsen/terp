@@ -101,7 +101,7 @@ defmodule Terp.Repl do
 
   # Evaluate the expression and return the updated environment.
   defp eval(expr, environment) do
-    with {:ok, _type} <- TypeSystem.check_src(expr),
+    with {:ok, type} <- TypeSystem.check_src(expr),
          {res, env} <- Terp.eval_source(expr, environment) do
       case res do
         {:error, _} = e ->
@@ -121,7 +121,9 @@ defmodule Terp.Repl do
         nil ->
           env
         _ ->
-          IO.inspect(res, charlists: :as_lists)
+          res_str = to_string(res)
+          type_str = elem(List.first(type), 1)
+          Bunt.puts([:green, res_str, :blue, " : #{type_str}"])
           env
       end
       env

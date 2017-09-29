@@ -1,0 +1,3 @@
+;; (modeul type_classes/classes)
+;; Imports and re-exports the defined type classes.
+(require prelude/type_classes/num)

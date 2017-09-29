@@ -1,7 +1,8 @@
-;; (module prelude.prelude)
+;; (module prelude/prelude)
 ;; Imports and re-exports the other modules in the directory.
 (require prelude/list
-         prelude/function)
+         prelude/function
+         prelude/type_classes/classes)
 
 (provide foldl
          foldr

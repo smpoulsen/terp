@@ -48,6 +48,8 @@ defmodule Terp.Error do
     Bunt.puts([:red, "--#{String.upcase(to_string(module))} ERROR--"])
   end
 
+  def pretty_print_error({:error, %Error{} = error}, _expr), do: pretty_print_error(error)
+
   def pretty_print_error({:error, {module, reason}}) do
     Bunt.puts([:red, "--#{String.upcase(to_string(module))} ERROR--"])
     Bunt.puts(["#{reason} when evaluating the expression"])
