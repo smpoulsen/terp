@@ -1,0 +1,12 @@
+(require prelude/data/maybe)
+
+(class [Monad m]
+  [(type bind (-> [m a] (-> (-> a [m b]) [m b])))
+   (type return (-> a [m a]))])
+
+(instance [Monad [Maybe a]]
+          [(defn bind (x f)
+             (match (x)
+               [(Just y) (f y)]
+               [(Nothing) (Nothing)]))
+           (defn return (x) (Just x))])
