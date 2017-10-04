@@ -48,20 +48,6 @@ defmodule Terp.Evaluate.Boolean do
   @doc """
   `cond/2` evaluates a list of conditions one by one until
   a true condition is found; when one is true, the body is evaluated.
-
-  ## Examples
-
-      iex> "(cond [(equal? 1 5) (9)] [#t 5])"
-      ...> |> Terp.eval()
-      5
-
-      iex> "(cond [(equal? 1 5) (9)] [#f 5])"
-      ...> |> Terp.eval()
-      {:error, {:cond, "no true condition"}}
-
-      iex> "(cond [(equal? (+ 2 3) 5) 9] [#f 5])"
-      ...> |> Terp.eval()
-      9
   """
   def cond([], _env), do: {:error, {:cond, "no true condition"}}
   def cond([%{node: [condition | consequent]} | conditions], env) do
@@ -77,14 +63,6 @@ defmodule Terp.Evaluate.Boolean do
 
   @doc """
   Test whether two values are equal.
-
-  ## Examples
-
-      iex> "(equal? 5 3)" |> Terp.eval()
-      false
-
-      iex> "(equal? 5 5)" |> Terp.eval()
-      true
   """
   def equal?(operands, environment) do
     case Enum.map(operands, &Evaluate.eval_expr(&1, environment)) do

@@ -10,8 +10,7 @@ defmodule Terp.TypeSystem.MatchTest do
   describe "Type checking Maybes" do
     setup do
       maybe = """
-      (data (Maybe a) [Just a] [Nothing])
-      (defn maybePlusFive (x) (match (x) [(Just z) (Just (+ z 5))] [(Nothing) (Nothing)]))
+      (require prelude prelude/data/maybe)
       """
       {:ok, %{maybe: maybe}}
     end

@@ -11,10 +11,10 @@ defmodule Terp.Parser do
   ## Examples
 
       iex> Terp.Parser.parse("(+ 1 2 3)")
-      [[__apply: [:"__+", 1, 2, 3]]]
+      [[__apply: ["+", 1, 2, 3]]]
 
       iex> Terp.Parser.parse("(+ 1 2 (* 2 3))")
-      [[__apply: [:"__+", 1, 2, {:__apply, [:"__*", 2, 3]}]]]
+      [[__apply: ["+", 1, 2, {:__apply, ["*", 2, 3]}]]]
   """
   def parse(str) do
     str

@@ -4,5 +4,8 @@ alias Terp.Arithmetic
 alias Terp.Boolean
 alias Terp.Function
 alias Terp.IO
-alias Terp.Types.Types
-alias Terp.Types.TypeEvaluator
+alias Terp.Evaluate
+alias Terp.TypeSystem
+alias Terp.TypeSystem.Type
+alias Terp.TypeSystem.Evaluator
+alias Terp.TypeSystem.Environment

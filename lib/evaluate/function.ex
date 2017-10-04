@@ -7,16 +7,6 @@ defmodule Terp.Evaluate.Function do
   The list of arguments must be quoted; multiple arguments can be specified.
 
   Terp functions are curried out-of-the-box.
-
-  ## Examples
-
-      iex> "((lambda '(:x) (* :x :x)) 5)"
-      ...> |> Terp.eval()
-      25
-
-      iex> "((lambda '(:x :y) (* :x :y)) 5 9)"
-      ...> |> Terp.eval()
-      45
   """
   alias Terp.Evaluate
 

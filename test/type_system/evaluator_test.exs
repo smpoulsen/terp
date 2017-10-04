@@ -5,6 +5,8 @@ defmodule Terp.TypeSystem.EvaluatorTest do
 
   setup do
     TypeSystem.start_environment()
+    "(require prelude/type_classes/classes)"
+    |> TypeSystem.check_src()
     {:ok, %{}}
   end
 
