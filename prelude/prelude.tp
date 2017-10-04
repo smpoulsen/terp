@@ -1,8 +1,8 @@
 ;; (module prelude/prelude)
 ;; Imports and re-exports the other modules in the directory.
-(require prelude/list
-         prelude/function
-         prelude/type_classes/classes)
+(require prelude/type_classes/classes
+         prelude/list
+         prelude/function)
 
 (provide foldl
          foldr
@@ -11,5 +11,4 @@
          sum
          length
          filter
-         compose
-         )
+         compose)

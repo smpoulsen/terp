@@ -108,19 +108,34 @@ defmodule Terp.TypeSystem do
     {Enum.join(vars, " "), Enum.join(classes, ", ")}
   end
 
-  def lookup_class_defn(fn_name, %{children: [_operator, arg1 | _args]}) do
+  def lookup_class_defn(fn_name, %{children: [operator | args]} = expr) do
     with {:ok, defn} <- Environment.lookup_instance_defn(fn_name),
-         {:ok, {_s, type}} <- check_ast(arg1) do
-      case Map.get(defn, to_string(type.t)) do
-        nil ->
-          {:error, :no_matching_class_instance}
-        instance_def ->
-          {:ok, instance_def}
-      end
+         {:ok, types} = check_ast(args) do
+      arg_types = Enum.map(types, &elem(&1, 1))
+      get_defn_for_args(defn, arg_types)
     else
       error ->
         error
     end
   end
   def lookup_class_defn(_fn_name, _args), do: {:error, :no_matching_class_instance}
+
+  def get_defn_for_args(defn, types) when is_list(types) do
+    types
+    |> Enum.reduce({:error, :no_matching_class_instance},
+    fn (type, acc) ->
+      case get_defn_for_type(defn, type) do
+        nil ->
+          acc
+        instance ->
+          {:ok, instance}
+      end
+    end
+    )
+  end
+  def get_defn_for_type(defn, %Type{constructor: nil, type_constructor: c}) do
+    Map.get(defn, c)
+  end
+  def get_defn_for_type(defn, %Type{constructor: c}), do: Map.get(defn, c)
+  def get_defn_for_type(_defn, _type), do: nil
 end

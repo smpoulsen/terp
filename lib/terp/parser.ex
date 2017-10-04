@@ -132,9 +132,9 @@ defmodule Terp.Parser do
       ignore(char("(")),
       ignore(string("type")),
       ignore(either(newline(), space())),
-      choice([hyphenated_word(), beam_term_parser(), punctuation_parser()]),
+      choice([hyphenated_word(), type_parser(), beam_term_parser(), punctuation_parser()]),
       ignore(either(newline(), space())),
-      arrow_parser(),
+      type_parser(),
       ignore(char(")"))
     ])
     map(t_parser, fn x -> {:__type, x} end)
@@ -182,7 +182,7 @@ defmodule Terp.Parser do
       ignore(string("instance")),
       ignore(many(either(newline(), space()))),
       between(string("["),
-        sep_by(hyphenated_word(), space()),
+        sep_by(type_parser(), space()),
         string("]")),
       ignore(many(either(newline(), space()))),
       between(

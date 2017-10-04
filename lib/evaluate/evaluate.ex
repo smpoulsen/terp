@@ -189,23 +189,26 @@ defmodule Terp.Evaluate do
       x when is_function(x) -> x
       x when is_boolean(x) -> x
       x ->
-        with true <- is_atom(x),
-             s <- Atom.to_string(x),
-             true <- String.starts_with?(s, "__") do
-          x
-        else
-          _ ->
-            env.(x)
-        end
+        if builtin?(x), do: x, else: env.(x)
     end
   end
 
   defp eval_operator_with_type_class(%{node: function} = operator, tree, env) do
-    case TypeSystem.lookup_class_defn(function, tree) do
-      {:ok, defn} ->
-        eval_expr(defn, env).(function)
+    with false <- builtin?(function),
+         {:ok, defn} <- TypeSystem.lookup_class_defn(function, tree) do
+      eval_expr(defn, env).(function)
+    else
       _ ->
         eval_expr(operator, env)
+    end
+  end
+
+  defp builtin?(function) do
+    with true <- is_atom(function),
+         s <- Atom.to_string(function) do
+           String.starts_with?(s, "__")
+    else
+      _ -> false
     end
   end
 end

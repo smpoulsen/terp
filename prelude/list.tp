@@ -55,8 +55,8 @@
 ;; Usage:
 ;;     (map (lambda (x) (* 2 x)) '(1 2 3 4 5))
 ;;     '(2 4 6 8 10)
-(let map
-    (lambda (f xs)
+  (let mapl
+      (lambda (f xs)
       (foldr
        (lambda (x acc) (cons (f x) acc))
        '()

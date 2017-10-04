@@ -122,8 +122,11 @@ defmodule Terp.Repl do
           env
         _ ->
           res_str = to_string(res)
-          type_str = elem(List.first(type), 1)
-          Bunt.puts([:green, res_str, :blue, " : #{type_str}"])
+          if List.first(type) !== %{} do
+            type_str = elem(List.first(type), 1)
+            IO.inspect(res, charlists: :as_lists)
+            Bunt.puts([:blue, " : #{type_str}"])
+          end
           env
       end
       env
@@ -137,7 +140,7 @@ defmodule Terp.Repl do
         environment
       %Error{} = error->
         Error.pretty_print_error(error)
-      environment
+        environment
     end
   end
 

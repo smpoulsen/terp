@@ -64,8 +64,8 @@ defmodule Terp.TypeSystem.Type do
   Expects the type name, a list of type variables (as atoms),
   and a list of tuples containing {type, type vars}.
   """
-  @spec sum_type(String.t, [String.t], [{String.t, [String.t]}]) :: Type.t
-  def sum_type(name, type_vars, constructors) do
+  @spec higher_kinded(String.t, [String.t], [{String.t, [String.t]}]) :: Type.t
+  def higher_kinded(name, type_vars, constructors) do
     ts = for {name, args} <- constructors do
       constructor = to_string(name)
       # This to_type won't work for HKTs
@@ -125,10 +125,11 @@ defmodule Terp.TypeSystem.Type do
   def to_type("List", x), do: list(to_type(x))
   def to_type(constructor, vars) do
     case Environment.lookup_def(constructor) do
-      {:error, e} ->
-        {:error, e}
       {:ok, t} ->
         replace_type_vars({t, vars})
+      _ ->
+        vars_list = List.wrap(vars)
+        higher_kinded(constructor, vars_list, [{var(constructor), vars_list}])
     end
   end
 

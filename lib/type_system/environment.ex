@@ -198,9 +198,25 @@ defmodule Terp.TypeSystem.Environment do
                      type: :instance_definition,
                      message: "Type class #{class} is not defined"}
             classes ->
-              MapSet.member?(classes, type)
+              with false <- MapSet.member?(classes, type),
+                   false <- type.constructor === :Tvar,
+                   false <- _hkt_implements_class(classes, type) do
+                false
+              else
+                true ->
+                  true
+              end
           end
     {:reply, res, state}
+  end
+
+  def _hkt_implements_class(classSet, %Type{constructor: c, t: %Type{}}) do
+    classSet
+    |> Enum.member?(c)
+  end
+  def _hkt_implements_class(classSet, %Type{type_constructor: c}) do
+    classSet
+    |> Enum.member?(c)
   end
 
   @doc false

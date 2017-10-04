@@ -32,6 +32,7 @@ defmodule Terp.TypeSystem.Annotation do
       extract_type_nodes(tree)
     end
   end
+  def extract_type_nodes(type), do: type
 
   @spec annotated?(RoseTree.t) :: boolean()
   def annotated?(name) do

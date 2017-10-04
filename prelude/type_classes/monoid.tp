@@ -1,0 +1,16 @@
+;; A Monoid must have a binary associative operation
+;; and an identity.
+
+;; TODO fold is currently defined in prelude/list.
+;; This will change as more type classes are implemented.
+(require prelude/list)
+
+(class [Monoid a]
+  [(type mempty a)
+   (type mappend (-> a (-> a a)))])
+
+(instance [Monoid [List a]]
+          [(let mempty '())
+           (defn mappend (x y)
+             (foldr (lambda (z acc)
+                      (cons z acc)) y x))])
