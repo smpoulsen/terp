@@ -63,7 +63,7 @@
 (test "Functor List -> map square over a list of Ints"
       (let-values
           ([square (lambda (x) (* x x))])
-        (assert (equal? (map square '(1 2 3 4 5)) '(2 4 6 8 10)))))
+        (assert (equal? (map square '(1 2 3 4 5)) '(1 4 9 16 25)))))
 
 ;; Functor Maybe
 (test "Functor Maybe -> map square over Just Int"

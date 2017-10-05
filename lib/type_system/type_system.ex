@@ -108,7 +108,7 @@ defmodule Terp.TypeSystem do
     {Enum.join(vars, " "), Enum.join(classes, ", ")}
   end
 
-  def lookup_class_defn(fn_name, %{children: [operator | args]} = expr) do
+  def lookup_class_defn(fn_name, %{children: [_operator | args]}) do
     with {:ok, defn} <- Environment.lookup_instance_defn(fn_name),
          {:ok, types} = check_ast(args) do
       arg_types = Enum.map(types, &elem(&1, 1))

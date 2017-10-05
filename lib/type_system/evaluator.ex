@@ -544,7 +544,17 @@ defmodule Terp.TypeSystem.Evaluator do
     t = Type.function(apply_sub(substitution, t1), apply_sub(substitution, t2))
     %{t | classes: type.classes}
   end
-  def apply_sub(substitution, %Type{constructor: c, t: ts} = type) when is_list(ts) do
+  def apply_sub(substitution, %Type{classes: classes} = type) when is_list(classes) do
+    # TODO Sub in the constructor if it's a variable
+    class_vars = Enum.map(classes, &elem(&1, 1))
+    Enum.reduce(class_vars, type, fn (var, _acc) ->
+      case Map.get(substitution, var) do
+        nil -> type
+        sub_type -> sub_type
+      end
+    end)
+  end
+  def apply_sub(substitution, %Type{t: ts} = type) when is_list(ts) do
     # TODO Sub in the constructor if it's a variable
     updated_ts = Enum.map(ts, &apply_sub(substitution, &1))
     updated_vars = Enum.map(type.vars,

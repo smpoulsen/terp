@@ -5,6 +5,7 @@ defmodule Terp.Repl do
   alias Terp.TypeSystem
   alias Terp.ModuleSystem
   alias Terp.Error
+  alias Terp.Value
 
   def init() do
     # Starts a persisted type environment for the current session.
@@ -121,10 +122,16 @@ defmodule Terp.Repl do
         nil ->
           env
         _ ->
-          res_str = to_string(res)
           if List.first(type) !== %{} do
             type_str = elem(List.first(type), 1)
-            IO.inspect(res, charlists: :as_lists)
+            case res do
+              %Value{} ->
+                res
+                |> to_string()
+                |> IO.puts()
+              _ ->
+                IO.inspect(res, charlists: :as_lists)
+            end
             Bunt.puts([:blue, " : #{type_str}"])
           end
           env
