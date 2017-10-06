@@ -520,8 +520,6 @@ defmodule Terp.TypeSystem.Evaluator do
   @spec apply_sub(substitution, Type.t) :: Type.t
   def apply_sub(_, %Type{constructor: :Tconst} = type), do: type
   def apply_sub(substitution, %Type{constructor: :Tlist, t: %Type{constructor: :Tlist, t: t}}) do
-    # Not sure why/where the super nested lists are coming from.
-    # cons, I think, but haven't yet investigated.
     Type.list(apply_sub(substitution, t))
   end
   def apply_sub(substitution, %Type{constructor: :Tlist, t: t}) do
@@ -680,10 +678,9 @@ defmodule Terp.TypeSystem.Evaluator do
     with false <- is_nil(c),
          false <- is_nil(d),
          c_type <- Type.to_type(c),
-         d_type <- Type.to_type(d),
            v1_types <- Enum.map(v1, &Type.to_type/1),
            v2_types <- Enum.map(v2, &Type.to_type/1) do
-      Enum.reduce(Enum.zip([d_type | v2_types], [c_type | v1_types]), {:ok, %{}},
+      Enum.reduce(Enum.zip([t2 | v2_types], [c_type | v1_types]), {:ok, %{}},
         fn (_, {:error, _e} = error) -> error
           ({t1, t2}, {:ok, subs}) ->
             case unify(t1, t2) do
