@@ -190,7 +190,13 @@ defmodule Terp.TypeSystem.Type do
     def to_string(%Type{constructor: :Tvar, t: t}), do: Kernel.to_string(t)
     def to_string(%Type{constructor: :Tlist, t: x}), do: "[#{Kernel.to_string(x)}]"
     def to_string(%Type{constructor: :Ttuple, t: {x, y}}), do: "{#{Kernel.to_string(x)}, #{Kernel.to_string(y)}}"
-    def to_string(%Type{constructor: :Tarrow, t: {x, y}}), do: "(-> #{Kernel.to_string(x)} #{Kernel.to_string(y)})"
+    def to_string(%Type{constructor: :Tarrow, t: {x, y}}) do
+      if x.constructor == :Tarrow do
+          "(#{Kernel.to_string(x)}) -> #{Kernel.to_string(y)}"
+      else
+          "#{Kernel.to_string(x)} -> #{Kernel.to_string(y)}"
+      end
+    end
     def to_string(%Type{constructor: nil, type_constructor: t, vars: vars}) do
       var_string = vars
       |> Enum.map(&Kernel.to_string/1)
