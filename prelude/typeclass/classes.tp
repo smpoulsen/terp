@@ -1,0 +1,3 @@
+;; (module typeclass/classes)
+;; Imports and re-exports the defined type classes.
+(require prelude/typeclass/num)

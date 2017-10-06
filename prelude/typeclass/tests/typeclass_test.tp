@@ -1,9 +1,9 @@
 (require prelude/test
          prelude/data/maybe
-         prelude/type_classes/num
-         prelude/type_classes/functor
-         prelude/type_classes/monoid
-         prelude/type_classes/monad)
+         prelude/typeclass/num
+         prelude/typeclass/functor
+         prelude/typeclass/monoid
+         prelude/typeclass/monad)
 
 ;; Num Int
 (test "Num Int -> addition"
@@ -77,12 +77,22 @@
         (assert (equal? (map square (Nothing)) (Nothing)))))
 
 ;; Monad
-(test "Monad Maybe -> bind with a return of inferred type (Just)"
+(test "Monad Maybe -> bind with an inferred pure of Just"
       (let-values
-          ([result (bind (Just 5) (lambda (x) (return (+ x 5))))])
+          ([result (bind (Just 5) (lambda (x) (pure (+ x 5))))])
         (assert (equal? result (Just 10)))))
 
-(test "Monad Maybe -> bind with a return of inferred type (Nothing)"
+(test "Monad Maybe -> bind with an inferred pure of Nothing"
       (let-values
-          ([result (bind (Nothing) (lambda (x) (return (+ x 5))))])
+          ([result (bind (Nothing) (lambda (x) (pure (+ x 5))))])
         (assert (equal? result (Nothing)))))
+
+(test "Monad Maybe -> maybe-add function"
+      (let-values
+          ([maybe-add (lambda (mx my)
+                        (bind mx (lambda (x)
+                                   (bind my (lambda (y)
+                                              (pure (+ x y)))))))])
+        (assert (equal?
+                 (maybe-add (Just 5) (Just 10))
+                 (Just 15)))))

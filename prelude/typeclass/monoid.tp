@@ -5,6 +5,9 @@
 ;; This will change as more type classes are implemented.
 (require prelude/list)
 
+(provide mempty
+         mappend)
+
 (class [Monoid a]
   [(type mempty a)
    (type mappend (-> a (-> a a)))])

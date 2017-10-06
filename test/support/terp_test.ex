@@ -13,7 +13,7 @@ defmodule Support.TerpTest do
 
   def eval_terp(src) do
     TypeSystem.start_environment()
-    "(require prelude/type_classes/classes)\n" <> src
+    "(require prelude/typeclass/classes)\n" <> src
     |> Terp.eval()
   end
 end

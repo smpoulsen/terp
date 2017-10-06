@@ -1,6 +1,6 @@
 ;; (module prelude/prelude)
 ;; Imports and re-exports the other modules in the directory.
-(require prelude/type_classes/classes
+(require prelude/typeclass/classes
          prelude/list
          prelude/function)
 

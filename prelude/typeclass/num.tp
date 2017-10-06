@@ -1,5 +1,13 @@
 ;; Definition of a type class, Num a, and the functions
 ;; that must be implemented to be part of the class.
+(provide +
+         -
+         *
+         negate
+         abs
+         signum
+         fromInteger)
+
 (class [Num a]
   [(type + (-> a (-> a a)))
    (type - (-> a (-> a a)))
