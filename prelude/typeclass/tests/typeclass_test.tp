@@ -87,12 +87,23 @@
           ([result (bind (Nothing) (lambda (x) (pure (+ x 5))))])
         (assert (equal? result (Nothing)))))
 
-(test "Monad Maybe -> maybe-add function"
-      (let-values
-          ([maybe-add (lambda (mx my)
-                        (bind mx (lambda (x)
-                                   (bind my (lambda (y)
-                                              (pure (+ x y)))))))])
+;; Testing binding in monads
+(defn maybe-add (mx my)
+  (bind mx (lambda (x)
+             (bind my (lambda (y)
+                        (pure (+ x y)))))))
+
+(test "Monad Maybe -> maybe-add function with two Justs"
         (assert (equal?
                  (maybe-add (Just 5) (Just 10))
-                 (Just 15)))))
+                 (Just 15))))
+
+(test "Monad Maybe -> maybe-add function with Just and Nothing"
+      (assert (equal?
+               (maybe-add (Just 5) (Nothing))
+               (Nothing))))
+
+(test "Monad Maybe -> maybe-add function with Nothing and Just"
+      (assert (equal?
+               (maybe-add (Nothing) (Just 5))
+               (Nothing))))
