@@ -16,4 +16,11 @@ defmodule Support.TerpTest do
     "(require prelude/typeclass/classes)\n" <> src
     |> Terp.eval()
   end
+
+  def type_check_src(src) do
+    TypeSystem.start_environment()
+    "(require prelude/typeclass/classes)\n"
+    |> Terp.eval()
+    TypeSystem.check_src(src)
+  end
 end

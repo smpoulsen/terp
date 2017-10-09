@@ -1,5 +1,6 @@
 ;; Tests for the list list prelude module.
-(require prelude/test)
+(require prelude/test
+         prelude/typeclass/classes)
 
 (test "foldl"
       (assert (equal?

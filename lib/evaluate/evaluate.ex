@@ -1,5 +1,5 @@
 defmodule Terp.Evaluate do
-  @doc """
+  @moduledoc """
   This module contains the core evaluation logic.
   """
   alias Terp.Error
@@ -135,8 +135,8 @@ defmodule Terp.Evaluate do
         module_first_char = String.first(module)
         is_capitalized? = String.upcase(module_first_char) == module_first_char
         fully_qualified_module = (if is_capitalized?, do: ("Elixir." <> module), else: module)
-        |> String.to_existing_atom
-        {:__beam, fn (args) -> apply(fully_qualified_module, function, args) end}
+        |> String.to_atom
+        {:__beam, curry(fn (args) -> apply(fully_qualified_module, function, args) end)}
       :__apply ->
         [operator | operands] = children
         operator = eval_operator_with_type_class(operator, tree, env)
@@ -210,5 +210,18 @@ defmodule Terp.Evaluate do
     else
       _ -> false
     end
+  end
+
+  def curry(fun) do
+    {_, arity} = :erlang.fun_info(fun, :arity)
+    curry(fun, arity, [])
+  end
+
+  def curry(fun, 0, arguments) do
+    apply(fun, Enum.reverse arguments)
+  end
+
+  def curry(fun, arity, arguments) do
+    fn arg -> curry(fun, arity - 1, [arg | arguments]) end
   end
 end

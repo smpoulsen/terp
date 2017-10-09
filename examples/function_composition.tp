@@ -1,3 +1,4 @@
+(require prelude/typeclass/classes)
 (require prelude/function)
 
 (let add

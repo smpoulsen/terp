@@ -2,7 +2,7 @@
 ;; Test files must end in `_test.tp`
 
 (require prelude/test
-         prelude/list)
+         prelude/typeclass/classes)
 
 ;; Some basic example assertions/refutations:
 (test "true is true"

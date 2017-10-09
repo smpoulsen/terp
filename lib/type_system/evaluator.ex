@@ -758,6 +758,9 @@ defmodule Terp.TypeSystem.Evaluator do
       ...> |> substitute_type_vars()
       {[%Type{constructor: :Tvar, t: :a}], %Type{constructor: :Tvar, t: :a}}
   """
+  def substitute_type_vars({vars, %Type{classes: cs} = type}) when is_list(cs) do
+    {Enum.uniq_by(vars, &(&1.t)), type}
+  end
   def substitute_type_vars({vars, type}) do
     TypeVars.reset()
     fresh_vars = for _var <- vars, do: TypeVars.finalize()

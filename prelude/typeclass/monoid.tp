@@ -1,9 +1,7 @@
 ;; A Monoid must have a binary associative operation
 ;; and an identity.
 
-;; TODO fold is currently defined in prelude/list.
-;; This will change as more type classes are implemented.
-(require prelude/list)
+(require prelude/typeclass/foldable)
 
 (provide mempty
          mappend)

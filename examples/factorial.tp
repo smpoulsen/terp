@@ -1,4 +1,5 @@
 ;; Recursive definition of factorial
+(require prelude/typeclass/classes)
 (provide factorial)
 
 (letrec factorial
@@ -9,6 +10,7 @@
 
 ;; 120
 (let n1 (factorial 5))
+
 ;; 720
 (let n2 (factorial 6))
 
