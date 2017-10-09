@@ -5,6 +5,7 @@ defmodule Terp.Test do
   alias Terp.AST
   alias Terp.Error
   alias Terp.Evaluate
+  alias Terp.ModuleSystem
   alias Terp.Parser
   alias Terp.TypeSystem
   alias RoseTree.Zipper
@@ -31,7 +32,8 @@ defmodule Terp.Test do
   def run_tests(file) do
     Bunt.puts([file])
     with true <- Terp.IO.is_terp_file(file),
-         {:ok, src} <- File.read(file),
+         {:ok, raw_src} <- File.read(file),
+           src <- ModuleSystem.inject_prelude(raw_src),
            ast = src |> Parser.parse() |> Enum.flat_map(&AST.to_tree/1),
          {:ok, _type} <- TypeSystem.check_ast(ast) do
       initial_environment = fn x -> {:error, {:unbound, x}} end

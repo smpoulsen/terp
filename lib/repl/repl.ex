@@ -10,7 +10,10 @@ defmodule Terp.Repl do
   def init() do
     # Starts a persisted type environment for the current session.
     TypeSystem.start_environment()
-    loop(fn (z) -> {:error, {:unbound, z}} end)
+    {:ok, code} = File.read("prelude/prelude.tp")
+    {_, environment} = code
+    |> Terp.eval_source()
+    loop(environment)
   end
 
   def loop(environment, current_expr \\ "") do

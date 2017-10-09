@@ -11,8 +11,11 @@ defmodule Terp.IO do
   Valid terp files end in `.tp`.
   """
   def run_terp(file) do
+    TypeSystem.start_environment()
     with true <- is_terp_file(file),
          {:ok, src} <- File.read(file),
+         {:ok, prelude} <- File.read("prelude/prelude.tp"),
+         {_, _environment} <- Terp.eval_source(prelude),
          {:ok, _type} <- TypeSystem.check_src(src) do
       Terp.eval(src)
     else
