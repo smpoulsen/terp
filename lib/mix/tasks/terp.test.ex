@@ -11,13 +11,16 @@ defmodule Mix.Tasks.Terp.Test do
   """
   def run(args) do
     started_at = :erlang.timestamp()
-    res = Enum.reduce(args, %{tests: 0, failures: 0}, fn
+    {:ok, prelude} = File.read("prelude/prelude.tp")
+    # Load definitions and types into the environment.
+    {_, environment} = Terp.eval_source(prelude)
+    res = Enum.reduce(args, %{env: environment, tests: 0, failures: 0}, fn
       (path, %{tests: t1, failures: f1}) ->
         test_result =
           if File.dir?(path) do
-            Test.test_dir(path)
+            Test.test_dir(path, environment)
           else
-            Test.run_tests(path)
+            Test.run_tests(path, environment)
           end
       case test_result do
         %{tests: t2, failures: f2} ->

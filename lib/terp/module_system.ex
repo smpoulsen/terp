@@ -103,8 +103,4 @@ defmodule Terp.ModuleSystem do
       Enum.member?(node_types, first_node.node)
     end)
   end
-
-  def inject_prelude(src) do
-    "(require prelude/prelude)\n" <> src
-  end
 end
