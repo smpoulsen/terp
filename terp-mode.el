@@ -11,7 +11,6 @@
 (eval-when-compile (require 'rx)
                    (require 'racket-mode))
 
-
 (defconst terp-mode-syntax-table
   (-let [table
          (copy-syntax-table racket-mode-syntax-table)]
@@ -34,24 +33,21 @@
         "match" "map"
         "reverse"
         "sum"))
-(setq terp-type-defs
-      '("class"
-        "data"
-        "instance"
-        "type"))
 (setq terp-constants
       '("#t" "#f"))
 (setq terp-keywords
-      '("defn" "defrec"
+      '("class"
+        "data" "defn" "defrec"
+        "instance"
         "lambda" "let" "letrec"
         "provide"
-        "require"))
+        "require"
+        "type"))
 (setq terp-operators
       '("->" "=>" ">" "<"))
 
 ;; generate regex string for each category of keywords
 (setq terp-functions-regexp (regexp-opt terp-functions 'words))
-(setq terp-type-defs-regexp (regexp-opt terp-type-defs 'words))
 (setq terp-constants-regexp (regexp-opt terp-constants 'words))
 (setq terp-keywords-regexp (regexp-opt terp-keywords 'words))
 (setq terp-operators-regexp (regexp-opt terp-operators 'symbols))
@@ -60,7 +56,6 @@
 (setq terp-font-lock-keywords
       `(
         (,type-or-class-case 1 font-lock-type-face)
-        (,terp-type-defs-regexp . font-lock-constant-face)
         (,terp-constants-regexp . font-lock-constant-face)
         (,terp-functions-regexp . font-lock-function-name-face)
         (,terp-keywords-regexp . font-lock-keyword-face)
@@ -78,14 +73,12 @@
 (add-to-list 'auto-mode-alist '("\\.tp?\\'" . terp-mode))
 
 ;; clear memory. no longer needed
-(setq terp-type-defs nil)
 (setq terp-constants nil)
 (setq terp-keywords nil)
 (setq terp-operators nil)
 (setq terp-functions nil)
 
 ;; clear memory. no longer needed
-(setq terp-type-defs-regexp nil)
 (setq terp-constants-regexp nil)
 (setq terp-keywords-regexp nil)
 (setq terp-operators-regexp nil)
