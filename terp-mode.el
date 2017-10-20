@@ -8,34 +8,63 @@
 
 ;; This file is NOT part of GNU Emacs.
 
+(eval-when-compile (require 'rx)
+                   (require 'racket-mode))
+
+
+(defconst terp-mode-syntax-table
+  (-let [table
+         (copy-syntax-table racket-mode-syntax-table)]
+    ;; syntax modifications
+    table)
+  "terp mode syntax table.")
+
+;; Syntax highlighting for typeclasses and types
+(defconst type-or-class-case
+  (rx symbol-start
+      (group upper (0+ (any word nonascii digit "_")))
+      symbol-end))
+
 (setq terp-functions
-      '("if" "car" "cdr" "cons" "empty?"
-        "foldl" "foldr" "reverse" "map"
-        "sum" "length" "filter" "compose"))
+      '("car" "cdr" "compose" "cons"
+        "empty?"
+        "filter" "foldl" "foldr"
+        "if"
+        "length"
+        "match" "map"
+        "reverse"
+        "sum"))
 (setq terp-type-defs
-      '("class" "type" "instance"))
+      '("class"
+        "data"
+        "instance"
+        "type"))
 (setq terp-constants
       '("#t" "#f"))
 (setq terp-keywords
-      '("defn" "defrec" "let" "letrec" "lambda" "provide" "require"))
-(setq terp-types
-      '("Int" "String" "Bool" "->" "Float"))
+      '("defn" "defrec"
+        "lambda" "let" "letrec"
+        "provide"
+        "require"))
+(setq terp-operators
+      '("->" "=>" ">" "<"))
 
 ;; generate regex string for each category of keywords
 (setq terp-functions-regexp (regexp-opt terp-functions 'words))
 (setq terp-type-defs-regexp (regexp-opt terp-type-defs 'words))
 (setq terp-constants-regexp (regexp-opt terp-constants 'words))
 (setq terp-keywords-regexp (regexp-opt terp-keywords 'words))
-(setq terp-types-regexp (regexp-opt terp-types 'words))
+(setq terp-operators-regexp (regexp-opt terp-operators 'symbols))
 
 ;; create the list for font-lock.
 (setq terp-font-lock-keywords
       `(
-        (,terp-types-regexp . font-lock-type-face)
+        (,type-or-class-case 1 font-lock-type-face)
         (,terp-type-defs-regexp . font-lock-constant-face)
         (,terp-constants-regexp . font-lock-constant-face)
         (,terp-functions-regexp . font-lock-function-name-face)
         (,terp-keywords-regexp . font-lock-keyword-face)
+        (,terp-operators-regexp . font-lock-builtin-face)
         ))
 
 ;;;###autoload
@@ -49,17 +78,17 @@
 (add-to-list 'auto-mode-alist '("\\.tp?\\'" . terp-mode))
 
 ;; clear memory. no longer needed
-(setq terp-types nil)
 (setq terp-type-defs nil)
-(setq terp-keywords nil)
 (setq terp-constants nil)
+(setq terp-keywords nil)
+(setq terp-operators nil)
 (setq terp-functions nil)
 
 ;; clear memory. no longer needed
-(setq terp-types-regexp nil)
 (setq terp-type-defs-regexp nil)
-(setq terp-keywords-regexp nil)
 (setq terp-constants-regexp nil)
+(setq terp-keywords-regexp nil)
+(setq terp-operators-regexp nil)
 (setq terp-functions-regexp nil)
 
 ;; add the mode to the `features' list
