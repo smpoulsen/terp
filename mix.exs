@@ -42,9 +42,9 @@ defmodule Terp.Mixfile do
     [
       name: :terp,
       licenses: ["BSD2"],
-      maintainers: ["Travis Poulsen"],
+      maintainers: ["Sylvie Poulsen"],
       links: %{
-        "GitHub" => "https://github.com/tpoulsen/terp",
+        "GitHub" => "https://github.com/smpoulsen/terp",
       }
     ]
   end
