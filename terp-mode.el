@@ -1,8 +1,8 @@
 ;;; terp-mode.el -- A major mode for editing terp
 
 ;; Version: 0.0.1
-;; Author: Travis Poulsen
-;; Url: https://github.com/tpoulsen/terp
+;; Author: Sylvie Poulsen
+;; Url: https://github.com/smpoulsen/terp
 ;; Keywords: languages, terp
 ;; Package-Requires: ((emacs "24.3"))
 
