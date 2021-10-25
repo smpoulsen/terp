@@ -28,13 +28,13 @@ defmodule Terp.Mixfile do
   defp deps do
     [
       {:bunt, "~> 0.2.0"},
-      {:combine, "~> 0.9.6"},
-      {:focus, "~> 0.3.5"},
+      {:combine, "~> 0.10.0"},
+      {:focus, "~> 0.4.0"},
       {:rose_tree, "~> 0.2.0"},
-      {:credo, "~> 0.8.2", only: [:dev, :test]},
-      {:dialyxir, "~> 0.5.0", only: [:dev, :test]},
-      {:excheck, "~> 0.5.3", only: :test},
-      {:triq, github: "triqng/triq", only: :test},
+      {:credo, "~> 1.5.0", only: [:dev, :test]},
+      {:dialyxir, "~> 1.1.0", only: [:dev, :test]},
+      {:excheck, "~> 0.6.0", only: :test},
+      {:triq, "1.3.0", only: :test}
     ]
   end
 

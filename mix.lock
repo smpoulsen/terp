@@ -1,8 +1,13 @@
-%{"bunt": {:hex, :bunt, "0.2.0", "951c6e801e8b1d2cbe58ebbd3e616a869061ddadcc4863d0a2182541acae9a38", [], [], "hexpm"},
-  "combine": {:hex, :combine, "0.9.6", "8d1034a127d4cbf6924c8a5010d3534d958085575fa4d9b878f200d79ac78335", [], [], "hexpm"},
-  "credo": {:hex, :credo, "0.8.4", "4e50acac058cf6292d6066e5b0d03da5e1483702e1ccde39abba385c9f03ead4", [], [{:bunt, "~> 0.2.0", [hex: :bunt, repo: "hexpm", optional: false]}], "hexpm"},
-  "dialyxir": {:hex, :dialyxir, "0.5.0", "5bc543f9c28ecd51b99cc1a685a3c2a1a93216990347f259406a910cf048d1d7", [], [], "hexpm"},
-  "excheck": {:hex, :excheck, "0.5.3", "7326a29cc5fdb6900e66dac205a6a70cc994e2fe037d39136817d7dab13cdabf", [], [], "hexpm"},
-  "focus": {:hex, :focus, "0.3.5", "ba9f2c3cc6ea9398db66ebbb859ba22d91341d64f6f771e87f7679b5bff1c6a1", [:mix], [], "hexpm"},
-  "rose_tree": {:hex, :rose_tree, "0.2.0", "8c09c4ce8abe916362d821b89e34f40d31801ef5fd1512d3b3db34af21fc8032", [], [], "hexpm"},
-  "triq": {:git, "https://github.com/triqng/triq.git", "4fea56d30a24ce9ce0a93f3dd1301044d35513ed", []}}
+%{
+  "bunt": {:hex, :bunt, "0.2.0", "951c6e801e8b1d2cbe58ebbd3e616a869061ddadcc4863d0a2182541acae9a38", [:mix], [], "hexpm", "7af5c7e09fe1d40f76c8e4f9dd2be7cebd83909f31fee7cd0e9eadc567da8353"},
+  "combine": {:hex, :combine, "0.10.0", "eff8224eeb56498a2af13011d142c5e7997a80c8f5b97c499f84c841032e429f", [:mix], [], "hexpm", "1b1dbc1790073076580d0d1d64e42eae2366583e7aecd455d1215b0d16f2451b"},
+  "credo": {:hex, :credo, "1.5.6", "e04cc0fdc236fefbb578e0c04bd01a471081616e741d386909e527ac146016c6", [:mix], [{:bunt, "~> 0.2.0", [hex: :bunt, repo: "hexpm", optional: false]}, {:file_system, "~> 0.2.8", [hex: :file_system, repo: "hexpm", optional: false]}, {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: false]}], "hexpm", "4b52a3e558bd64e30de62a648518a5ea2b6e3e5d2b164ef5296244753fc7eb17"},
+  "dialyxir": {:hex, :dialyxir, "1.1.0", "c5aab0d6e71e5522e77beff7ba9e08f8e02bad90dfbeffae60eaf0cb47e29488", [:mix], [{:erlex, ">= 0.2.6", [hex: :erlex, repo: "hexpm", optional: false]}], "hexpm", "07ea8e49c45f15264ebe6d5b93799d4dd56a44036cf42d0ad9c960bc266c0b9a"},
+  "erlex": {:hex, :erlex, "0.2.6", "c7987d15e899c7a2f34f5420d2a2ea0d659682c06ac607572df55a43753aa12e", [:mix], [], "hexpm", "2ed2e25711feb44d52b17d2780eabf998452f6efda104877a3881c2f8c0c0c75"},
+  "excheck": {:hex, :excheck, "0.6.0", "f8595a8ac2c0abc0d060c1a4fce7d26f41574543366a52d5f3c84de30a69747b", [:mix], [], "hexpm", "50a94eb60e79c886be425af6b6f09c8055556ff8ad00e474dba72172574b8d28"},
+  "file_system": {:hex, :file_system, "0.2.10", "fb082005a9cd1711c05b5248710f8826b02d7d1784e7c3451f9c1231d4fc162d", [:mix], [], "hexpm", "41195edbfb562a593726eda3b3e8b103a309b733ad25f3d642ba49696bf715dc"},
+  "focus": {:hex, :focus, "0.4.0", "49019dd4cf2d4a3385d9ae009bcf349491d76e2b1d5ed4d329c2c3851ff97c1d", [:mix], [], "hexpm", "7a7f6fb81abef46f7244d6c3420b1100ce9fa7d74af475bd70143987fc24b8dd"},
+  "jason": {:hex, :jason, "1.2.2", "ba43e3f2709fd1aa1dce90aaabfd039d000469c05c56f0b8e31978e03fa39052", [:mix], [{:decimal, "~> 1.0 or ~> 2.0", [hex: :decimal, repo: "hexpm", optional: true]}], "hexpm", "18a228f5f0058ee183f29f9eae0805c6e59d61c3b006760668d8d18ff0d12179"},
+  "rose_tree": {:hex, :rose_tree, "0.2.0", "8c09c4ce8abe916362d821b89e34f40d31801ef5fd1512d3b3db34af21fc8032", [:mix], [], "hexpm", "da7da8dc8dd712c5ca24da89901e74b05ef898e16b0d148abab77ca755eaf0da"},
+  "triq": {:hex, :triq, "1.3.0", "d9ed60f3cd2b6bacbb721bc9873e67e07b02e5b97c63d40db35b12670a7f1bf4", [:rebar3], [], "hexpm", "e01eb99fc53099ded985bb0c629ea0d2b0bfcf5b9a4178e0a93b08dbe51aa8cd"},
+}
