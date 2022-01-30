@@ -1,0 +1,19 @@
+(require prelude/test
+         prelude/data/maybe
+         prelude/typeclass/functor
+         prelude/typeclass/num)
+
+(test "map-double a list"
+      (assert (equal?
+               (map (* 2) '(1 2 3 4 5))
+               '(2 4 6 8 10))))
+
+(test "map-double Just Int"
+      (assert (equal?
+               (map (* 2) (Just 5))
+               (Just 10))))
+
+(test "map-double Nothing"
+      (assert (equal?
+               (map (* 2) (Nothing))
+               (Nothing))))

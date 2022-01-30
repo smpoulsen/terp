@@ -1,44 +1,9 @@
 ;; (module prelude.list)
-(provide foldl
-         foldr
-         reverse
-         map
+(require prelude/typeclass/classes)
+(provide reverse
          sum
          length
-         filter
-         )
-
-;; Fold a list into a single value using the provided function.
-;; foldl evaluates from left to right.
-;; Arguments:
-;;     fn          -> A function that takes a value and an accumulator;
-;;                    must return a value of the same type as the accumulator.
-;;     values      -> A list of values. Lists must be quoted, e.g. '(1 2 3).
-;;     accumulator -> An initial value to collect values into.
-;; Usage:
-;;     (foldl (lambda (n acc) (+ n acc)) 0 '(1 10 100 1000)) -> 1111
-;;     (foldl (lambda (x y) (cons y x)) '() '(1 2 3 4)) -> '(1 2 3 4)
-(letrec foldl
-  (lambda (fn accumulator values)
-    (if (empty? values)
-        accumulator
-        (foldl fn (fn accumulator (car values)) (cdr values)))))
-
-;; Fold a list into a single value using the provided function.
-;; foldr evaluates from right to left.
-;; Arguments:
-;;     fn          -> A function that takes a value and an accumulator;
-;;                    must return a value of the same type as the accumulator.
-;;     values      -> A list of values. Lists must be quoted, e.g. '(1 2 3).
-;;     accumulator -> An initial value to collect values into.
-;; Usage:
-;;     (foldr (lambda (acc n) (+ n acc)) 0 '(1 10 100 1000)) -> 1111
-;;     (foldl (lambda (x y) (cons x y)) '() '(1 2 3 4)) -> '(1 2 3 4)
-(letrec foldr
-  (lambda (fn accumulator values)
-    (if (empty? values)
-        accumulator
-        (fn (car values) (foldr fn accumulator (cdr values))))))
+         filter)
 
 ;; Reverse a list.
 ;; Usage:
@@ -48,17 +13,6 @@
     (lambda (xs)
       (foldl
        (lambda (acc x) (cons x acc))
-       '()
-       xs)))
-
-;; Map a function over a collection of items.
-;; Usage:
-;;     (map (lambda (x) (* 2 x)) '(1 2 3 4 5))
-;;     '(2 4 6 8 10)
-(let map
-    (lambda (f xs)
-      (foldr
-       (lambda (x acc) (cons (f x) acc))
        '()
        xs)))
 

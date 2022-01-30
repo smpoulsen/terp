@@ -1,0 +1,10 @@
+;; Applicative lifts a value into a context
+(require prelude/data/maybe)
+
+(provide pure)
+
+(class [Applicative f]
+  [(type pure (-> a [f a]))])
+
+(instance [Applicative [Maybe a]]
+           [(defn pure (x) (Just x))])

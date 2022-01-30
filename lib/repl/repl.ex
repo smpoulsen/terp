@@ -5,11 +5,15 @@ defmodule Terp.Repl do
   alias Terp.TypeSystem
   alias Terp.ModuleSystem
   alias Terp.Error
+  alias Terp.Value
 
   def init() do
     # Starts a persisted type environment for the current session.
     TypeSystem.start_environment()
-    loop(fn (z) -> {:error, {:unbound, z}} end)
+    {:ok, code} = File.read("prelude/prelude.tp")
+    {_, environment} = code
+    |> Terp.eval_source()
+    loop(environment)
   end
 
   def loop(environment, current_expr \\ "") do
@@ -89,20 +93,19 @@ defmodule Terp.Repl do
       :ok ->
         {:ok, nil}
       {:ok, types} ->
-        {type_vars, type} = List.first(types)
-        type_str = if Enum.empty?(type_vars) do
-          to_string(type)
-        else
-          variables = Enum.map(type_vars, &(to_string(&1)))
-          "∀ #{Enum.join(variables, " ")} => #{to_string(type)}"
-        end
+        type_str = types
+        |> List.first()
+        |> TypeSystem.stringify_type_scheme()
+
         Bunt.puts([:blue, trimmed, :green, " : ", :yellow, type_str])
+      error ->
+        Error.pretty_print_error(error)
     end
   end
 
   # Evaluate the expression and return the updated environment.
   defp eval(expr, environment) do
-    with {:ok, _type} <- TypeSystem.check_src(expr),
+    with {:ok, type} <- TypeSystem.check_src(expr),
          {res, env} <- Terp.eval_source(expr, environment) do
       case res do
         {:error, _} = e ->
@@ -122,7 +125,18 @@ defmodule Terp.Repl do
         nil ->
           env
         _ ->
-          IO.inspect(res, charlists: :as_lists)
+          if List.first(type) !== %{} do
+            type_str = elem(List.first(type), 1)
+            case res do
+              %Value{} ->
+                res
+                |> to_string()
+                |> IO.puts()
+              _ ->
+                IO.inspect(res, charlists: :as_lists)
+            end
+            Bunt.puts([:blue, " : #{type_str}"])
+          end
           env
       end
       env
@@ -136,7 +150,7 @@ defmodule Terp.Repl do
         environment
       %Error{} = error->
         Error.pretty_print_error(error)
-      environment
+        environment
     end
   end
 

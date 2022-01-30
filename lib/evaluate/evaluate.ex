@@ -1,5 +1,5 @@
 defmodule Terp.Evaluate do
-  @doc """
+  @moduledoc """
   This module contains the core evaluation logic.
   """
   alias Terp.Error
@@ -11,6 +11,7 @@ defmodule Terp.Evaluate do
   alias Terp.Evaluate.Function
   alias Terp.Evaluate.List, as: TerpList
   alias Terp.Evaluate.Match
+  alias Terp.TypeSystem
 
   @debug false
 
@@ -100,6 +101,11 @@ defmodule Terp.Evaluate do
         constructors = value_constructors.node
         env_prime = Enum.reduce(constructors, env, fn c, env ->  Value.constructor_fn(c, env) end)
         env_prime
+      :__instance ->
+        [_class, %{node: definitions}] = children
+        Enum.reduce(definitions, env, fn (defn, env) ->
+          eval_expr(defn, env)
+        end)
       :__string ->
         str = List.first(children)
         str.node
@@ -129,11 +135,11 @@ defmodule Terp.Evaluate do
         module_first_char = String.first(module)
         is_capitalized? = String.upcase(module_first_char) == module_first_char
         fully_qualified_module = (if is_capitalized?, do: ("Elixir." <> module), else: module)
-        |> String.to_existing_atom
-        {:__beam, fn (args) -> apply(fully_qualified_module, function, args) end}
+        |> String.to_atom
+        {:__beam, curry(fn (args) -> apply(fully_qualified_module, function, args) end)}
       :__apply ->
         [operator | operands] = children
-        operator = eval_expr(operator, env)
+        operator = eval_operator_with_type_class(operator, tree, env)
         case operator do
           :__if ->
             Boolean.conditional(operands, env)
@@ -183,14 +189,39 @@ defmodule Terp.Evaluate do
       x when is_function(x) -> x
       x when is_boolean(x) -> x
       x ->
-        with true <- is_atom(x),
-             s <- Atom.to_string(x),
-             true <- String.starts_with?(s, "__") do
-          x
-        else
-          _ ->
-            env.(x)
-        end
+        if builtin?(x), do: x, else: env.(x)
     end
+  end
+
+  defp eval_operator_with_type_class(%{node: function} = operator, tree, env) do
+    with false <- builtin?(function),
+         {:ok, defn} <- TypeSystem.lookup_class_defn(function, tree) do
+      eval_expr(defn, env).(function)
+    else
+      _ ->
+        eval_expr(operator, env)
+    end
+  end
+
+  defp builtin?(function) do
+    with true <- is_atom(function),
+         s <- Atom.to_string(function) do
+           String.starts_with?(s, "__")
+    else
+      _ -> false
+    end
+  end
+
+  def curry(fun) do
+    {_, arity} = :erlang.fun_info(fun, :arity)
+    curry(fun, arity, [])
+  end
+
+  def curry(fun, 0, arguments) do
+    apply(fun, Enum.reverse arguments)
+  end
+
+  def curry(fun, arity, arguments) do
+    fn arg -> curry(fun, arity - 1, [arg | arguments]) end
   end
 end

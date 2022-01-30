@@ -11,10 +11,10 @@ defmodule Terp.Parser do
   ## Examples
 
       iex> Terp.Parser.parse("(+ 1 2 3)")
-      [[__apply: [:"__+", 1, 2, 3]]]
+      [[__apply: ["+", 1, 2, 3]]]
 
       iex> Terp.Parser.parse("(+ 1 2 (* 2 3))")
-      [[__apply: [:"__+", 1, 2, {:__apply, [:"__*", 2, 3]}]]]
+      [[__apply: ["+", 1, 2, {:__apply, ["*", 2, 3]}]]]
   """
   def parse(str) do
     str
@@ -33,6 +33,8 @@ defmodule Terp.Parser do
       let_values_parser(),
       cond_parser(),
       typedef_parser(),
+      type_class(),
+      type_class_instance(),
       type_annotation_parser(),
       defn_parser(),
       application_parser(),
@@ -130,9 +132,9 @@ defmodule Terp.Parser do
       ignore(char("(")),
       ignore(string("type")),
       ignore(either(newline(), space())),
-      either(hyphenated_word(), beam_term_parser()),
+      choice([hyphenated_word(), type_parser(), beam_term_parser(), punctuation_parser()]),
       ignore(either(newline(), space())),
-      arrow_parser(),
+      type_parser(),
       ignore(char(")"))
     ])
     map(t_parser, fn x -> {:__type, x} end)
@@ -148,6 +150,54 @@ defmodule Terp.Parser do
       arrow_parser(),
       word(),
     ])
+  end
+
+  defp type_class() do
+    c_parser = sequence([
+      ignore(char("(")),
+      ignore(string("class")),
+      ignore(many(either(newline(), space()))),
+      between(string("["),
+        sep_by(hyphenated_word(), space()),
+        string("]")),
+      ignore(many(either(newline(), space()))),
+      between(
+        string("["),
+        many1(
+          choice([
+            type_annotation_parser(),
+            ignore(either(newline(), space())),
+          ])
+        ),
+        string("]")
+      ),
+      ignore(char(")"))
+    ])
+    map(c_parser, fn x -> {:__class, x} end)
+  end
+
+  defp type_class_instance() do
+    c_parser = sequence([
+      ignore(char("(")),
+      ignore(string("instance")),
+      ignore(many(either(newline(), space()))),
+      between(string("["),
+        sep_by(type_parser(), space()),
+        string("]")),
+      ignore(many(either(newline(), space()))),
+      between(
+        string("["),
+        many1(
+          choice([
+            lazy(fn -> expr_parser() end),
+            ignore(either(newline(), space()))
+          ])
+        ),
+        string("]")
+      ),
+      ignore(char(")"))
+    ])
+    map(c_parser, fn x -> {:__instance, x} end)
   end
 
   defp arrow_parser() do
@@ -168,7 +218,7 @@ defmodule Terp.Parser do
     p = sequence([
       either(string("defn"), string("defrec")),
       ignore(either(newline(), space())),
-      hyphenated_word(), # fn_name
+      either(hyphenated_word(), punctuation_parser()), # fn_name
       ignore(either(newline(), space())),
       between_parens_parser( # Args
         valid_expr_parser()
@@ -238,11 +288,12 @@ defmodule Terp.Parser do
   # Parses literals
   defp literal_parser() do
     choice([
+      beam_term_parser(),
       built_ins_parser(),
       bool_parser(),
+      float(),
       integer(),
       punctuation_parser(),
-      beam_term_parser(),
       string_to_atom(ignore(char(":")) |> word()),
       both(hyphenated_word(), char("?"), &(&1 <> &2)),
       both(hyphenated_word(), char("!"), &(&1 <> &2)),
@@ -259,7 +310,7 @@ defmodule Terp.Parser do
     [ignore(char(":")),
      hyphenated_word(),
      ignore(char(".")),
-     string_to_atom(hyphenated_word())]
+     string_to_atom(either(hyphenated_word(), punctuation_parser()))]
     |> sequence()
     |> map(&{:__beam, &1})
   end
@@ -286,6 +337,16 @@ defmodule Terp.Parser do
     choice([
       string("/"),
       string("."),
+      string("+"),
+      string("-"),
+      string("="),
+      string("<"),
+      string(">"),
+      string("*"),
+      string("$"),
+      string("^"),
+      string("%"),
+      string("#"),
     ])
   end
 
@@ -313,9 +374,9 @@ defmodule Terp.Parser do
   # Parses valid built-in functions/terms in terp.
   defp built_ins_parser() do
     choice([
-      to_built_in(char("+")),
-      to_built_in(char("-")),
-      to_built_in(char("*")),
+      #to_built_in(char("+")),
+      #to_built_in(char("-")),
+      #to_built_in(char("*")),
       to_built_in(string("div")), # / collides with the symbol
       to_built_in(string("if")),
       to_built_in(string("car")),

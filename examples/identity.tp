@@ -1,4 +1,5 @@
 ;; Example showing variable binding
+(require prelude/typeclass/classes)
 (provide identity)
 
 (let identity

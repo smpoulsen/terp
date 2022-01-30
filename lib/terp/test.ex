@@ -9,16 +9,16 @@ defmodule Terp.Test do
   alias Terp.TypeSystem
   alias RoseTree.Zipper
 
-  def test_dir(path, state \\ %{tests: 0, failures: 0}) do
+  def test_dir(path, environment, state \\ %{tests: 0, failures: 0}) do
     with {:ok, files} <- File.ls(path) do
       Enum.reduce(files, state, fn
         (file, %{tests: t1, failures: f1} = state) ->
         full_path = "#{path}/#{file}"
         if File.dir?(full_path) do
-          test_dir(full_path, state)
+          test_dir(full_path, environment, state)
         else
           if String.ends_with?(file, "_test.tp") do
-            %{tests: t2, failures: f2} = run_tests(full_path)
+            %{tests: t2, failures: f2} = run_tests(full_path, environment)
             %{tests: t1 + t2, failures: f1 + f2}
           else
             state
@@ -28,18 +28,20 @@ defmodule Terp.Test do
     end
   end
 
-  def run_tests(file) do
+  def run_tests(file, environment) do
     Bunt.puts([file])
     with true <- Terp.IO.is_terp_file(file),
          {:ok, src} <- File.read(file),
-           ast = src |> Parser.parse() |> Enum.flat_map(&AST.to_tree/1),
+         ast = src |> Parser.parse() |> Enum.flat_map(&AST.to_tree/1),
          {:ok, _type} <- TypeSystem.check_ast(ast) do
-      initial_environment = fn x -> {:error, {:unbound, x}} end
       {stats, _env} = ast
-      |> Enum.reduce({%{tests: 0, failures: 0}, initial_environment}, fn
+      |> Enum.reduce({%{tests: 0, failures: 0}, environment}, fn
         (tree, {state, env}) ->
           run_test(tree, {state, env})
       end)
+      if stats.failures > 0 do
+        System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+      end
       stats
     else
       false ->

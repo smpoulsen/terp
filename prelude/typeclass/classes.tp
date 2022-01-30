@@ -1,0 +1,20 @@
+;; (module typeclass/classes)
+;; Imports and re-exports the defined type classes.
+(require prelude/typeclass/foldable
+         prelude/typeclass/functor
+         prelude/typeclass/monoid
+         prelude/typeclass/monad
+         prelude/typeclass/num)
+
+(provide +
+         -
+         *
+         negate
+         abs
+         signum
+         fromInteger
+         map
+         bind
+         pure
+         mappend
+         mempty)

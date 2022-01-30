@@ -48,6 +48,8 @@ defmodule Terp.Error do
     Bunt.puts([:red, "--#{String.upcase(to_string(module))} ERROR--"])
   end
 
+  def pretty_print_error({:error, %Error{} = error}, _expr), do: pretty_print_error(error)
+
   def pretty_print_error({:error, {module, reason}}) do
     Bunt.puts([:red, "--#{String.upcase(to_string(module))} ERROR--"])
     Bunt.puts(["#{reason} when evaluating the expression"])
@@ -69,6 +71,15 @@ defmodule Terp.Error do
   defp print_error_for_kind(%Error{kind: :type, type: :unification, message: _m, evaluating: %{expr: val, expected: e, actual: a}, in_expression: expr}) do
     Bunt.puts(["The expected type does not match the actual type for the value"])
     Bunt.puts([:red, "\t#{AST.stringify(val)}"])
+    Bunt.puts(["in the expression"])
+    Bunt.puts([:blue, "\t#{AST.stringify(expr)}"])
+    Bunt.puts(["Expected type: ", :blue, "#{to_string(e)}"])
+    Bunt.puts(["  Actual type: ", :red, "#{to_string(a)}"])
+  end
+  defp print_error_for_kind(%Error{kind: :type, type: :unification, message: _m, evaluating: %{expected: e, actual: a}, in_expression: expr}) do
+    # This duplicates the previous except for the expr key in evaluating.
+    # Should be able to refactor to reduce repetition.
+    Bunt.puts(["The expected type does not match the actual type"])
     Bunt.puts(["in the expression"])
     Bunt.puts([:blue, "\t#{AST.stringify(expr)}"])
     Bunt.puts(["Expected type: ", :blue, "#{to_string(e)}"])

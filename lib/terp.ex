@@ -9,16 +9,6 @@ defmodule Terp do
   Evaluates a terp expression.
 
   Only returns the result of evaluating the code.
-
-  ## Example
-
-      iex> "(* 2 4 (+ 4 1))"
-      ...> |> Terp.eval()
-      40
-
-      iex> "(if #t (* 5 5) (+ 4 1))"
-      ...> |> Terp.eval()
-      25
   """
   def eval(str) do
     {result, _environment} = eval_source(str)

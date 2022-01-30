@@ -1,0 +1,23 @@
+;; Typeclasses provide a mechanism for ad-hoc polymorphism.
+;;
+;; Typeclasses are defined by declaring the types that functions
+;; in the typeclass must satisfy.
+;;
+;; Instances of the typeclass can then be defined for particular
+;; types.
+
+;; See prelude/typeclass/tests/typeclass_test for more examples.
+
+(require prelude/data/maybe
+         prelude/typeclass/functor
+         prelude/typeclass/num)
+
+;; The functor typeclass defines a map function.
+(map (* 2) '(1 2 3 4 5))
+;; '(2, 4, 6, 8, 10)
+
+(map (* 2) (Just 5))
+;; (Just 10)
+
+(map (* 2) (Nothing))
+;; (Nothing)

@@ -41,7 +41,10 @@
 ** TODO Product Types
 ** TODO Recursive types
    Need to y-combinate them as well
-** TODO Type classes
+** INPROGRESS Type classes
+   - State "INPROGRESS" from "TODO"       [2017-10-06 Fri 08:54]
+     - Basic typeclasess are implemented.
+     TODO: Add constraints, e.g. Monad must implement Applicative
 ** TODO Pattern match things other than value constructors
 ** TODO Documentation extraction and hosting
 ** INPROGRESS [#B] improve error handling

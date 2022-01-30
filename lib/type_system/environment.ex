@@ -4,10 +4,15 @@ defmodule Terp.TypeSystem.Environment do
   use GenServer
   alias __MODULE__
   alias RoseTree.Zipper
+  alias Terp.Error
+  alias Terp.TypeSystem.Type
   alias Terp.TypeSystem.TypeVars
   alias Terp.TypeSystem.Evaluator
 
-  defstruct [inferred_types: %{}, annotated_types: %{}, type_defs: %{}]
+  defstruct [inferred_types: %{},
+             type_classes: %{},
+             type_instances: %{},
+             type_defs: %{}]
 
   # Client
   @doc """
@@ -88,6 +93,27 @@ defmodule Terp.TypeSystem.Environment do
     end
   end
 
+  ## Type Classes
+  def define_class(type_dict) do
+    GenServer.cast(:type_env, {:define_class, type_dict})
+  end
+
+  def lookup_class_defn(class_name, fn_name) do
+    GenServer.call(:type_env, {:lookup_class_defn, class_name, fn_name})
+  end
+
+  def define_instance(name, type_dict) do
+    GenServer.cast(:type_env, {:define_instance, name, type_dict})
+  end
+
+  def lookup_instance_defn(fn_name) do
+    GenServer.call(:type_env, {:lookup_instance_defn, fn_name})
+  end
+
+  def implements_class?(class, type) do
+    GenServer.call(:type_env, {:implements_class, class, type})
+  end
+
   # server
 
   @doc false
@@ -129,6 +155,72 @@ defmodule Terp.TypeSystem.Environment do
   end
 
   @doc false
+  def handle_call({:lookup_class_defn, class_name, fn_name}, _from, %Environment{inferred_types: inferred_types} = state) do
+    res = case Map.get(inferred_types, fn_name, :no_fn) do
+            :no_fn ->
+              %Error{kind: :type,
+                     type: :class_definition,
+                     message: "Type class #{class_name} does not define #{fn_name}"}
+            %Type{classes: classes} = type ->
+              belongs_to_class? = classes
+              |> Enum.map(&elem(&1, 0))
+              |> Enum.member?(class_name)
+              if belongs_to_class? do
+                {:ok, type}
+              else
+                  %Error{kind: :type,
+                         type: :class_definition,
+                         message: "Type class #{class_name} does not define #{fn_name}"}
+              end
+          end
+    {:reply, res, state}
+  end
+
+  @doc false
+  def handle_call({:lookup_instance_defn, fn_name}, _from, %Environment{type_instances: type_instances} = state) do
+    res = case Map.get(type_instances, fn_name, :no_fn) do
+      :no_fn ->
+        %Error{kind: :type,
+               type: :instance_definition,
+               message: "#{fn_name} is not defined"}
+      type ->
+        {:ok, type}
+    end
+    {:reply, res, state}
+  end
+
+  @doc false
+  def handle_call({:implements_class, nil, _type}, _from, state), do: {:reply, true, state}
+  def handle_call({:implements_class, class, type}, _from, %Environment{type_classes: type_classes} = state) do
+    res = case Map.get(type_classes, class) do
+            nil ->
+              %Error{kind: :type,
+                     type: :instance_definition,
+                     message: "Type class #{class} is not defined"}
+            classes ->
+              with false <- MapSet.member?(classes, type),
+                   false <- is_map(type) && Map.get(type, :constructor) === :Tvar,
+                   false <- _hkt_implements_class(classes, type) do
+                false
+              else
+                true ->
+                  true
+              end
+          end
+    {:reply, res, state}
+  end
+
+  def _hkt_implements_class(classSet, %Type{constructor: c, t: %Type{}}) do
+    classSet
+    |> Enum.member?(c)
+  end
+  def _hkt_implements_class(classSet, %Type{type_constructor: c}) do
+    classSet
+    |> Enum.member?(c)
+  end
+  def _hkt_implements_class(_classSet, _type), do: false
+
+  @doc false
   def handle_cast({:extend, name, scheme}, %Environment{inferred_types: types} = state) do
     updated_types = Map.put_new(types, name, scheme)
     {:noreply, %{state | inferred_types: updated_types}}
@@ -156,5 +248,32 @@ defmodule Terp.TypeSystem.Environment do
   def handle_cast({:annotate, fn_name, type}, %Environment{inferred_types: types} = state) do
     updated_types = Map.put_new(types, fn_name, type)
     {:noreply, %{state | inferred_types: updated_types}}
+  end
+
+  # Type Classes
+  @doc false
+  def handle_cast({:define_class, type_dict}, %Environment{inferred_types: inferred_types} = state) do
+    updated_inferred_types = Map.merge(inferred_types, type_dict)
+    {:noreply, %{state | inferred_types: updated_inferred_types}}
+  end
+
+  @doc false
+  def handle_cast({:define_instance, name, type_dict}, %Environment{type_classes: types, type_instances: type_instances} = state) do
+    updated_type_instances = Map.merge(type_instances, type_dict, fn (_k, v1, v2) ->
+      Map.merge(v1, v2)
+    end)
+    updated_classes = if Map.has_key?(types, name) do
+      new_instances = type_dict
+      |> Enum.map(fn {_k, v} -> Map.keys(v) end)
+      |> List.flatten()
+      |> MapSet.new
+      MapSet.union(new_instances, Map.get(types, name))
+    else
+      type_dict
+      |> Enum.map(fn {_k, v} -> Map.keys(v) end)
+      |> List.flatten()
+      |> MapSet.new
+    end
+    {:noreply, %{state | type_instances: updated_type_instances, type_classes: Map.put(types, name, updated_classes)}}
   end
 end

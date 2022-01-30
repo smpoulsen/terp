@@ -12,7 +12,7 @@ defmodule Terp.TypeSystem.Type do
   alias __MODULE__
   alias Terp.TypeSystem.Environment
 
-  defstruct [:constructor, :t, :vars, :type_constructor]
+  defstruct [:constructor, :t, :vars, :type_constructor, :classes]
 
   @type t :: %__MODULE__{}
 
@@ -24,6 +24,11 @@ defmodule Terp.TypeSystem.Type do
   @spec int() :: Type.t
   def int() do
     %Type{constructor: :Tconst, t: :Int}
+  end
+
+  @spec float() :: Type.t
+  def float() do
+    %Type{constructor: :Tconst, t: :Float}
   end
 
   @spec string() :: Type.t
@@ -59,8 +64,8 @@ defmodule Terp.TypeSystem.Type do
   Expects the type name, a list of type variables (as atoms),
   and a list of tuples containing {type, type vars}.
   """
-  @spec sum_type(String.t, [String.t], [{String.t, [String.t]}]) :: Type.t
-  def sum_type(name, type_vars, constructors) do
+  @spec higher_kinded(String.t, [String.t], [{String.t, [String.t]}]) :: Type.t
+  def higher_kinded(name, type_vars, constructors) do
     ts = for {name, args} <- constructors do
       constructor = to_string(name)
       # This to_type won't work for HKTs
@@ -84,7 +89,7 @@ defmodule Terp.TypeSystem.Type do
   def constructor_for_type(name) do
     type = Environment.contents.type_defs
     |> Enum.find(fn {_k, v} ->
-      Enum.member?(Enum.map(v.t, &(&1.constructor)), name)
+      Enum.member?(Enum.map(Map.get(v, :t, []), &(&1.constructor)), name)
     end)
     case type do
       nil ->
@@ -111,6 +116,7 @@ defmodule Terp.TypeSystem.Type do
   # to_type/1
   def to_type(%Type{} = x), do: x
   def to_type("Int"), do: int()
+  def to_type("Float"), do: float()
   def to_type("Bool"), do: bool()
   def to_type("String"), do: string()
   def to_type(x), do: var(x)
@@ -119,10 +125,11 @@ defmodule Terp.TypeSystem.Type do
   def to_type("List", x), do: list(to_type(x))
   def to_type(constructor, vars) do
     case Environment.lookup_def(constructor) do
-      {:error, e} ->
-        {:error, e}
       {:ok, t} ->
         replace_type_vars({t, vars})
+      _ ->
+        vars_list = List.wrap(vars)
+        higher_kinded(constructor, vars_list, [{var(constructor), vars_list}])
     end
   end
 
@@ -183,7 +190,13 @@ defmodule Terp.TypeSystem.Type do
     def to_string(%Type{constructor: :Tvar, t: t}), do: Kernel.to_string(t)
     def to_string(%Type{constructor: :Tlist, t: x}), do: "[#{Kernel.to_string(x)}]"
     def to_string(%Type{constructor: :Ttuple, t: {x, y}}), do: "{#{Kernel.to_string(x)}, #{Kernel.to_string(y)}}"
-    def to_string(%Type{constructor: :Tarrow, t: {x, y}}), do: "(-> #{Kernel.to_string(x)} #{Kernel.to_string(y)})"
+    def to_string(%Type{constructor: :Tarrow, t: {x, y}}) do
+      if x.constructor == :Tarrow do
+          "(#{Kernel.to_string(x)}) -> #{Kernel.to_string(y)}"
+      else
+          "#{Kernel.to_string(x)} -> #{Kernel.to_string(y)}"
+      end
+    end
     def to_string(%Type{constructor: nil, type_constructor: t, vars: vars}) do
       var_string = vars
       |> Enum.map(&Kernel.to_string/1)

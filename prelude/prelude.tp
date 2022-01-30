@@ -1,14 +1,11 @@
-;; (module prelude.prelude)
+;; (module prelude/prelude)
 ;; Imports and re-exports the other modules in the directory.
-(require prelude/list
+(require prelude/typeclass/classes
+         prelude/list
          prelude/function)
 
-(provide foldl
-         foldr
-         reverse
-         map
+(provide reverse
          sum
          length
          filter
-         compose
-         )
+         compose)

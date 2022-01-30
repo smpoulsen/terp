@@ -1,0 +1,109 @@
+(require prelude/test
+         prelude/data/maybe
+         prelude/typeclass/num
+         prelude/typeclass/functor
+         prelude/typeclass/monoid
+         prelude/typeclass/monad)
+
+;; Num Int
+(test "Num Int -> addition"
+      (assert (equal? (+ 5 5) 10)))
+
+(test "Num Int -> multiplication"
+      (assert (equal? (* 5 5) 25)))
+
+(test "Num Int -> abs"
+      (assert (equal? (abs (negate 5)) 5)))
+
+(test "Num Int -> negate"
+      (assert (equal? (negate (negate 5)) 5)))
+
+(test "Num Int -> signum positive"
+      (assert (equal? (signum 5) 1)))
+
+(test "Num Int -> signum zero"
+      (assert (equal? (signum 0) 0)))
+
+(test "Num Int -> signum negative"
+      (assert (equal? (signum (negate 5)) (negate 1))))
+
+;; Num Float
+(test "Num Float -> addition"
+      (assert (equal? (+ 5.5 5.5) 11.0)))
+
+(test "Num Float -> multiplication"
+      (assert (equal? (* 5.5 5.5) 30.25)))
+
+(test "Num Float -> abs"
+      (assert (equal? (abs (negate 5.5)) 5.5)))
+
+(test "Num Float -> negate"
+      (assert (equal? (negate (negate 5.5)) 5.5)))
+
+(test "Num Float -> signum positive"
+      (assert (equal? (signum 5.5) 1.0)))
+
+(test "Num Float -> signum zero"
+      (assert (equal? (signum 0.0) 0.0)))
+
+(test "Num Float -> signum negative"
+      (assert (equal? (signum (negate 5.5)) (negate 1.0))))
+
+;; Monoid List
+(test "Monoid List -> append two lists"
+      (assert (equal? (mappend '(1 2 3) '(8 9 10)) '(1 2 3 8 9 10))))
+
+(test "Monoid List -> append mempty to a list"
+      (assert (equal? (mappend '(1 2 3) mempty) '(1 2 3))))
+
+(test "Monoid List -> append a list to mempty"
+      (assert (equal? (mappend mempty '(1 2 3)) '(1 2 3))))
+
+;; Functor List
+(test "Functor List -> map square over a list of Ints"
+      (let-values
+          ([square (lambda (x) (* x x))])
+        (assert (equal? (map square '(1 2 3 4 5)) '(1 4 9 16 25)))))
+
+;; Functor Maybe
+(test "Functor Maybe -> map square over Just Int"
+      (let-values
+          ([square (lambda (x) (* x x))])
+        (assert (equal? (map square (Just 5)) (Just 25)))))
+
+(test "Functor Maybe -> map square over Nothing"
+      (let-values
+          ([square (lambda (x) (* x x))])
+        (assert (equal? (map square (Nothing)) (Nothing)))))
+
+;; Monad
+(test "Monad Maybe -> bind with an inferred pure of Just"
+      (let-values
+          ([result (bind (Just 5) (lambda (x) (pure (+ x 5))))])
+        (assert (equal? result (Just 10)))))
+
+(test "Monad Maybe -> bind with an inferred pure of Nothing"
+      (let-values
+          ([result (bind (Nothing) (lambda (x) (pure (+ x 5))))])
+        (assert (equal? result (Nothing)))))
+
+;; Testing binding in monads
+(defn maybe-add (mx my)
+  (bind mx (lambda (x)
+             (bind my (lambda (y)
+                        (pure (+ x y)))))))
+
+(test "Monad Maybe -> maybe-add function with two Justs"
+        (assert (equal?
+                 (maybe-add (Just 5) (Just 10))
+                 (Just 15))))
+
+(test "Monad Maybe -> maybe-add function with Just and Nothing"
+      (assert (equal?
+               (maybe-add (Just 5) (Nothing))
+               (Nothing))))
+
+(test "Monad Maybe -> maybe-add function with Nothing and Just"
+      (assert (equal?
+               (maybe-add (Nothing) (Just 5))
+               (Nothing))))

@@ -9,14 +9,17 @@ defmodule Terp.TypeSystem.MatchTest do
 
   describe "Type checking Maybes" do
     setup do
+      TypeSystem.start_environment()
       maybe = """
-      (data (Maybe a) [Just a] [Nothing])
-      (defn maybePlusFive (x) (match (x) [(Just z) (Just (+ z 5))] [(Nothing) (Nothing)]))
+      (require prelude/typeclass/classes)
+      (require examples/higher_kinded_types)
       """
+      Terp.eval(maybe)
       {:ok, %{maybe: maybe}}
     end
-    test "Matching a (Just Int) value", %{maybe: maybe} do
-      {:ok, types} = maybe <> """
+
+    test "Matching a (Just Int) value" do
+      {:ok, types} = """
       (maybePlusFive (Just 4))
       """
       |> TypeSystem.check_src()
@@ -24,8 +27,8 @@ defmodule Terp.TypeSystem.MatchTest do
       assert to_string(type) == "[Maybe Int]"
     end
 
-    test "Matching a (Nothing) value", %{maybe: maybe} do
-      {:ok, types} = maybe <> """
+    test "Matching a (Nothing) value" do
+      {:ok, types} = """
       (maybePlusFive (Nothing))
       """
       |> TypeSystem.check_src()

@@ -1,0 +1,17 @@
+;; A Monoid must have a binary associative operation
+;; and an identity.
+
+(require prelude/typeclass/foldable)
+
+(provide mempty
+         mappend)
+
+(class [Monoid a]
+  [(type mempty a)
+   (type mappend (-> a (-> a a)))])
+
+(instance [Monoid [List a]]
+          [(let mempty '())
+           (defn mappend (x y)
+             (foldr (lambda (z acc)
+                      (cons z acc)) y x))])

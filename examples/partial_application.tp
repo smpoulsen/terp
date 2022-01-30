@@ -1,8 +1,12 @@
+(require prelude/typeclass/classes)
+(provide add
+         add-five)
+
 (let add
     (lambda (x y) (+ x y)))
 
-(let add_five
+(let add-five
     (add 5))
 
-(add_five 3)
+(add-five 3)
 ;; 8

@@ -1,8 +1,7 @@
 ;; Terp can use Elixir and Erlang functions.
 ;; To use them, prefix the fully qualified name
 ;; of the function (e.g. module.function) with a `:`
-(provide square
-         reverse-squares)
+(provide reverse-squares)
 
 ;; Set up types for the Elixir functions that are used.
 ;; Type inference cannot correctly infer their types out of the box.

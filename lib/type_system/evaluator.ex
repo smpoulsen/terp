@@ -5,9 +5,10 @@ defmodule Terp.TypeSystem.Evaluator do
   alias Terp.Error
   alias Terp.TypeSystem.Type
   alias Terp.TypeSystem.Annotation
-  alias Terp.TypeSystem.TypeVars
   alias Terp.TypeSystem.Environment
   alias Terp.TypeSystem.Match
+  alias Terp.TypeSystem.TypeClass
+  alias Terp.TypeSystem.TypeVars
 
   @type scheme :: {[Type.t], Type.t}
   @type type_environment :: map()
@@ -21,6 +22,8 @@ defmodule Terp.TypeSystem.Evaluator do
       {:error, _} -> TypeVars.reset()
     end
     case infer(expr, %{}) do
+      :ok ->
+        {:ok, %{}}
       {:ok, {_substitution, type}} ->
         if expr.node == :__type do
           {:ok, {null_substitution(), type}}
@@ -58,14 +61,24 @@ defmodule Terp.TypeSystem.Evaluator do
         [type_constructor | [data_constructors | []]] = children
         {name, vars} = format_constructor(type_constructor.node)
         data_constructors = Enum.map(data_constructors.node, &format_constructor/1)
-        t = Type.sum_type(name, vars, data_constructors)
+        t = Type.higher_kinded(name, vars, data_constructors)
         Environment.define_type(name, t)
         {:ok, {%{}, t}}
       :__type ->
         [fn_name | [type_info | []]] = children
         Annotation.annotate_type(fn_name, type_info.node)
+      :__class ->
+        [type_class, %{node: types}] = children
+        class_name = type_class.node
+        |> Enum.map(&(&1.node))
+        TypeClass.define_class(class_name, types)
+      :__instance ->
+        [type_class, %{node: definitions}] = children
+        TypeClass.define_instance(type_class, definitions)
       x when is_integer(x) ->
         {:ok, {null_substitution(), Type.int()}}
+      x when is_float(x) ->
+        {:ok, {null_substitution(), Type.float()}}
       x when is_boolean(x) ->
         {:ok, {null_substitution(), Type.bool()}}
       :__string ->
@@ -321,6 +334,8 @@ defmodule Terp.TypeSystem.Evaluator do
            arrows = build_up_arrows(Enum.reverse([tv | ts])),
          {:ok, s3} <- unify(apply_sub(s2, t1), arrows) do
       composed_substitution = compose(s3, compose(s2, s1))
+      # TODO Somewhere here, need to check if the inferred type
+      # is a member of the type class; throw error otherwise
       {:ok, {composed_substitution, apply_sub(s3, tv)}}
     else
       {:error, e} ->
@@ -505,8 +520,6 @@ defmodule Terp.TypeSystem.Evaluator do
   @spec apply_sub(substitution, Type.t) :: Type.t
   def apply_sub(_, %Type{constructor: :Tconst} = type), do: type
   def apply_sub(substitution, %Type{constructor: :Tlist, t: %Type{constructor: :Tlist, t: t}}) do
-    # Not sure why/where the super nested lists are coming from.
-    # cons, I think, but haven't yet investigated.
     Type.list(apply_sub(substitution, t))
   end
   def apply_sub(substitution, %Type{constructor: :Tlist, t: t}) do
@@ -518,10 +531,29 @@ defmodule Terp.TypeSystem.Evaluator do
   def apply_sub(substitution, %Type{constructor: :Ttuple, t: {t1, t2}}) do
     Type.tuple(apply_sub(substitution, t1), apply_sub(substitution, t2))
   end
-  def apply_sub(substitution, %Type{constructor: :Tarrow, t: {t1, t2}}) do
-    Type.function(apply_sub(substitution, t1), apply_sub(substitution, t2))
+  def apply_sub(substitution, %Type{constructor: :Tarrow, t: {t1, t2}} = type) do
+    classes = if is_nil(type.classes) do
+      nil
+    else
+      Enum.filter(type.classes, fn {_c, v} -> v == t1.t end)
+    end
+    t1 = %{t1 | classes: classes}
+    t2 = %{t2 | classes: type.classes}
+    t = Type.function(apply_sub(substitution, t1), apply_sub(substitution, t2))
+    %{t | classes: type.classes}
+  end
+  def apply_sub(substitution, %Type{classes: classes} = type) when is_list(classes) do
+    # TODO Sub in the constructor if it's a variable
+    class_vars = Enum.map(classes, &elem(&1, 1))
+    Enum.reduce(class_vars, type, fn (var, _acc) ->
+      case Map.get(substitution, var) do
+        nil -> type
+        sub_type -> sub_type
+      end
+    end)
   end
   def apply_sub(substitution, %Type{t: ts} = type) when is_list(ts) do
+    # TODO Sub in the constructor if it's a variable
     updated_ts = Enum.map(ts, &apply_sub(substitution, &1))
     updated_vars = Enum.map(type.vars,
       fn var ->
@@ -599,8 +631,10 @@ defmodule Terp.TypeSystem.Evaluator do
         {:error, e}
     end
   end
-  def unify(%Type{constructor: :Tarrow, t: {l1, r1}}, %Type{constructor: :Tarrow, t: {l2, r2}}) do
-    with {:ok, s1} <- unify(l1, l2),
+  def unify(%Type{constructor: :Tarrow, t: {l1, r1}} = t1, %Type{constructor: :Tarrow, t: {l2, r2}} = t2) do
+    # TODO check that types implement class or throw error
+    with :ok <- TypeClass.implements_class?(t1.classes, t2),
+         {:ok, s1} <- unify(l1, l2),
          {:ok, s2} <- unify(apply_sub(s1, r1), apply_sub(s1, r2)) do
       {:ok, compose(s2, s1)}
     else
@@ -622,11 +656,62 @@ defmodule Terp.TypeSystem.Evaluator do
           end
       end)
   end
+  def unify(%Type{type_constructor: c, vars: v1}, %Type{type_constructor: nil, t: t} = t2) when is_list(v1) do
+    # Unification for higher kinded type vars
+    with c_type <- Type.to_type(c),
+         v1_types <- Enum.map(v1, &Type.to_type/1),
+           v1_type <- List.first(v1_types) do
+      Enum.reduce([{t2, c_type}, {v1_type, t}], {:ok, %{}},
+        fn (_, {:error, _e} = error) -> error
+          ({t1, t2}, {:ok, subs}) ->
+            case unify(apply_sub(subs, t1), t2) do
+              {:ok, s} ->
+                {:ok, compose(s, subs)}
+              e -> e
+            end
+        end)
+    end
+  end
+  def unify(%Type{type_constructor: c, vars: v1} = t1, %Type{type_constructor: d, vars: v2} = t2) do
+    # Unification for higher kinded types and higher kinded type variables
+    # Starting to get a good bit of duplication in these unifiers. Should be refactored soon.
+    with false <- is_nil(c),
+         false <- is_nil(d),
+         c_type <- Type.to_type(c),
+           v1_types <- Enum.map(v1, &Type.to_type/1),
+           v2_types <- Enum.map(v2, &Type.to_type/1) do
+      Enum.reduce(Enum.zip([t2 | v2_types], [c_type | v1_types]), {:ok, %{}},
+        fn (_, {:error, _e} = error) -> error
+          ({t1, t2}, {:ok, subs}) ->
+            case unify(t1, t2) do
+              {:ok, s} ->
+                {:ok, compose(s, subs)}
+              e -> e
+            end
+        end)
+    else
+      _ ->
+        %Error{kind: :type,
+               type: :unification,
+               message: "Unable to unify types",
+               evaluating: %{expected: t1, actual: t2}}
+    end
+  end
+  def unify(%Type{t: [var]}, %Type{constructor: _concrete} = t) do
+    if class_var?(var), do: bind(var, t)
+  end
+  def unify(%Type{constructor: _concrete} = t, %Type{t: [var]}) do
+    if class_var?(var), do: bind(var, t)
+  end
   def unify(t1, t2) do
-      %Error{kind: :type,
-             type: :unification,
-             message: "Unable to unify types",
-             evaluating: %{expected: t1, actual: t2}}
+    %Error{kind: :type,
+           type: :unification,
+           message: "Unable to unify types",
+           evaluating: %{expected: t1, actual: t2}}
+  end
+
+  defp class_var?(var) do
+    is_bitstring(var) && (String.downcase(var) == var)
   end
 
   @spec bind(Type.t, Type.t) :: {:ok, substitution} | {:error, {:type, String.t}}
@@ -673,6 +758,9 @@ defmodule Terp.TypeSystem.Evaluator do
       ...> |> substitute_type_vars()
       {[%Type{constructor: :Tvar, t: :a}], %Type{constructor: :Tvar, t: :a}}
   """
+  def substitute_type_vars({vars, %Type{classes: cs} = type}) when is_list(cs) do
+    {Enum.uniq_by(vars, &(&1.t)), type}
+  end
   def substitute_type_vars({vars, type}) do
     TypeVars.reset()
     fresh_vars = for _var <- vars, do: TypeVars.finalize()

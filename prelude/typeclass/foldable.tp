@@ -1,0 +1,41 @@
+;; Foldable
+(provide foldl
+         foldr)
+
+(class [Foldable f]
+  [(type foldl (-> (-> b (-> a b)) (-> b (-> [f a] b))))
+   (type foldr (-> (-> a (-> b b)) (-> b (-> [f a] b))))])
+
+;; Foldable - List
+
+;; Fold a list into a single value using the provided function.
+;; foldl evaluates from left to right.
+;; Arguments:
+;;     fn          -> A function that takes a value and an accumulator;
+;;                    must return a value of the same type as the accumulator.
+;;     values      -> A list of values. Lists must be quoted, e.g. '(1 2 3).
+;;     accumulator -> An initial value to collect values into.
+;; Usage:
+;;     (foldl (lambda (n acc) (+ n acc)) 0 '(1 10 100 1000)) -> 1111
+;;     (foldl (lambda (x y) (cons y x)) '() '(1 2 3 4)) -> '(1 2 3 4)
+
+;; Fold a list into a single value using the provided function.
+;; foldr evaluates from right to left.
+;; Arguments:
+;;     fn          -> A function that takes a value and an accumulator;
+;;                    must return a value of the same type as the accumulator.
+;;     values      -> A list of values. Lists must be quoted, e.g. '(1 2 3).
+;;     accumulator -> An initial value to collect values into.
+;; Usage:
+;;     (foldr (lambda (acc n) (+ n acc)) 0 '(1 10 100 1000)) -> 1111
+;;     (foldl (lambda (x y) (cons x y)) '() '(1 2 3 4)) -> '(1 2 3 4)
+
+(instance [Foldable [List a]]
+          [(defrec foldl (fn accumulator values)
+             (if (empty? values)
+                 accumulator
+                 (foldl fn (fn accumulator (car values)) (cdr values))))
+           (defrec foldr (fn accumulator values)
+               (if (empty? values)
+                   accumulator
+                   (fn (car values) (foldr fn accumulator (cdr values)))))])

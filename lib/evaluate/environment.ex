@@ -2,6 +2,7 @@ defmodule Terp.Evaluate.Environment do
   @moduledoc """
   Functionality for updating the environment in the interpreter.
   """
+  alias __MODULE__
   alias Terp.Evaluate
 
   @doc """
@@ -16,6 +17,13 @@ defmodule Terp.Evaluate.Environment do
   end
 
   def quote(children) do
-    Enum.map(children, &(&1.node))
+    for child <- children do
+      case child.node do
+        :__quote ->
+          Environment.quote(child.children)
+        res ->
+          res
+      end
+    end
   end
 end

@@ -1,0 +1,19 @@
+;; A functor implements a map function.
+(provide map)
+
+(class [Functor f]
+  [(type map (-> (-> a b) (-> [f a] [f b])))])
+
+(instance [Functor [List a]]
+          [(let map
+               (lambda (f xs)
+                 (foldr
+                  (lambda (x acc) (cons (f x) acc))
+                  '()
+                  xs)))])
+
+(instance [Functor [Maybe a]]
+          [(defn map (f x)
+             (match (x)
+               [(Just y) (Just (f y))]
+               [(Nothing) (Nothing)]))])

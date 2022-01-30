@@ -1,0 +1,48 @@
+;; Definition of a type class, Num a, and the functions
+;; that must be implemented to be part of the class.
+(provide +
+         -
+         *
+         negate
+         abs
+         signum
+         fromInteger)
+
+(class [Num a]
+  [(type + (-> a (-> a a)))
+   (type - (-> a (-> a a)))
+   (type * (-> a (-> a a)))
+   (type negate (-> a a))
+   (type abs (-> a a))
+   (type signum (-> a a))
+   (type fromInteger (-> Int a))])
+
+(type :Kernel.< (-> a (-> a Bool)))
+
+;; Making Int an instance of Num.
+(instance [Num Int]
+          [(defn + (x y) (:Kernel.+ x y))
+           (defn - (x y) (:Kernel.- x y))
+           (defn * (x y) (:Kernel.* x y))
+           (defn negate (x) (:Kernel.- x))
+           (defn abs (x) (:Kernel.abs x))
+           (defn signum (x)
+             (cond
+               [(equal? x 0) 0]
+               [(:Kernel.< x 0) (negate 1)]
+               [#t 1]))
+           (defn fromInteger (x) x)])
+
+;; Making Float an instance of Num.
+(instance [Num Float]
+          [(defn + (x y) (:Kernel.+ x y))
+           (defn - (x y) (:Kernel.- x y))
+           (defn * (x y) (:Kernel.* x y))
+           (defn negate (x) (:Kernel.- x))
+           (defn abs (x) (:Kernel.abs x))
+           (defn signum (x)
+             (cond
+               [(equal? x 0) 0]
+               [(:Kernel.< x 0) (negate 1)]
+               [#t 1]))
+           (defn fromInteger (x) (:Kernel./ x 1))])

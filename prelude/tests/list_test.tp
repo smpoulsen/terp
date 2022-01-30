@@ -1,0 +1,48 @@
+;; Tests for the list list prelude module.
+(require prelude/test
+         prelude/typeclass/classes)
+
+(test "foldl"
+      (assert (equal?
+               (foldl (lambda (x acc) (- acc x)) 0 '(1 2 3 4 5))
+               3)))
+
+(test "foldr"
+      (assert (equal?
+               (foldr (lambda (x acc) (- acc x)) 0 '(1 2 3 4 5))
+               (negate 15))))
+
+(test "map"
+      (assert (equal?
+               (map (lambda (x) (* x 2)) '(1 2 3 4 5))
+               '(2 4 6 8 10))))
+
+(test "reverse"
+      (assert (equal?
+               (reverse '(1 2 3 4 5))
+               '(5 4 3 2 1))))
+
+(test "sum - something"
+      (assert (equal?
+               (sum '(1 2 3))
+               6)))
+
+(test "sum - nothing"
+      (assert (equal?
+               (sum '())
+               0)))
+
+(test "length - something"
+      (assert (equal?
+               (length '(1 2 3 4 5))
+               5)))
+
+(test "length - empty"
+      (assert (equal?
+               (length '())
+               0)))
+
+(test "filter"
+      (assert (equal?
+               (filter (lambda (x) (equal? 2 x)) '(1 2 3 5 4))
+               '(2))))

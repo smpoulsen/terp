@@ -20,6 +20,8 @@
        + [[#recursive-functions][Recursive functions]] (~letrec~, ~defrec~)
        + [[#variable-binding][Variable binding]] (~let~)
          + locally scoped variable binding (~let-values~)
+       + [[#ad-hoc-polymorphism][Ad hoc polymorphism]]
+         + Typeclasses
      + [[#module-system][Module system]]
        + Module imports
        + Function exports
@@ -214,6 +216,45 @@
       (factorial 5)
       ;; 120
     #+END_SRC
+** Ad hoc polymorphism
+   [[https://en.wikipedia.org/wiki/Ad_hoc_polymorphism][Ad hoc polymorphism]] is supported via typeclasses. Typeclasses allow operator overloading so that you can define functions with the same name for arguments of different types, e.g. addition (=+=) for values of type =Int= and =Float= and =map= for different types of containers like =List a= and =Maybe a=.
+   #+BEGIN_SRC racket
+     ;; Int and Float both implement the Num typeclass:
+
+     (+ 4 2)
+     ;; 6 : Int
+
+     (+ 4.2 5.0)
+     ;; 9.2 : Float
+
+
+     ;; [Maybe a] and [List a] implement the functor typeclass:
+
+     (map (+ 5) (Just 10))
+     ;; Just 15 : [Maybe Int]
+
+     (map (+ 5) '(1 2 3))
+     ;; '(6 7 8)
+   #+END_SRC
+
+   New typeclasses are created with the =class= function. A class definition must include the class name with a variable that holds the place of a type that will implement the class, and a list of type annotations for functions that make up the class.
+   #+BEGIN_SRC racket
+     (class [Monoid a]
+       [(type mempty a)
+        (type mappend (-> a (-> a a)))])
+   #+END_SRC
+   
+   To make a type implement a typeclass, use the =instance= function. With instance, the class name is provided along with the type that is implementing the class and a list of definitions for the classes functions.
+   #+BEGIN_SRC racket
+     (instance [Monoid [List a]]
+               [(let mempty '())
+                (defn mappend (x y)
+                  (foldr (lambda (z acc)
+                           (cons z acc)) y x))])
+   #+END_SRC
+   Note: Typeclasses cannot currently inherit from or require that instances also implement other typeclasses. This is currently in work.
+
+   See [[./prelude/typeclass/tests/typeclass_test.tp][typeclass_test.tp]] for additional examples.
 ** Module system
    Modules can be imported in to other modules to make their functions/defined expressions available.
    Modules must specify the functions that they export (via ~provide~) or they cannot be used in other modules.
